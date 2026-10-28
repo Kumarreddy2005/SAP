@@ -1,0 +1,19 @@
+{
+  "name": "@career-orchestrator/shared",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shared domain models, DTOs, and validation schemas for Career Orchestrator",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}

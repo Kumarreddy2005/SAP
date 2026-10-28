@@ -1,0 +1,29 @@
+{
+  "name": "career-orchestrator-monorepo",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Career Orchestrator — AI-assisted career-transition platform for SAP Hackfest 2026",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "build:shared": "npm run --workspace=@career-orchestrator/shared build",
+    "build:backend": "npm run --workspace=@career-orchestrator/backend build",
+    "build:frontend": "npm run --workspace=@career-orchestrator/frontend build",
+    "build": "npm run build:shared && npm run build:backend && npm run build:frontend",
+    "typecheck": "npm run --workspaces --if-present typecheck",
+    "dev:backend": "tsx watch apps/backend/src/server.ts",
+    "dev:frontend": "vite apps/frontend",
+    "start:backend": "node apps/backend/dist/server.js",
+    "preview:frontend": "vite preview apps/frontend"
+  },
+  "keywords": [
+    "sap",
+    "career-orchestrator",
+    "hackfest-2026",
+    "full-stack"
+  ],
+  "author": "Career Orchestrator Engineering Team",
+  "license": "UNLICENSED"
+}
