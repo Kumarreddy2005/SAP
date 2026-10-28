@@ -16,7 +16,9 @@
     "dev:backend": "tsx watch apps/backend/src/server.ts",
     "dev:frontend": "vite apps/frontend",
     "start:backend": "node apps/backend/dist/server.js",
-    "preview:frontend": "vite preview apps/frontend"
+    "preview:frontend": "vite preview apps/frontend",
+    "test:backend": "npm run --workspace=@career-orchestrator/backend test",
+    "test": "npm run test:backend"
   },
   "keywords": [
     "sap",

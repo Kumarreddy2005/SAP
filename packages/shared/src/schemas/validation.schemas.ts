@@ -25,6 +25,18 @@ export const ProficiencyLevelEnum = z.enum([
   'EXPERT'
 ]);
 
+export const ExtractionMethodEnum = z.enum([
+  'EXPLICIT_MENTION',
+  'CONTEXTUAL_INFERENCE',
+  'MANUAL_ENTRY'
+]);
+
+export const SkillReviewStatusEnum = z.enum([
+  'SUGGESTED',
+  'CONFIRMED',
+  'REJECTED'
+]);
+
 export const SkillReviewInputSchema = z.object({
   skillId: z.string().min(1, 'Skill ID is required'),
   name: z.string().min(1, 'Skill name is required'),
@@ -32,12 +44,20 @@ export const SkillReviewInputSchema = z.object({
   proficiency: ProficiencyLevelEnum,
   yearsExperience: z.number().nonnegative('Years of experience must be non-negative'),
   isConfirmed: z.boolean(),
-  isTransferable: z.boolean()
+  isTransferable: z.boolean(),
+  evidenceSnippet: z.string().optional(),
+  extractionMethod: ExtractionMethodEnum.optional(),
+  reviewStatus: SkillReviewStatusEnum.optional()
 });
 
+export type SkillReviewInput = z.infer<typeof SkillReviewInputSchema>;
+
 export const ProfileReviewSubmissionSchema = z.object({
-  profileId: z.string().uuid('Profile ID must be a valid UUID'),
-  reviewedSkills: z.array(SkillReviewInputSchema).min(1, 'At least one confirmed skill is required'),
+  profileId: z.string().min(1, 'Profile ID is required'),
+  fullName: z.string().optional(),
+  currentTitle: z.string().optional(),
+  yearsExperience: z.number().nonnegative().optional(),
+  reviewedSkills: z.array(SkillReviewInputSchema),
   notes: z.string().optional()
 });
 

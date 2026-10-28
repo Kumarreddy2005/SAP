@@ -1,19 +1,8 @@
-import { SkillCategory, ProficiencyLevel } from '@career-orchestrator/shared';
+import { ExtractedSkillItem } from '@career-orchestrator/shared';
 
-export interface UserSkillItem {
-  id: string;
-  code: string;
-  name: string;
-  category: SkillCategory;
-  proficiency: ProficiencyLevel;
-  yearsExperience: number;
-  isConfirmed: boolean;
-  isTransferable: boolean;
-  confidenceScore: number;
-  sourceSnippet?: string;
-}
+export type UserSkillItem = ExtractedSkillItem;
 
-export const INITIAL_DEMO_SKILLS: UserSkillItem[] = [
+export const INITIAL_DEMO_SKILLS: ExtractedSkillItem[] = [
   {
     id: 'skill-1',
     code: 'DOM-GL-ACC',
@@ -24,7 +13,9 @@ export const INITIAL_DEMO_SKILLS: UserSkillItem[] = [
     isConfirmed: true,
     isTransferable: true,
     confidenceScore: 0.96,
-    sourceSnippet: 'Managed end-to-end month-end general ledger reconciliations and financial statement preparation.'
+    extractionMethod: 'EXPLICIT_MENTION',
+    evidenceSnippet: 'Managed end-to-end month-end general ledger reconciliations and financial statement preparation.',
+    reviewStatus: 'CONFIRMED'
   },
   {
     id: 'skill-2',
@@ -36,7 +27,9 @@ export const INITIAL_DEMO_SKILLS: UserSkillItem[] = [
     isConfirmed: true,
     isTransferable: true,
     confidenceScore: 0.94,
-    sourceSnippet: 'Prepared statutory IFRS balance sheet reports and quarterly cash flow summaries.'
+    extractionMethod: 'EXPLICIT_MENTION',
+    evidenceSnippet: 'Prepared statutory IFRS balance sheet reports and quarterly cash flow summaries.',
+    reviewStatus: 'CONFIRMED'
   },
   {
     id: 'skill-3',
@@ -48,7 +41,9 @@ export const INITIAL_DEMO_SKILLS: UserSkillItem[] = [
     isConfirmed: true,
     isTransferable: true,
     confidenceScore: 0.88,
-    sourceSnippet: 'Executed SQL queries and joins on transactional databases to audit anomalies.'
+    extractionMethod: 'EXPLICIT_MENTION',
+    evidenceSnippet: 'Executed SQL queries and joins on transactional databases to audit anomalies.',
+    reviewStatus: 'CONFIRMED'
   },
   {
     id: 'skill-4',
@@ -60,7 +55,9 @@ export const INITIAL_DEMO_SKILLS: UserSkillItem[] = [
     isConfirmed: true,
     isTransferable: true,
     confidenceScore: 0.91,
-    sourceSnippet: 'Documented standard operating procedures and workflows for ERP record-to-report transitions.'
+    extractionMethod: 'CONTEXTUAL_INFERENCE',
+    evidenceSnippet: 'Documented standard operating procedures and workflows for ERP record-to-report transitions.',
+    reviewStatus: 'CONFIRMED'
   },
   {
     id: 'skill-5',
@@ -72,7 +69,9 @@ export const INITIAL_DEMO_SKILLS: UserSkillItem[] = [
     isConfirmed: true,
     isTransferable: true,
     confidenceScore: 0.98,
-    sourceSnippet: 'Architected automated forecasting models using VBA, Power Query, and advanced lookup formulas.'
+    extractionMethod: 'EXPLICIT_MENTION',
+    evidenceSnippet: 'Architected automated forecasting models using VBA, Power Query, and advanced lookup formulas.',
+    reviewStatus: 'CONFIRMED'
   },
   {
     id: 'skill-6',
@@ -84,7 +83,9 @@ export const INITIAL_DEMO_SKILLS: UserSkillItem[] = [
     isConfirmed: false,
     isTransferable: true,
     confidenceScore: 0.82,
-    sourceSnippet: 'Facilitated quarterly alignment meetings between treasury, IT and executive business stakeholders.'
+    extractionMethod: 'CONTEXTUAL_INFERENCE',
+    evidenceSnippet: 'Facilitated quarterly alignment meetings between treasury, IT and executive business stakeholders.',
+    reviewStatus: 'SUGGESTED'
   },
   {
     id: 'skill-7',
@@ -96,7 +97,9 @@ export const INITIAL_DEMO_SKILLS: UserSkillItem[] = [
     isConfirmed: false,
     isTransferable: false,
     confidenceScore: 0.76,
-    sourceSnippet: 'Participated in SAP S/4HANA user acceptance testing for accounts payable journal entries.'
+    extractionMethod: 'CONTEXTUAL_INFERENCE',
+    evidenceSnippet: 'Participated in SAP S/4HANA user acceptance testing for accounts payable journal entries.',
+    reviewStatus: 'SUGGESTED'
   }
 ];
 

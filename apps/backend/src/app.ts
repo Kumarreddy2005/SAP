@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import { env } from './config/env.config';
 import { healthRouter } from './routes/health.router';
+import { resumeRouter, profileRouter } from './modules/resume/resume.router';
 import { errorHandler } from './middleware/errorHandler';
 
 export const app = express();
@@ -19,6 +20,8 @@ app.use(express.json());
 
 // API Routes
 app.use('/api/v1/health', healthRouter);
+app.use('/api/v1/resume', resumeRouter);
+app.use('/api/v1/profile', profileRouter);
 
 // Root route for sanity check
 app.get('/', (req: Request, res: Response) => {

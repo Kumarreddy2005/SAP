@@ -5,19 +5,28 @@ import { StepIndicator } from '../components/common/StepIndicator';
 import { Card } from '../components/common/Card';
 import { Button } from '../components/common/Button';
 import { Badge } from '../components/common/Badge';
-import { DemoDataBanner } from '../components/common/DemoDataBanner';
-import { UploadCloudIcon, CheckIcon, ArrowRightIcon } from '../components/common/Icons';
+import { UploadCloudIcon, CheckIcon, ArrowRightIcon, AlertTriangleIcon, FileTextIcon } from '../components/common/Icons';
 import { useCareerContext } from '../context/CareerContext';
+import { ResumeUploadResponse } from '@career-orchestrator/shared';
 
 export const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
-  const { manualProfile, setManualProfile, uploadedFile, setUploadedFile } = useCareerContext();
+  const {
+    manualProfile,
+    setManualProfile,
+    setUploadedFile,
+    handleUploadSuccess
+  } = useCareerContext();
 
   const [activeTab, setActiveTab] = useState<'upload' | 'manual'>('upload');
   const [dragActive, setDragActive] = useState(false);
-  const [uploadNotice, setUploadNotice] = useState<string | null>(null);
+  const [selectedFileObj, setSelectedFileObj] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadWarning, setUploadWarning] = useState<string | null>(null);
+  const [uploadSuccessData, setUploadSuccessData] = useState<ResumeUploadResponse | null>(null);
 
-  // Form validation errors
+  // Form validation errors for manual intake
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const handleDrag = (e: React.DragEvent) => {
@@ -46,28 +55,78 @@ export const ProfilePage: React.FC = () => {
   };
 
   const processSelectedFile = (file: File) => {
+    setUploadError(null);
+    setUploadWarning(null);
+    setUploadSuccessData(null);
+
     const validExtensions = ['.pdf', '.docx'];
     const hasValidExt = validExtensions.some((ext) => file.name.toLowerCase().endsWith(ext));
 
     if (!hasValidExt) {
-      alert('Invalid file format. Please upload a PDF (.pdf) or Word document (.docx).');
+      setUploadError('Invalid file format. Please upload an Adobe PDF (.pdf) or Word document (.docx).');
       return;
     }
 
     if (file.size > 10 * 1024 * 1024) {
-      alert('File size exceeds the 10MB limit. Please upload a smaller file.');
+      setUploadError('File size exceeds the 10MB limit. Please upload a smaller file.');
       return;
     }
 
+    setSelectedFileObj(file);
     setUploadedFile({
       name: file.name,
       size: file.size,
-      type: file.type || 'application/pdf'
+      type: file.type || (file.name.endsWith('.docx') ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'application/pdf')
     });
+  };
 
-    setUploadNotice(
-      `File "${file.name}" (${(file.size / 1024).toFixed(1)} KB) staged. Note: Live binary extraction connects in Phase 2; demonstration skills will be loaded on the next screen.`
-    );
+  const executeUpload = async () => {
+    if (!selectedFileObj) {
+      setUploadError('Please select a file to upload.');
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadError(null);
+    setUploadWarning(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', selectedFileObj);
+
+      const response = await fetch('/api/v1/resume/upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || data.error || `Server responded with HTTP ${response.status}`);
+      }
+
+      const uploadResult = data as ResumeUploadResponse;
+      setUploadSuccessData(uploadResult);
+      handleUploadSuccess(uploadResult);
+
+      if (uploadResult.status === 'EMPTY_TEXT' || uploadResult.suggestedSkills.length === 0) {
+        setUploadWarning(
+          uploadResult.warnings.length > 0
+            ? uploadResult.warnings.join(' ')
+            : 'No readable text was detected. Note: Optical Character Recognition (OCR) for scanned image documents is not enabled. Please upload a text-based PDF/DOCX or add skills manually.'
+        );
+      } else {
+        // Automatically navigate to skills review after a brief confirmation
+        setTimeout(() => {
+          navigate('/skills-review');
+        }, 600);
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Upload failed. Please try again.';
+      setUploadError(message);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleManualSubmit = (e: React.FormEvent) => {
@@ -90,14 +149,6 @@ export const ProfilePage: React.FC = () => {
     }
   };
 
-  const handleContinueWithUpload = () => {
-    if (!uploadedFile) {
-      alert('Please select a resume file first or switch to the manual entry form.');
-      return;
-    }
-    navigate('/skills-review');
-  };
-
   return (
     <div style={{ padding: '2rem 1.5rem', maxWidth: '1280px', margin: '0 auto' }}>
       <Breadcrumbs items={[{ label: 'Background Intake' }]} />
@@ -108,14 +159,36 @@ export const ProfilePage: React.FC = () => {
           Candidate Background Intake
         </h1>
         <p style={{ color: '#5B6876', fontSize: '1.05rem', maxWidth: '800px' }}>
-          Provide your professional background to discover transferable skills. Upload your current resume or enter your experience history manually.
+          Provide your professional background to discover transferable skills. Upload your resume for automated competency extraction or enter your experience history manually.
         </p>
       </div>
 
-      <DemoDataBanner
-        featureName="Resume Text Extraction UI"
-        backendStateText="The file dropzone validates formats and prepares the payload. In Phase 2, backend pdf-parse and mammoth workers will parse document text into structured experience entities."
-      />
+      {/* Active Pipeline Status Banner */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+          padding: '0.75rem 1.25rem',
+          borderRadius: '8px',
+          backgroundColor: '#EBF3FB',
+          border: '1px solid #C4D5EA',
+          marginBottom: '1.75rem'
+        }}
+      >
+        <span
+          style={{
+            display: 'inline-block',
+            width: '10px',
+            height: '10px',
+            borderRadius: '50%',
+            backgroundColor: '#107E3E'
+          }}
+        />
+        <div style={{ fontSize: '0.875rem', color: '#001A47' }}>
+          <strong>Live Extraction Pipeline:</strong> Documents are securely parsed in-memory using Mozilla PDF.js & Mammoth DOCX engines. Matches candidate competencies across 9 functional categories.
+        </div>
+      </div>
 
       {/* Intake Method Tabs */}
       <div
@@ -171,10 +244,10 @@ export const ProfilePage: React.FC = () => {
               onDragOver={handleDrag}
               onDrop={handleDrop}
               style={{
-                border: `2px dashed ${dragActive ? '#0A6ED1' : uploadedFile ? '#107E3E' : '#C4D5EA'}`,
-                backgroundColor: dragActive ? '#EBF3FB' : uploadedFile ? '#F3FAF6' : '#FAFBFD',
+                border: `2px dashed ${dragActive ? '#0A6ED1' : selectedFileObj ? '#107E3E' : '#C4D5EA'}`,
+                backgroundColor: dragActive ? '#EBF3FB' : selectedFileObj ? '#F3FAF6' : '#FAFBFD',
                 borderRadius: '8px',
-                padding: '3rem 2rem',
+                padding: '2.5rem 1.5rem',
                 textAlign: 'center',
                 transition: 'all 0.2s ease',
                 display: 'flex',
@@ -184,20 +257,20 @@ export const ProfilePage: React.FC = () => {
                 gap: '1rem'
               }}
             >
-              <div style={{ color: uploadedFile ? '#107E3E' : '#0A6ED1' }}>
+              <div style={{ color: selectedFileObj ? '#107E3E' : '#0A6ED1' }}>
                 <UploadCloudIcon size={48} />
               </div>
 
               <div>
                 <h4 style={{ fontSize: '1.15rem', color: '#001A47', marginBottom: '0.35rem' }}>
-                  {uploadedFile ? 'Resume Staged For Review' : 'Drag & drop your resume file here'}
+                  {selectedFileObj ? 'Document Selected & Ready' : 'Drag & drop your resume file here'}
                 </h4>
                 <p style={{ color: '#5B6876', fontSize: '0.9rem' }}>
                   Supports PDF or DOCX up to 10MB in size
                 </p>
               </div>
 
-              {uploadedFile && (
+              {selectedFileObj && (
                 <div
                   style={{
                     backgroundColor: '#FFFFFF',
@@ -209,12 +282,17 @@ export const ProfilePage: React.FC = () => {
                     gap: '0.6rem'
                   }}
                 >
-                  <CheckIcon color="#107E3E" size={18} />
-                  <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#001A47' }}>
-                    {uploadedFile.name}
-                  </span>
+                  <FileTextIcon color="#107E3E" size={20} />
+                  <div style={{ textAlign: 'left' }}>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#001A47' }}>
+                      {selectedFileObj.name}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: '#5B6876' }}>
+                      {(selectedFileObj.size / 1024).toFixed(1)} KB • {selectedFileObj.name.endsWith('.docx') ? 'DOCX Document' : 'PDF Document'}
+                    </div>
+                  </div>
                   <Badge variant="success" size="sm">
-                    Ready
+                    Staged
                   </Badge>
                 </div>
               )}
@@ -226,6 +304,7 @@ export const ProfilePage: React.FC = () => {
                   accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                   style={{ display: 'none' }}
                   onChange={handleFileInput}
+                  disabled={isUploading}
                 />
                 <label htmlFor="resumeFileInput">
                   <span
@@ -238,62 +317,144 @@ export const ProfilePage: React.FC = () => {
                       borderRadius: '6px',
                       fontWeight: 600,
                       fontSize: '0.9rem',
-                      cursor: 'pointer'
+                      cursor: isUploading ? 'not-allowed' : 'pointer'
                     }}
                   >
-                    {uploadedFile ? 'Choose Different File' : 'Browse Local Files'}
+                    {selectedFileObj ? 'Select Different File' : 'Browse Local Files'}
                   </span>
                 </label>
               </div>
             </div>
 
-            {uploadNotice && (
+            {/* Error Message */}
+            {uploadError && (
               <div
                 style={{
                   marginTop: '1.25rem',
-                  padding: '0.75rem 1rem',
-                  backgroundColor: '#EBF3FB',
+                  padding: '1rem',
+                  backgroundColor: '#FDEDED',
+                  border: '1px solid #F5B7B1',
                   borderRadius: '6px',
-                  fontSize: '0.85rem',
-                  color: '#0A6ED1'
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '0.75rem',
+                  color: '#BB0000',
+                  fontSize: '0.9rem'
                 }}
               >
-                {uploadNotice}
+                <AlertTriangleIcon size={20} color="#BB0000" />
+                <div style={{ flex: 1 }}>
+                  <strong>Upload / Parsing Error:</strong> {uploadError}
+                </div>
+                <button
+                  onClick={() => setUploadError(null)}
+                  style={{
+                    backgroundColor: 'transparent',
+                    border: 'none',
+                    color: '#BB0000',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                    fontSize: '0.85rem'
+                  }}
+                >
+                  Dismiss
+                </button>
               </div>
             )}
 
-            <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'flex-end' }}>
+            {/* Warning Message (e.g. Scanned / Empty PDF) */}
+            {uploadWarning && (
+              <div
+                style={{
+                  marginTop: '1.25rem',
+                  padding: '1rem',
+                  backgroundColor: '#FFF4E5',
+                  border: '1px solid #FFD099',
+                  borderRadius: '6px',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '0.75rem',
+                  color: '#A05000',
+                  fontSize: '0.875rem'
+                }}
+              >
+                <AlertTriangleIcon size={20} color="#E9730C" />
+                <div style={{ flex: 1 }}>
+                  <strong>Extraction Advisory:</strong> {uploadWarning}
+                  <div style={{ marginTop: '0.5rem' }}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate('/skills-review')}
+                    >
+                      Continue & Add Skills Manually →
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Extraction Success Summary */}
+            {uploadSuccessData && !uploadWarning && (
+              <div
+                style={{
+                  marginTop: '1.25rem',
+                  padding: '0.9rem 1rem',
+                  backgroundColor: '#EBF8EE',
+                  border: '1px solid #B8E3C8',
+                  borderRadius: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.6rem',
+                  fontSize: '0.9rem',
+                  color: '#107E3E'
+                }}
+              >
+                <CheckIcon size={18} color="#107E3E" />
+                <span>
+                  Extracted {uploadSuccessData.extractedTextPreview.length} characters and identified <strong>{uploadSuccessData.suggestedSkills.length} candidate competencies</strong>. Redirecting to review...
+                </span>
+              </div>
+            )}
+
+            <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
               <Button
                 variant="primary"
                 size="md"
-                onClick={handleContinueWithUpload}
-                disabled={!uploadedFile}
-                icon={<ArrowRightIcon size={16} />}
+                onClick={executeUpload}
+                disabled={!selectedFileObj || isUploading}
+                icon={isUploading ? undefined : <ArrowRightIcon size={16} />}
                 iconPosition="right"
               >
-                Continue to Skills Review
+                {isUploading ? 'Extracting Competencies...' : 'Extract & Review Competencies'}
               </Button>
             </div>
           </Card>
 
           {/* Quick Start / Guidance Card */}
-          <Card title="Extraction & Privacy Standards" subtitle="What happens with your data">
+          <Card title="Extraction & Privacy Standards" subtitle="How your data is handled">
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', fontSize: '0.9rem', color: '#5B6876', lineHeight: 1.5 }}>
               <div>
                 <strong style={{ color: '#001A47', display: 'block', marginBottom: '0.25rem' }}>
-                  1. Zero Data Sharing
+                  1. Zero Data Sharing & Non-Durable In-Memory Processing
                 </strong>
-                Uploaded documents are processed strictly in memory and are never shared or sold. Private contact info is stripped before processing.
+                Uploaded documents are processed strictly in server memory and discarded immediately. No resume text is saved to public URLs or persistent storage.
               </div>
               <div>
                 <strong style={{ color: '#001A47', display: 'block', marginBottom: '0.25rem' }}>
-                  2. Full Human Control
+                  2. Human-in-the-Loop Verification
                 </strong>
-                No skill is finalized automatically. On the next screen, you inspect every competency, delete irrelevant items, and correct proficiency levels.
+                No extracted skill is final until you review and confirm it. On the next screen, you inspect each candidate competency, verify evidence snippets, calibrate proficiencies, or reject items.
               </div>
               <div>
                 <strong style={{ color: '#001A47', display: 'block', marginBottom: '0.25rem' }}>
-                  3. Don't Have a Resume Ready?
+                  3. Scanned PDF & OCR Notice
+                </strong>
+                Documents must contain a readable text layer. Scanned photo PDFs without embedded text cannot be extracted automatically because OCR is not enabled on this host.
+              </div>
+              <div>
+                <strong style={{ color: '#001A47', display: 'block', marginBottom: '0.25rem' }}>
+                  4. Don't Have a Resume Ready?
                 </strong>
                 Switch to the <em>Option B: Manual Work History Entry</em> tab to enter your role and experience points directly.
               </div>

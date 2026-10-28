@@ -5,8 +5,7 @@ import { StepIndicator } from '../components/common/StepIndicator';
 import { Card } from '../components/common/Card';
 import { Button } from '../components/common/Button';
 import { Badge } from '../components/common/Badge';
-import { DemoDataBanner } from '../components/common/DemoDataBanner';
-import { SearchIcon, ColumnsIcon, ArrowRightIcon } from '../components/common/Icons';
+import { SearchIcon, ColumnsIcon, ArrowRightIcon, CheckIcon, InfoIcon } from '../components/common/Icons';
 import { DEMO_CAREER_ROLES, ExtendedCareerRole } from '../demo/demoCareers';
 import { useCareerContext } from '../context/CareerContext';
 
@@ -16,12 +15,18 @@ export const CareerExplorerPage: React.FC = () => {
     targetRoleSlug,
     setTargetRoleSlug,
     comparisonRoleSlugs,
-    toggleComparisonRole
+    toggleComparisonRole,
+    calculateRoleMatch,
+    isRealProfileReviewed,
+    skills,
+    uploadedFile
   } = useCareerContext();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedTrack, setSelectedTrack] = useState<string>('ALL');
   const [sapFilter, setSapFilter] = useState<'ALL' | 'SAP_ONLY' | 'NON_SAP'>('ALL');
+
+  const confirmedCount = skills.filter((s) => s.isConfirmed).length;
 
   const filteredRoles = DEMO_CAREER_ROLES.filter((role) => {
     const matchesSearch =
@@ -87,10 +92,60 @@ export const CareerExplorerPage: React.FC = () => {
         )}
       </div>
 
-      <DemoDataBanner
-        featureName="Career Catalogue & Match Index"
-        backendStateText="Calculated match indices displayed on role cards are illustrative demonstrations based on transferable competency overlap. The mathematical matcher runs in Phase 3."
-      />
+      {/* Dynamic Personalization / Verification Status Banner */}
+      {isRealProfileReviewed ? (
+        <div
+          style={{
+            backgroundColor: '#F3FAF6',
+            border: '1px solid #B8E3C8',
+            borderRadius: '8px',
+            padding: '1rem 1.25rem',
+            marginBottom: '1.75rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '1rem',
+            flexWrap: 'wrap'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <CheckIcon color="#107E3E" size={20} />
+            <div style={{ fontSize: '0.9rem', color: '#001A47' }}>
+              <strong>Personalized Match Engine Active:</strong> Calculated against your{' '}
+              <strong>{confirmedCount} confirmed competencies</strong>
+              {uploadedFile ? ` from ${uploadedFile.name}` : ''}. Green badges indicate verified candidate capability.
+            </div>
+          </div>
+          <Button variant="ghost" size="sm" onClick={() => navigate('/skills-review')}>
+            Adjust Reviewed Skills
+          </Button>
+        </div>
+      ) : (
+        <div
+          style={{
+            backgroundColor: '#EBF3FB',
+            border: '1px solid #C4D5EA',
+            borderRadius: '8px',
+            padding: '1rem 1.25rem',
+            marginBottom: '1.75rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '1rem',
+            flexWrap: 'wrap'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <InfoIcon color="#0A6ED1" size={20} />
+            <div style={{ fontSize: '0.9rem', color: '#001A47' }}>
+              <strong>Demonstration Index Displayed:</strong> Scores below reflect default sample competencies. To see your true personalized match percentages, confirm your profile on the Skills Review page.
+            </div>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => navigate('/skills-review')}>
+            Review & Confirm Skills →
+          </Button>
+        </div>
+      )}
 
       {/* Filter and Search Bar */}
       <div
@@ -139,7 +194,7 @@ export const CareerExplorerPage: React.FC = () => {
           {/* Ecosystem Filter */}
           <select
             value={sapFilter}
-            onChange={(e) => setSapFilter(e.target.value as any)}
+            onChange={(e) => setSapFilter(e.target.value as 'ALL' | 'SAP_ONLY' | 'NON_SAP')}
             style={{ fontSize: '0.85rem' }}
           >
             <option value="ALL">All Ecosystems</option>
@@ -161,6 +216,8 @@ export const CareerExplorerPage: React.FC = () => {
         {filteredRoles.map((role) => {
           const isTarget = role.slug === targetRoleSlug;
           const isComparing = comparisonRoleSlugs.includes(role.slug);
+          const matchResult = calculateRoleMatch(role);
+          const score = isRealProfileReviewed ? matchResult.percentage : role.matchScoreDemo;
 
           return (
             <Card
@@ -183,12 +240,21 @@ export const CareerExplorerPage: React.FC = () => {
                     style={{
                       fontSize: '1.3rem',
                       fontWeight: 800,
-                      color: role.matchScoreDemo >= 70 ? '#107E3E' : role.matchScoreDemo >= 55 ? '#0A6ED1' : '#E9730C'
+                      color: score >= 70 ? '#107E3E' : score >= 50 ? '#0A6ED1' : '#E9730C'
                     }}
                   >
-                    {role.matchScoreDemo}%
+                    {score}%
                   </div>
-                  <span style={{ fontSize: '0.72rem', color: '#8492A0', textTransform: 'uppercase' }}>Match Index</span>
+                  <span
+                    style={{
+                      fontSize: '0.72rem',
+                      color: isRealProfileReviewed ? '#107E3E' : '#8492A0',
+                      textTransform: 'uppercase',
+                      fontWeight: isRealProfileReviewed ? 600 : 400
+                    }}
+                  >
+                    {isRealProfileReviewed ? 'Candidate Match' : 'Demo Index'}
+                  </span>
                 </div>
               }
               footer={
@@ -250,15 +316,29 @@ export const CareerExplorerPage: React.FC = () => {
               </div>
 
               <div>
-                <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#001A47', textTransform: 'uppercase', display: 'block', marginBottom: '0.4rem' }}>
-                  Core Required Competencies:
-                </span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                  <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#001A47', textTransform: 'uppercase' }}>
+                    Core Required Competencies:
+                  </span>
+                  {isRealProfileReviewed && (
+                    <span style={{ fontSize: '0.75rem', color: '#107E3E', fontWeight: 600 }}>
+                      {matchResult.matchedSkills.length} of {role.requiredSkills.length} Verified
+                    </span>
+                  )}
+                </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
-                  {role.requiredSkills.map((req, i) => (
-                    <Badge key={i} variant="outline" size="sm">
-                      {req.skillName}
-                    </Badge>
-                  ))}
+                  {role.requiredSkills.map((req, i) => {
+                    const isMatched = matchResult.matchedSkills.includes(req.skillName);
+                    return (
+                      <Badge
+                        key={i}
+                        variant={isRealProfileReviewed ? (isMatched ? 'success' : 'neutral') : 'outline'}
+                        size="sm"
+                      >
+                        {isRealProfileReviewed ? (isMatched ? `✓ ${req.skillName}` : req.skillName) : req.skillName}
+                      </Badge>
+                    );
+                  })}
                 </div>
               </div>
             </Card>

@@ -1,6 +1,12 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { HealthResponse, ProficiencyLevel } from '@career-orchestrator/shared';
-import { INITIAL_DEMO_SKILLS, UserSkillItem } from '../demo/demoSkills';
+import {
+  HealthResponse,
+  ProficiencyLevel,
+  ExtractedSkillItem,
+  ResumeUploadResponse,
+  ProfileReviewResponse
+} from '@career-orchestrator/shared';
+import { INITIAL_DEMO_SKILLS } from '../demo/demoSkills';
 import { DEMO_CAREER_ROLES, ExtendedCareerRole } from '../demo/demoCareers';
 
 export interface ManualProfileData {
@@ -19,32 +25,50 @@ export interface ProjectEvidenceSubmission {
 }
 
 interface CareerContextType {
-  // Profile State
+  // Profile & Ingestion State
+  currentProfileId: string | null;
+  setCurrentProfileId: (id: string | null) => void;
   manualProfile: ManualProfileData;
   setManualProfile: React.Dispatch<React.SetStateAction<ManualProfileData>>;
   uploadedFile: { name: string; size: number; type: string } | null;
   setUploadedFile: (file: { name: string; size: number; type: string } | null) => void;
-  
+  extractedTextPreview: string;
+  extractionWarnings: string[];
+  isRealProfileLoaded: boolean;
+  isRealProfileReviewed: boolean;
+  handleUploadSuccess: (res: ResumeUploadResponse) => void;
+  handleReviewSuccess: (res: ProfileReviewResponse) => void;
+  resetToDemoData: () => void;
+
   // Skills State
-  skills: UserSkillItem[];
+  skills: ExtractedSkillItem[];
+  setSkills: React.Dispatch<React.SetStateAction<ExtractedSkillItem[]>>;
   confirmSkill: (id: string) => void;
   rejectSkill: (id: string) => void;
   updateProficiency: (id: string, proficiency: ProficiencyLevel) => void;
-  addManualSkill: (skill: Omit<UserSkillItem, 'id'>) => void;
-  
+  updateYearsExperience: (id: string, years: number) => void;
+  editSkillName: (id: string, newName: string) => void;
+  addManualSkill: (skill: Omit<ExtractedSkillItem, 'id'>) => void;
+
   // Career Targets & Comparison
   targetRole: ExtendedCareerRole;
   targetRoleSlug: string;
   setTargetRoleSlug: (slug: string) => void;
   comparisonRoleSlugs: string[];
   toggleComparisonRole: (slug: string) => void;
-  
+  calculateRoleMatch: (role: ExtendedCareerRole) => {
+    percentage: number;
+    matchedSkills: string[];
+    missingSkills: string[];
+    isCalculatedFromReviewedProfile: boolean;
+  };
+
   // Learning & Projects
   completedLearningIds: string[];
   toggleLearningCompletion: (id: string) => void;
   projectSubmissions: Record<string, ProjectEvidenceSubmission>;
   submitProjectEvidence: (projectId: string, url: string, reflection: string) => void;
-  
+
   // Backend Health
   backendHealth: HealthResponse | null;
   healthStatus: 'checking' | 'online' | 'offline';
@@ -53,28 +77,69 @@ interface CareerContextType {
 const CareerContext = createContext<CareerContextType | undefined>(undefined);
 
 export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // 1. Profile State
+  // 1. Ingestion & Profile State
+  const [currentProfileId, setCurrentProfileId] = useState<string | null>(null);
+  const [extractedTextPreview, setExtractedTextPreview] = useState<string>('');
+  const [extractionWarnings, setExtractionWarnings] = useState<string[]>([]);
+  const [isRealProfileLoaded, setIsRealProfileLoaded] = useState<boolean>(false);
+  const [isRealProfileReviewed, setIsRealProfileReviewed] = useState<boolean>(false);
+
   const [manualProfile, setManualProfile] = useState<ManualProfileData>({
     fullName: 'Alex Vance',
     currentTitle: 'Senior Financial Analyst',
     yearsExperience: 4.5,
-    education: "Bachelor of Science in Accounting & Information Systems",
-    responsibilities: 'Manage general ledger journal reconciliation, statutory balance sheet audits, and SQL-based variance audits.'
+    education: 'Bachelor of Science in Accounting & Information Systems',
+    responsibilities:
+      'Manage general ledger journal reconciliation, statutory balance sheet audits, and SQL-based variance audits.'
   });
 
   const [uploadedFile, setUploadedFile] = useState<{ name: string; size: number; type: string } | null>(null);
 
-  // 2. Skills State
-  const [skills, setSkills] = useState<UserSkillItem[]>(INITIAL_DEMO_SKILLS);
+  // 2. Skills State (initialized with demo set; replaced upon real upload)
+  const [skills, setSkills] = useState<ExtractedSkillItem[]>(INITIAL_DEMO_SKILLS);
+
+  const handleUploadSuccess = (res: ResumeUploadResponse) => {
+    setCurrentProfileId(res.profileId);
+    setUploadedFile({
+      name: res.filename,
+      size: res.fileSizeBytes,
+      type: res.filename.toLowerCase().endsWith('.docx')
+        ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        : 'application/pdf'
+    });
+    setExtractedTextPreview(res.extractedTextPreview);
+    setExtractionWarnings(res.warnings);
+    setSkills(res.suggestedSkills);
+    setIsRealProfileLoaded(true);
+    setIsRealProfileReviewed(false);
+  };
+
+  const handleReviewSuccess = (res: ProfileReviewResponse) => {
+    // Only keep confirmed skills in the confirmed set
+    setSkills(res.confirmedSkills);
+    setIsRealProfileReviewed(true);
+  };
+
+  const resetToDemoData = () => {
+    setCurrentProfileId(null);
+    setUploadedFile(null);
+    setExtractedTextPreview('');
+    setExtractionWarnings([]);
+    setSkills(INITIAL_DEMO_SKILLS);
+    setIsRealProfileLoaded(false);
+    setIsRealProfileReviewed(false);
+  };
 
   const confirmSkill = (id: string) => {
     setSkills((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, isConfirmed: true } : s))
+      prev.map((s) => (s.id === id ? { ...s, isConfirmed: true, reviewStatus: 'CONFIRMED' } : s))
     );
   };
 
   const rejectSkill = (id: string) => {
-    setSkills((prev) => prev.filter((s) => s.id !== id));
+    setSkills((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, isConfirmed: false, reviewStatus: 'REJECTED' } : s))
+    );
   };
 
   const updateProficiency = (id: string, proficiency: ProficiencyLevel) => {
@@ -83,8 +148,20 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     );
   };
 
-  const addManualSkill = (newSkill: Omit<UserSkillItem, 'id'>) => {
-    const item: UserSkillItem = {
+  const updateYearsExperience = (id: string, yearsExperience: number) => {
+    setSkills((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, yearsExperience } : s))
+    );
+  };
+
+  const editSkillName = (id: string, newName: string) => {
+    setSkills((prev) =>
+      prev.map((s) => (s.id === id ? { ...s, name: newName } : s))
+    );
+  };
+
+  const addManualSkill = (newSkill: Omit<ExtractedSkillItem, 'id'>) => {
+    const item: ExtractedSkillItem = {
       ...newSkill,
       id: `manual-skill-${Date.now()}`
     };
@@ -112,6 +189,56 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
       return [...prev, slug];
     });
+  };
+
+  /**
+   * Dynamically calculates match percentage between candidate's confirmed skills
+   * and a career role's required competencies.
+   */
+  const calculateRoleMatch = (role: ExtendedCareerRole) => {
+    const activeConfirmedSkills = skills.filter((s) => s.isConfirmed);
+
+    if (activeConfirmedSkills.length === 0) {
+      return {
+        percentage: 0,
+        matchedSkills: [],
+        missingSkills: role.requiredSkills.map((r) => r.skillName),
+        isCalculatedFromReviewedProfile: isRealProfileReviewed
+      };
+    }
+
+    const confirmedNames = activeConfirmedSkills.map((s) => s.name.toLowerCase());
+    const matchedSkills: string[] = [];
+    const missingSkills: string[] = [];
+    let weightedMatchedScore = 0;
+    let totalWeight = 0;
+
+    for (const req of role.requiredSkills) {
+      const weight = req.weight || 1.0;
+      totalWeight += weight;
+
+      const reqLower = req.skillName.toLowerCase();
+      const isMatched = confirmedNames.some(
+        (cName) => cName.includes(reqLower) || reqLower.includes(cName)
+      );
+
+      if (isMatched) {
+        matchedSkills.push(req.skillName);
+        weightedMatchedScore += weight;
+      } else {
+        missingSkills.push(req.skillName);
+      }
+    }
+
+    const calculatedPercentage =
+      totalWeight > 0 ? Math.round((weightedMatchedScore / totalWeight) * 100) : 0;
+
+    return {
+      percentage: calculatedPercentage,
+      matchedSkills,
+      missingSkills,
+      isCalculatedFromReviewedProfile: isRealProfileReviewed
+    };
   };
 
   // 4. Learning & Projects Evidence
@@ -158,20 +285,33 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   return (
     <CareerContext.Provider
       value={{
+        currentProfileId,
+        setCurrentProfileId,
         manualProfile,
         setManualProfile,
         uploadedFile,
         setUploadedFile,
+        extractedTextPreview,
+        extractionWarnings,
+        isRealProfileLoaded,
+        isRealProfileReviewed,
+        handleUploadSuccess,
+        handleReviewSuccess,
+        resetToDemoData,
         skills,
+        setSkills,
         confirmSkill,
         rejectSkill,
         updateProficiency,
+        updateYearsExperience,
+        editSkillName,
         addManualSkill,
         targetRole,
         targetRoleSlug,
         setTargetRoleSlug,
         comparisonRoleSlugs,
         toggleComparisonRole,
+        calculateRoleMatch,
         completedLearningIds,
         toggleLearningCompletion,
         projectSubmissions,
