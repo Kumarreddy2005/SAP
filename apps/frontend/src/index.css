@@ -1,16 +1,40 @@
 :root {
+  /* SAP Horizon Color Palette */
   --sap-shell-bg: #001A47;
   --sap-shell-text: #FFFFFF;
   --sap-primary: #0A6ED1;
-  --sap-primary-hover: #085caf;
+  --sap-primary-hover: #085CAF;
+  --sap-primary-active: #06498B;
   --sap-primary-light: #EBF3FB;
   --sap-surface: #F5F6F7;
   --sap-card-bg: #FFFFFF;
   --sap-border: #D9E1E8;
+  --sap-border-light: #EDF1F5;
+  --sap-border-focus: #0A6ED1;
   --sap-text-primary: #222B35;
   --sap-text-secondary: #5B6876;
-  --sap-accent-green: #107E3E;
-  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --sap-text-muted: #8492A0;
+  
+  /* Semantic Status Colors */
+  --sap-success: #107E3E;
+  --sap-success-light: #E8F5ED;
+  --sap-warning: #E9730C;
+  --sap-warning-light: #FEF3E8;
+  --sap-critical: #BB0000;
+  --sap-critical-light: #FDE8E8;
+  --sap-info: #0A6ED1;
+  --sap-info-light: #EBF3FB;
+  --sap-purple: #633CA3;
+  --sap-purple-light: #F2ECFA;
+
+  /* Typography & Layout */
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --shadow-sm: 0 1px 3px rgba(0, 26, 71, 0.05);
+  --shadow-md: 0 4px 12px rgba(0, 26, 71, 0.08);
+  --shadow-lg: 0 8px 24px rgba(0, 26, 71, 0.12);
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
 }
 
 * {
@@ -19,17 +43,30 @@
   padding: 0;
 }
 
-body {
+html, body {
+  min-height: 100%;
   font-family: var(--font-family);
   background-color: var(--sap-surface);
   color: var(--sap-text-primary);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Accessible focus states */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--sap-primary);
+  outline-offset: 2px;
 }
 
 a {
   color: var(--sap-primary);
   text-decoration: none;
+  transition: color 0.15s ease;
 }
 
 a:hover {
@@ -39,4 +76,53 @@ a:hover {
 button {
   font-family: inherit;
   cursor: pointer;
+  border: none;
+  background: none;
+}
+
+input, select, textarea {
+  font-family: inherit;
+  font-size: 0.95rem;
+  color: var(--sap-text-primary);
+  background-color: #FFFFFF;
+  border: 1px solid var(--sap-border);
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 0.85rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--sap-primary);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(10, 110, 209, 0.15);
+}
+
+input::placeholder, textarea::placeholder {
+  color: var(--sap-text-muted);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--sap-surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #C4D1DD;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #A6B8C9;
+}
+
+/* Print & Responsive utility helpers */
+@media (max-width: 768px) {
+  .hide-on-mobile {
+    display: none !important;
+  }
 }
