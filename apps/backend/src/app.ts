@@ -4,6 +4,9 @@ import { env } from './config/env.config';
 import { healthRouter } from './routes/health.router';
 import { resumeRouter, profileRouter } from './modules/resume/resume.router';
 import { careerRouter, pathwayRouter, learningRouter } from './modules/career/career.router';
+import { projectRouter } from './modules/projects/project.router';
+import { readinessRouter } from './modules/readiness/readiness.router';
+import { jobRouter } from './modules/jobs/job-search.router';
 import { errorHandler } from './middleware/errorHandler';
 
 export const app = express();
@@ -26,6 +29,9 @@ app.use('/api/v1/profile', profileRouter);
 app.use('/api/v1/careers', careerRouter);
 app.use('/api/v1/learning-pathways', pathwayRouter);
 app.use('/api/v1/learning-resources', learningRouter);
+app.use('/api/v1/projects', projectRouter);
+app.use('/api/v1/readiness', readinessRouter);
+app.use('/api/v1/jobs', jobRouter);
 
 // Root route for sanity check
 app.get('/', (req: Request, res: Response) => {

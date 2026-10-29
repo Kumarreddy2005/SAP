@@ -92,3 +92,77 @@ export const CareerFilterQuerySchema = z.object({
 });
 
 export type CareerFilterQuery = z.infer<typeof CareerFilterQuerySchema>;
+
+export const ProjectLifecycleStateEnum = z.enum([
+  'NOT_STARTED',
+  'IN_PROGRESS',
+  'SUBMITTED',
+  'NEEDS_REVISION',
+  'REVIEWED',
+  'COMPLETED'
+]);
+
+export const RubricScoreItemSchema = z.object({
+  criterion: z.string().min(1, 'Criterion name is required'),
+  weightPercentage: z.number().min(1).max(100),
+  awardedScore: z.number().min(0).max(100).optional(),
+  feedback: z.string().optional(),
+  isSatisfied: z.boolean().optional()
+});
+
+export const ProjectSubmissionInputSchema = z.object({
+  projectId: z.string().min(1, 'Project ID is required'),
+  profileId: z.string().min(1, 'Profile ID is required'),
+  repositoryUrl: z
+    .string()
+    .trim()
+    .refine((val) => val === '' || /^https?:\/\/.+/.test(val), {
+      message: 'Repository URL must be a valid http:// or https:// URL'
+    })
+    .optional(),
+  liveDemoUrl: z
+    .string()
+    .trim()
+    .refine((val) => val === '' || /^https?:\/\/.+/.test(val), {
+      message: 'Live demo URL must be a valid http:// or https:// URL'
+    })
+    .optional(),
+  projectExplanation: z
+    .string()
+    .min(10, 'Project explanation must be at least 10 characters detailing what you built'),
+  challengesEncountered: z.string().optional(),
+  skillsDemonstrated: z.array(z.string()).min(1, 'Select at least one skill demonstrated in this project'),
+  learningReflection: z
+    .string()
+    .min(10, 'Learning reflection must be at least 10 characters detailing key takeaways'),
+  supportingEvidenceUrls: z.array(z.string().url('Evidence links must be valid URLs')).optional(),
+  alternativeEvidenceDescription: z.string().optional(),
+  rubricAssessments: z.array(RubricScoreItemSchema).optional()
+});
+
+export type ProjectSubmissionInput = z.infer<typeof ProjectSubmissionInputSchema>;
+
+export const ProjectReviewInputSchema = z.object({
+  submissionId: z.string().min(1, 'Submission ID is required'),
+  reviewerProfileId: z.string().optional(),
+  status: z.enum(['IN_PROGRESS', 'SUBMITTED', 'NEEDS_REVISION', 'REVIEWED', 'COMPLETED']),
+  reviewerType: z.enum(['SELF_ASSESSMENT', 'INDEPENDENT_REVIEWER']),
+  rubricAssessments: z.array(RubricScoreItemSchema).min(1, 'Assessment must grade against rubric criteria'),
+  reviewerFeedback: z.string().min(5, 'Reviewer feedback must be at least 5 characters')
+});
+
+export type ProjectReviewInput = z.infer<typeof ProjectReviewInputSchema>;
+
+export const ProjectStartSchema = z.object({
+  projectId: z.string().min(1, 'Project ID is required'),
+  profileId: z.string().min(1, 'Profile ID is required')
+});
+
+export type ProjectStartInput = z.infer<typeof ProjectStartSchema>;
+
+export const JobSearchQuerySchema = z.object({
+  location: z.string().optional().default('Remote'),
+  keywords: z.string().optional()
+});
+
+export type JobSearchQuery = z.infer<typeof JobSearchQuerySchema>;

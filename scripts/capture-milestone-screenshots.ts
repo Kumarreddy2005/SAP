@@ -79,6 +79,15 @@ async function main() {
     // 6. Personalized Learning Pathway (Sequenced milestones & verified resources)
     await takeScreenshot('http://localhost:4173/learning', '07-learning-pathway.png');
 
+    // 7. Interactive Practical Projects & Enterprise Workspaces
+    await takeScreenshot('http://localhost:4173/projects', '08-practical-projects.png');
+
+    // 8. Multi-Dimensional Career Readiness Scorecard
+    await takeScreenshot('http://localhost:4173/readiness', '09-career-readiness.png');
+
+    // 9. Parameterized External Job Destinations & Disclosures
+    await takeScreenshot('http://localhost:4173/jobs', '10-job-destinations.png');
+
     console.log('Screenshots captured successfully!');
   } finally {
     console.log('Stopping servers...');

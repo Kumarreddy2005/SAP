@@ -9,7 +9,13 @@ import {
   SkillGapAnalysis,
   LearningPathway,
   CareerComparisonResult,
-  CareerRole
+  CareerRole,
+  PracticalProjectDefinition,
+  ProjectSubmission,
+  ProjectSubmissionInput,
+  ProjectReviewInput,
+  CareerReadinessScorecard,
+  RoleJobSearchResponse
 } from '@career-orchestrator/shared';
 import { INITIAL_DEMO_SKILLS } from '../demo/demoSkills';
 import { DEMO_CAREER_ROLES, ExtendedCareerRole } from '../demo/demoCareers';
@@ -92,6 +98,26 @@ interface CareerContextType {
   projectSubmissions: Record<string, ProjectEvidenceSubmission>;
   submitProjectEvidence: (projectId: string, url: string, reflection: string) => void;
 
+  // Real Project Workspaces
+  projects: PracticalProjectDefinition[];
+  isLoadingProjects: boolean;
+  activeProjectSubmissions: Record<string, ProjectSubmission>;
+  fetchProjects: (filters?: { roleSlug?: string; search?: string; difficulty?: string }) => Promise<void>;
+  startProjectWorkspace: (projectId: string, profileId?: string) => Promise<ProjectSubmission | null>;
+  submitProjectDeliverables: (input: ProjectSubmissionInput) => Promise<ProjectSubmission | null>;
+  reviewProjectDeliverables: (input: ProjectReviewInput) => Promise<ProjectSubmission | null>;
+  fetchUserSubmissions: (profileId?: string) => Promise<void>;
+
+  // Career Readiness Scorecard
+  readinessScorecard: CareerReadinessScorecard | null;
+  isLoadingReadiness: boolean;
+  fetchReadinessScorecard: (roleSlug?: string, profileId?: string) => Promise<CareerReadinessScorecard | null>;
+
+  // Job Search Destinations
+  jobSearchData: RoleJobSearchResponse | null;
+  isLoadingJobs: boolean;
+  fetchJobSearchLinks: (roleSlug?: string, options?: { location?: string; keywords?: string }) => Promise<RoleJobSearchResponse | null>;
+
   // Backend Health
   backendHealth: HealthResponse | null;
   healthStatus: 'checking' | 'online' | 'offline';
@@ -146,7 +172,16 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [completedLearningIds, setCompletedLearningIds] = useState<string[]>([]);
   const [projectSubmissions, setProjectSubmissions] = useState<Record<string, ProjectEvidenceSubmission>>({});
 
-  // 6. Backend Health
+  // 6. Real Project Workspaces, Readiness & Jobs
+  const [projects, setProjects] = useState<PracticalProjectDefinition[]>([]);
+  const [isLoadingProjects, setIsLoadingProjects] = useState<boolean>(false);
+  const [activeProjectSubmissions, setActiveProjectSubmissions] = useState<Record<string, ProjectSubmission>>({});
+  const [readinessScorecard, setReadinessScorecard] = useState<CareerReadinessScorecard | null>(null);
+  const [isLoadingReadiness, setIsLoadingReadiness] = useState<boolean>(false);
+  const [jobSearchData, setJobSearchData] = useState<RoleJobSearchResponse | null>(null);
+  const [isLoadingJobs, setIsLoadingJobs] = useState<boolean>(false);
+
+  // 7. Backend Health
   const [backendHealth, setBackendHealth] = useState<HealthResponse | null>(null);
   const [healthStatus, setHealthStatus] = useState<'checking' | 'online' | 'offline'>('checking');
 
@@ -286,6 +321,171 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   }, [currentProfileId]);
 
+  /**
+   * Real Project Workspaces API Integrations
+   */
+  const fetchProjects = useCallback(
+    async (filters?: { roleSlug?: string; search?: string; difficulty?: string }) => {
+      setIsLoadingProjects(true);
+      try {
+        const params = new URLSearchParams();
+        if (filters?.roleSlug) params.set('roleSlug', filters.roleSlug);
+        if (filters?.search) params.set('search', filters.search);
+        if (filters?.difficulty) params.set('difficulty', filters.difficulty);
+
+        const res = await fetch(`/api/v1/projects?${params.toString()}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        setProjects(data.projects || []);
+      } catch {
+        // Fallback to empty
+      } finally {
+        setIsLoadingProjects(false);
+      }
+    },
+    []
+  );
+
+  const fetchUserSubmissions = useCallback(
+    async (profileId?: string) => {
+      const pid = profileId || currentProfileId || 'demo-profile';
+      try {
+        const res = await fetch(`/api/v1/projects/submissions/${pid}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const map: Record<string, ProjectSubmission> = {};
+        (data.submissions || []).forEach((s: ProjectSubmission) => {
+          map[s.projectId] = s;
+        });
+        setActiveProjectSubmissions(map);
+      } catch {
+        // Fallback
+      }
+    },
+    [currentProfileId]
+  );
+
+  const startProjectWorkspace = useCallback(
+    async (projectId: string, profileId?: string) => {
+      const pid = profileId || currentProfileId || 'demo-profile';
+      try {
+        const res = await fetch(`/api/v1/projects/${projectId}/start`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ projectId, profileId: pid })
+        });
+        if (!res.ok) return null;
+        const data = (await res.json()) as ProjectSubmission;
+        setActiveProjectSubmissions((prev) => ({ ...prev, [projectId]: data }));
+        return data;
+      } catch {
+        return null;
+      }
+    },
+    [currentProfileId]
+  );
+
+  const submitProjectDeliverables = useCallback(async (input: ProjectSubmissionInput) => {
+    try {
+      const res = await fetch(`/api/v1/projects/${input.projectId}/submissions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input)
+      });
+      if (!res.ok) return null;
+      const data = (await res.json()) as ProjectSubmission;
+      setActiveProjectSubmissions((prev) => ({ ...prev, [input.projectId]: data }));
+      // Also update legacy state for compatibility
+      setProjectSubmissions((prev) => ({
+        ...prev,
+        [input.projectId]: {
+          projectId: input.projectId,
+          submissionUrl: input.repositoryUrl || input.liveDemoUrl || '',
+          reflectionText: input.learningReflection,
+          submittedAt: data.submittedAt || new Date().toISOString()
+        }
+      }));
+      return data;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const reviewProjectDeliverables = useCallback(async (input: ProjectReviewInput) => {
+    try {
+      const res = await fetch(`/api/v1/projects/submissions/${input.submissionId}/review`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input)
+      });
+      if (!res.ok) return null;
+      const data = (await res.json()) as ProjectSubmission;
+      setActiveProjectSubmissions((prev) => ({ ...prev, [data.projectId]: data }));
+      return data;
+    } catch {
+      return null;
+    }
+  }, []);
+
+  /**
+   * Career Readiness Scorecard API Integration
+   */
+  const fetchReadinessScorecard = useCallback(
+    async (roleSlug?: string, profileId?: string) => {
+      const targetSlug = roleSlug || targetRoleSlug;
+      const pid = profileId || currentProfileId || 'demo-profile';
+      setIsLoadingReadiness(true);
+      try {
+        const completedQuery =
+          completedLearningIds.length > 0
+            ? `?completedMilestones=${completedLearningIds.join(',')}`
+            : '';
+        const res = await fetch(`/api/v1/readiness/${pid}/${targetSlug}${completedQuery}`);
+        if (!res.ok) return null;
+        const data = (await res.json()) as CareerReadinessScorecard;
+        setReadinessScorecard(data);
+        return data;
+      } catch {
+        return null;
+      } finally {
+        setIsLoadingReadiness(false);
+      }
+    },
+    [targetRoleSlug, currentProfileId, completedLearningIds]
+  );
+
+  /**
+   * Job Search Destinations API Integration
+   */
+  const fetchJobSearchLinks = useCallback(
+    async (roleSlug?: string, options?: { location?: string; keywords?: string }) => {
+      const targetSlug = roleSlug || targetRoleSlug;
+      setIsLoadingJobs(true);
+      try {
+        const params = new URLSearchParams();
+        if (options?.location) params.set('location', options.location);
+        if (options?.keywords) params.set('keywords', options.keywords);
+
+        const res = await fetch(`/api/v1/jobs/search-links/${targetSlug}?${params.toString()}`);
+        if (!res.ok) return null;
+        const data = (await res.json()) as RoleJobSearchResponse;
+        setJobSearchData(data);
+        return data;
+      } catch {
+        return null;
+      } finally {
+        setIsLoadingJobs(false);
+      }
+    },
+    [targetRoleSlug]
+  );
+
+  // Initial load of projects catalogue and submissions
+  useEffect(() => {
+    fetchProjects();
+    fetchUserSubmissions();
+  }, [fetchProjects, fetchUserSubmissions]);
+
   const handleUploadSuccess = (res: ResumeUploadResponse) => {
     setCurrentProfileId(res.profileId);
     setUploadedFile({
@@ -321,6 +521,9 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setCareerMatches([]);
     setCurrentGapAnalysis(null);
     setCurrentPathway(null);
+    setActiveProjectSubmissions({});
+    setReadinessScorecard(null);
+    setJobSearchData(null);
   };
 
   const confirmSkill = (id: string) => {
@@ -485,6 +688,20 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         toggleLearningCompletion,
         projectSubmissions,
         submitProjectEvidence,
+        projects,
+        isLoadingProjects,
+        activeProjectSubmissions,
+        fetchProjects,
+        startProjectWorkspace,
+        submitProjectDeliverables,
+        reviewProjectDeliverables,
+        fetchUserSubmissions,
+        readinessScorecard,
+        isLoadingReadiness,
+        fetchReadinessScorecard,
+        jobSearchData,
+        isLoadingJobs,
+        fetchJobSearchLinks,
         backendHealth,
         healthStatus
       }}

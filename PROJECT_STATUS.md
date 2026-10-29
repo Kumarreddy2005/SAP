@@ -1,23 +1,24 @@
 # Career Orchestrator — Project Status Log
 
 **Project:** Career Orchestrator (SAP Hackfest 2026)  
-**Current Phase:** Explainable Career-Matching Engine, Skill-Gap Analysis & Personalized Learning Pathway Generation  
-**Overall Status:** **PASS** (36/36 automated backend tests pass, full monorepo typecheck clean, frontend production build clean, full 12-stage E2E workflow verified)  
-**Last Updated:** 2026-10-29 08:00:00 UTC+05:30  
+**Current Milestone:** Interactive Project Evidence Submission, Explainable Career Readiness Scorecards & Verified External Job Destinations  
+**Overall Status:** **PASS** (48/48 automated backend tests pass, full monorepo typecheck clean, frontend production build clean, full 17-stage E2E workflow verified)  
+**Last Updated:** 2026-10-29 11:20:00 UTC+05:30  
 
 ---
 
-## 1. Phase Status Summary
+## 1. Milestone Status Summary
 
-- **Curated Career Catalogue:** **PASS** (14 comprehensive career roles spanning SAP functional, SAP technical development, integration architecture, data analytics, enterprise analysis, cloud platform, QA automation, and agile project management; verified requirements, weights, and prerequisites).
+- **Curated Career Catalogue (14 Roles):** **PASS** (Comprehensive catalogue spanning SAP functional, SAP technical development, integration architecture, data analytics, enterprise analysis, cloud platform, QA automation, and agile project management; verified requirements, weights, and prerequisites).
 - **Deterministic Explainable Career Matching:** **PASS** (Transparent mathematical formula: $100 \times \frac{\sum (w_i \times f_i)}{\sum w_i}$; matches full 1.0, partial proficiency 0.4–0.75, unknown proficiency 0.5, missing 0.0; distinguishes evidence from assumptions; never treats unreviewed or rejected skills as confirmed).
 - **Multi-Role Side-by-Side Comparison:** **PASS** (`POST /api/v1/careers/compare` evaluates 2 to 4 roles concurrently; extracts shared transferable skills; presents role-specific mandatory and preferred gap deltas; estimates bridge hours).
 - **Detailed 6-Group Skill-Gap Analysis:** **PASS** (`GET /api/v1/careers/:slug/gaps/:profileId` breaks role requirements into: 1. Confirmed matches, 2. Partial matches, 3. Mandatory gaps, 4. Recommended gaps, 5. Unverified requirements, 6. External prerequisites; enriches each gap with verified learning resources and practical projects).
 - **Personalized Learning Pathway Generation:** **PASS** (`POST /api/v1/learning-pathways` dynamically generates sequenced roadmap milestones; prioritizes foundational processes before configuring; excludes elementary coursework for already-confirmed skills; maps verified SAP Learning Journeys and open courseware).
-- **Verified Official Learning Resources:** **PASS** (Direct official URLs to `learning.sap.com`, `openSAP`, and verified open documentation; direct links for `S4F01`, `S4F02`, `UX100`, `ACT100`, `RAP100`, `CLD900`, `TS450`, `CLD100`, `SAC01`, `CAP100`, Docker, PostgreSQL, Playwright).
-- **Frontend Pages Integration:** **PASS** (`CareerExplorerPage` with candidate-derived scores, ecosystem filters, sort controls, and Explain Score modal; `CareerComparisonPage` with shared transferable assets banner; `SkillGapPage` with 6 requirement categories and evidence inspection; `LearningPathwayPage` with dynamic milestone roadmap and session completion checkmarks).
-- **Automated Verification Suite:** **PASS** (36/36 backend unit/integration tests passing in 1.55s; 12-stage end-to-end integration test passing; 100% monorepo typecheck clean; 70 frontend modules compiled cleanly).
-- **Visual Capture & Layout Audit:** **PASS** (Headless Chrome captured 1280x850 screenshots across all milestone views: `04-career-explorer-matched.png`, `05-career-comparison.png`, `06-skill-gap.png`, `07-learning-pathway.png`).
+- **Interactive Project Workspaces & Enterprise Scenarios:** **PASS** (10 enterprise practical projects with business problems, step-by-step instructions, and multi-criteria rubrics; full submission lifecycle `NOT_STARTED` $\to$ `IN_PROGRESS` $\to$ `SUBMITTED` $\to$ `NEEDS_REVISION` / `REVIEWED` / `COMPLETED`; alternative evidence submission for private repositories).
+- **Multi-Dimensional Career Readiness Scorecards:** **PASS** (`GET /api/v1/readiness/:profileId/:roleId` computes explainable readiness index: $0.35 \times \text{Skill} + 0.35 \times \text{Mandatory} + 0.15 \times \text{Learning} + 0.15 \times \text{Projects}$; prominent mandatory gaps alert; progress counters; statutory non-hiring guarantee disclaimer).
+- **Verified External Job Destinations:** **PASS** (`GET /api/v1/jobs/search-links/:roleId` generates authenticated, parameterized search URLs into official engines for SAP Official Careers `jobs.sap.com`, LinkedIn Jobs, and Indeed; Zero-Fabrication disclosure; external departure warning).
+- **Automated Verification Suite:** **PASS** (48/48 backend unit/integration tests passing in 4.3s; 17-stage end-to-end integration test passing; 100% monorepo typecheck clean; 66 frontend modules compiled cleanly).
+- **Visual Capture & Layout Audit:** **PASS** (Headless Chrome captured 1280x850 screenshots across all 10 platform views: `01-landing-page.png` through `10-job-destinations.png`).
 
 ---
 
@@ -36,35 +37,38 @@
 | `GET` | `/api/v1/careers/:idOrSlug/gaps/:profileId` | **200 OK** | Performs 6-group skill-gap analysis with verified learning resources and practical projects. |
 | `POST` | `/api/v1/learning-pathways` | **200 OK** | Generates sequenced, personalized learning pathway bridging candidate's actual skill gaps. |
 | `GET` | `/api/v1/learning-resources` | **200 OK** | Returns complete catalogue of verified learning resources with direct URLs and verification metadata. |
+| `GET` | `/api/v1/projects` | **200 OK** | Lists practical enterprise projects with optional filters (`roleSlug`, `search`, `difficulty`, `skill`). |
+| `GET` | `/api/v1/projects/:projectId` | **200 OK** | Retrieves project detail including business problem, objectives, step-by-step instructions, and rubric criteria. |
+| `POST` | `/api/v1/projects/:projectId/start` | **201 Created** | Initiates project workspace for candidate (`status: IN_PROGRESS`). |
+| `POST` | `/api/v1/projects/:projectId/submissions` | **201 Created** | Submits deliverables (`repositoryUrl`, `liveDemoUrl`, `explanation`, `reflection`, `skillsDemonstrated`, `alternativeEvidence`). Transitions to `SUBMITTED`, `AWAITING_REVIEW`. |
+| `GET` | `/api/v1/projects/submissions/:profileId` | **200 OK** | Returns all project submissions and evaluation states for a candidate profile. |
+| `PUT` | `/api/v1/projects/submissions/:submissionId/review` | **200 OK** | Submits rubric evaluation. Computes weighted score; transitions to `COMPLETED` if $\ge 70\%$, otherwise `NEEDS_REVISION`. |
+| `GET` | `/api/v1/readiness/:profileId/:roleId` | **200 OK** | Computes 4-dimensional explainable readiness scorecard ($0.35 \times \text{Skill} + 0.35 \times \text{Mandatory} + 0.15 \times \text{Learning} + 0.15 \times \text{Projects}$), mandatory gap alerts, and next steps. |
+| `GET` | `/api/v1/jobs/search-links/:roleId` | **200 OK** | Generates parameterized search URLs for SAP Official Careers, LinkedIn Jobs, and Indeed with Zero-Fabrication guarantee. |
 
 ---
 
 ## 3. Architecture & Modules Created
 
-### Career & Matching Module (`apps/backend/src/modules/`)
-- `career.catalogue.ts`: 14 structured career roles across 3 ecosystems (`SAP`, `HYBRID`, `NON_SAP`) and 8 career families.
-- `learning-resource.catalogue.ts`: 14 verified learning resources with official URLs and curriculum metadata.
-- `practical-projects.catalogue.ts`: 10 enterprise portfolio projects with rubrics and deliverables.
-- `career-matcher.service.ts`: Deterministic matching engine, multi-role comparison engine, prerequisite checker.
-- `skill-gap.service.ts`: 6-group gap categorization engine, bridge effort calculator, resource enrichment.
-- `pathway.service.ts`: Dynamic topological milestone generator with dependency sequencing.
-- `career.controller.ts` & `career.router.ts`: Express routes mounted in `apps/backend/src/app.ts`.
+### Projects, Readiness & Jobs Modules (`apps/backend/src/modules/`)
+- `practical-projects.catalogue.ts`: 10 enterprise portfolio projects with detailed business problems, step-by-step instructions, target skills, required technologies, and weighted rubric criteria.
+- `project.repository.ts`: Repository interface and in-memory store for candidate project submissions, status transitions, and evaluations.
+- `project.service.ts`: Business logic for project workspace initiation, deliverable submission, and rubric evaluations.
+- `project.controller.ts` & `project.router.ts`: Express endpoints mounted at `/api/v1/projects`.
+- `readiness.service.ts`: Multi-dimensional readiness aggregation engine with mandatory gap checks, progress counters, and formula breakdown.
+- `readiness.controller.ts` & `readiness.router.ts`: Express endpoints mounted at `/api/v1/readiness`.
+- `job-search.service.ts`: Query encoder and deep link generator for official career platforms.
+- `job-search.controller.ts` & `job-search.router.ts`: Express endpoints mounted at `/api/v1/jobs`.
 
-### Automated Test Suites
-- `apps/backend/src/modules/resume/__tests__/resume-workflow.test.ts`: 15 unit/integration tests for resume ingestion & review.
-- `apps/backend/src/modules/career/__tests__/career-engine.test.ts`: 21 unit/integration tests covering matching, gap analysis, and learning pathways.
-- `scripts/verify-milestone.ts`: 12-stage end-to-end integration scenario verifying real resume ingestion $\to$ review $\to$ matching $\to$ comparison $\to$ gap analysis $\to$ learning pathway $\to$ progress recalculation $\to$ error handling.
+### Shared Types & Schemas (`packages/shared/`)
+- `domain.types.ts`: `PracticalProjectDefinition`, `ProjectLifecycleState`, `RubricScoreItem`, `ProjectSubmission`, `ReadinessDimensionScore`, `CareerReadinessScorecard`, `ExternalJobSearchLink`, `RoleJobSearchResponse`.
+- `validation.schemas.ts`: Zod schemas `ProjectSubmissionInputSchema`, `ProjectReviewInputSchema`, `ProjectStartSchema`, `JobSearchQuerySchema`.
 
-
-### Shared Layer (`packages/shared/`)
-- `domain.types.ts`: `ExtractedSkillItem`, `ExtractionMethod`, `SkillReviewStatus`, `ResumeUploadResponse`, `ProfileReviewResponse`.
-- `validation.schemas.ts`: Zod schemas `SkillReviewInputSchema`, `ProfileReviewSubmissionSchema`.
-
-### Frontend Updates (`apps/frontend/`)
-- `ProfilePage.tsx`: Real multipart form upload to `/api/v1/resume/upload`, loading spinner, upload progress, error banners, OCR advisory warning banner on `EMPTY_TEXT`, and automatic transition to review.
-- `SkillsReviewPage.tsx`: Interactive Competency Review table showing real candidate skills, canonical name editing, category badges, extraction method badges (`Direct Mention` vs `Contextual` vs `Manual`), calibrated proficiency dropdowns, years of experience inputs, evidence snippets with tooltip, unconfirm/reject controls, "Add Competency" modal, raw text preview collapsible, and "Confirm & Explore Careers" backend persistence action.
-- `CareerExplorerPage.tsx`: Calculates candidate match percentage dynamically via `calculateRoleMatch(role)` when profile is reviewed; displays verified competency count (e.g., "3 of 5 Verified") and highlights matching required skills.
-- `CareerContext.tsx`: Manages `currentProfileId`, `extractedTextPreview`, `extractionWarnings`, `isRealProfileLoaded`, `isRealProfileReviewed`, `skills`, and dynamic role match calculation.
+### Frontend Upgrades (`apps/frontend/`)
+- `PracticalProjectsPage.tsx`: Interactive Project Workspace page with role/difficulty/keyword filtering, status badges, metrics bar, and a 4-tab modal (Scenario & Instructions, Submit Deliverables, Assessment & Rubric, Submission History).
+- `ReadinessPage.tsx`: Explainable Career Readiness Dashboard with hero readiness dial, 4 weighted dimensional cards, prominent mandatory gaps alert, milestone progress bars, next recommended steps, and statutory non-hiring guarantee disclaimer.
+- `JobsPage.tsx`: Parameterized external job discovery with dynamic keyword & location filters, verified portal cards (SAP Official Careers, LinkedIn Jobs, Indeed), embedded competency tags, and prominent Zero-Fabrication disclosure.
+- `CareerContext.tsx`: Manages project workspace lifecycle, active submissions, readiness scorecard fetching, and job link generation.
 
 ---
 
@@ -72,26 +76,24 @@
 
 | Test Suite / Verification Step | Result | Details |
 | :--- | :---: | :--- |
-| **Backend Automated Unit & Integration Suite** | **PASS (15/15)** | `npm test` running 15 tests covering PDF extraction, DOCX extraction, evidence snippets, empty text warnings, format validation, 10MB limit, corrupt PDF handling, 0-byte rejection, deduplication, unconfirmed defaults, review confirmation, skill rejection, manual additions, 404 handling, and OCR detection. Duration: 3.95s. |
-| **End-to-End Ingestion & Review Workflow** | **PASS (6/6)** | `verify-milestone.ts` tested real PDF (7 competencies identified), real DOCX (12 competencies identified), blank/scanned PDF (`EMPTY_TEXT` + OCR advisory), unsupported `.txt` (HTTP 400), review submission (4 confirmed, 1 rejected, 1 manual added), and post-restart 404 behavior. |
+| **Backend Automated Unit & Integration Suite** | **PASS (48/48)** | `npm test` running 48 tests across 7 test suites covering career matching (10), skill gaps (5), learning pathways (6), project lifecycle & rubrics (8), readiness scorecards (3), external job destinations (2), and resume ingestion/review (14). Duration: 4.3s. |
+| **End-to-End Milestone Verification** | **PASS (17/17)** | `verify-milestone.ts` tested real PDF & DOCX ingestion, human review, explainable matching, comparison, 6-group gap analysis, sequenced pathway, dynamic progress recalculation, edge cases, project discovery, workspace initiation, deliverable submission, rubric review, readiness scorecard, and parameterized job destinations. |
 | **Monorepo Global Typecheck** | **PASS** | `npm run typecheck` across `shared`, `backend`, and `frontend` (0 errors). |
-| **Frontend Production Build** | **PASS** | `npm run build:frontend` compiled 69 modules in 3.40s. |
+| **Frontend Production Build** | **PASS** | `npm run build:frontend` compiled 66 modules cleanly into `dist/` in 4.19s. |
 | **Backend Production Build** | **PASS** | `npm run build:backend` compiled TypeScript cleanly into `dist/`. |
-| **Visual Capture & Layout Audit** | **PASS** | Captured `02-profile-upload-staged.png`, `03-skills-review-real.png`, and `04-career-explorer-matched.png`. |
+| **Visual Capture & Layout Audit** | **PASS** | Captured all 10 screenshots into `screenshots/` and artifact directory (`01-landing-page.png` through `10-job-destinations.png`). |
 
 ---
 
 ## 5. Truthful Capabilities vs Staged Features
 
 ### Genuinely Functional in this Milestone
-1. **Real PDF Text Extraction:** Extracts selectable text from Adobe PDF documents via Mozilla PDF.js.
-2. **Real Word DOCX Text Extraction:** Extracts document paragraphs from OpenXML DOCX files via Mammoth.
-3. **Deterministic Ontology Matching:** Evaluates 9 functional skill categories with regex boundary safety, evidence snippet extraction, explicit vs contextual extraction tagging, and confidence scoring.
-4. **Human-in-the-Loop Verification:** Candidate reviews every extracted item, confirms/unconfirms, edits canonical names, adjusts proficiencies and experience, rejects irrelevant skills, and adds custom competencies.
-5. **Dynamic Career Match Scores:** Match percentages in Career Explorer dynamically reflect the candidate's confirmed competencies against role requirements.
-6. **Graceful Error Handling:** Rejects oversized files, unsupported formats, empty files, and flags scanned/image PDFs with clear OCR advisory notices.
+1. **Interactive Project Workspaces:** Candidates discover 10 enterprise projects, initiate workspaces, submit URLs/reflections/challenges/alternative evidence, and undergo multi-criteria rubric evaluations.
+2. **Explicit Lifecycle States:** Submissions transition cleanly from `NOT_STARTED` $\to$ `IN_PROGRESS` $\to$ `SUBMITTED` $\to$ `NEEDS_REVISION` / `REVIEWED` / `COMPLETED`. Uploading never automatically certifies competence without rubric scoring.
+3. **Audit-Transparent Career Readiness:** Readiness score formula ($0.35 \times \text{Skill} + 0.35 \times \text{Mandatory} + 0.15 \times \text{Learning} + 0.15 \times \text{Projects}$) highlights missing mandatory skills and prevents eligibility when core prerequisites are absent.
+4. **Verified External Job Deep Searches:** Custom parameterization generates direct queries for SAP Official Careers (`jobs.sap.com`), LinkedIn Jobs, and Indeed without scrapers or hallucinated postings.
+5. **Human-in-the-Loop AI & Zero Fabrication:** Full explainability with statutory disclaimers stating readiness is not a hiring guarantee and external jobs are query-parameterized deep links to official engines.
 
-### Intentionally Staged / Host Prerequisites Pending
-1. **PostgreSQL Database Storage:** PostgreSQL is not installed on the local host. The service operates an in-memory repository fallback. Profiles are retained for the duration of the server process. If the server restarts, draft profiles reset, and the user is guided to re-upload or continue with manual intake.
-2. **Optical Character Recognition (OCR):** Scanned image PDFs and photos without a text layer are detected and flagged with an advisory notice explaining OCR is disabled.
-3. **Deep Career Gap & Learning Plan Personalization:** Mathematical gap closure algorithms and dynamic milestone generation run in Milestone 3.
+### Intentionally Staged / Local Environment Context
+1. **PostgreSQL Database Storage:** PostgreSQL is not installed on the local host. The service operates an in-memory repository fallback. Candidate profiles and project submissions are retained for the duration of the server process. If the server restarts, session storage resets, and users are notified via banner disclosure.
+2. **Direct Employer ATS API Feeds:** Enterprise ATS webhooks are staged with a truthful empty state. Candidates use verified search engines for live postings.

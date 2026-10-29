@@ -253,6 +253,116 @@ export interface PracticalProjectDefinition {
   description: string;
   deliverables: string[];
   rubricCriteria: { criterion: string; weightPercentage: number }[];
+  businessProblem?: string;
+  objectives?: string[];
+  stepByStepInstructions?: string[];
+  requiredTechnologies?: string[];
+}
+
+export type ProjectLifecycleState =
+  | 'NOT_STARTED'
+  | 'IN_PROGRESS'
+  | 'SUBMITTED'
+  | 'NEEDS_REVISION'
+  | 'REVIEWED'
+  | 'COMPLETED';
+
+export interface RubricScoreItem {
+  criterion: string;
+  weightPercentage: number;
+  awardedScore?: number; // 0 to 100
+  feedback?: string;
+  isSatisfied?: boolean;
+}
+
+export interface ProjectSubmission {
+  id: string;
+  projectId: string;
+  profileId: string;
+  status: ProjectLifecycleState;
+  repositoryUrl?: string;
+  liveDemoUrl?: string;
+  projectExplanation: string;
+  challengesEncountered?: string;
+  skillsDemonstrated: string[];
+  learningReflection: string;
+  supportingEvidenceUrls?: string[];
+  alternativeEvidenceDescription?: string;
+  rubricAssessments: RubricScoreItem[];
+  overallScore?: number; // 0 to 100
+  reviewerFeedback?: string;
+  reviewerType: 'SELF_ASSESSMENT' | 'INDEPENDENT_REVIEWER' | 'AWAITING_REVIEW';
+  submittedAt?: string;
+  reviewedAt?: string;
+  updatedAt: string;
+}
+
+export interface ReadinessDimensionScore {
+  name: string;
+  score: number; // 0 to 100
+  weightPercentage: number;
+  demonstratedDetails: string;
+  gapDetails: string;
+  status: 'STRONG' | 'IN_PROGRESS' | 'NEEDS_ATTENTION' | 'INSUFFICIENT_DATA';
+}
+
+export interface CareerReadinessScorecard {
+  profileId: string;
+  roleId: string;
+  roleSlug: string;
+  roleTitle: string;
+  overallReadinessScore: number; // 0 to 100
+  isReadinessEligible: boolean; // false if mandatory gaps remain or insufficient evidence
+  summaryText: string;
+  dimensions: {
+    skillCoverage: ReadinessDimensionScore;
+    mandatoryRequirements: ReadinessDimensionScore;
+    learningMilestones: ReadinessDimensionScore;
+    projectEvidence: ReadinessDimensionScore;
+  };
+  confirmedMandatorySkills: string[];
+  outstandingMandatoryGaps: string[];
+  outstandingPreferredGaps: string[];
+  learningMilestoneProgress: {
+    completedCount: number;
+    totalCount: number;
+    completionPercentage: number;
+    completedMilestoneTitles: string[];
+    remainingMilestoneTitles: string[];
+  };
+  projectEvidenceProgress: {
+    submittedCount: number;
+    reviewedCount: number;
+    totalAvailableProjects: number;
+    submissionsAwaitingReviewCount: number;
+    completedProjectsCount: number;
+  };
+  nextRecommendedActions: string[];
+  calculatedAt: string;
+  disclaimer: string;
+}
+
+export interface ExternalJobSearchLink {
+  portalName: string;
+  portalKey: 'SAP_OFFICIAL' | 'LINKEDIN' | 'INDEED' | 'BUILTIN' | 'GENERIC';
+  destinationUrl: string;
+  roleKeywords: string;
+  suggestedLocation: string;
+  targetSkillsQuery: string[];
+  isVerified: boolean;
+  notes: string;
+  instructions: string;
+}
+
+export interface RoleJobSearchResponse {
+  roleId: string;
+  roleSlug: string;
+  roleTitle: string;
+  searchQueryUsed: string;
+  locationUsed: string;
+  destinationLinks: ExternalJobSearchLink[];
+  recommendedPreparationSkills: string[];
+  disclaimer: string;
 }
 
 export interface LearningPathwayMilestone {

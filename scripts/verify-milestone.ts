@@ -618,8 +618,151 @@ async function runMilestoneVerification() {
     console.log(`Invalid compare request (<2 roles) status: ${invalidCompareRes.status} (Expected 400)`);
     if (invalidCompareRes.status !== 400) throw new Error('Test 12c failed: Comparing <2 roles should return 400.');
 
+    // -------------------------------------------------------------
+    // Test 13: Project Workspaces & Enterprise Scenario Discovery
+    // -------------------------------------------------------------
+    console.log('\n--- TEST 13: PRACTICAL PROJECT WORKSPACES & DISCOVERY ---');
+    const allProjectsRes = await fetch(`${baseUrl}/api/v1/projects`);
+    const allProjectsData = await allProjectsRes.json();
+    console.log(`Discovered Enterprise Projects: ${allProjectsData.total ?? allProjectsData.projects?.length} projects`);
+
+    if (!Array.isArray(allProjectsData.projects) || allProjectsData.projects.length < 10) {
+      throw new Error('Test 13 failed: Expected at least 10 enterprise practical projects in catalogue.');
+    }
+
+    const fiProjectsRes = await fetch(`${baseUrl}/api/v1/projects?roleSlug=sap-s4hana-finance-consultant`);
+    const fiProjectsData = await fiProjectsRes.json();
+    console.log(`Filtered S/4HANA Finance Projects: ${fiProjectsData.total ?? fiProjectsData.projects?.length} projects`);
+
+    const sampleProject = fiProjectsData.projects[0];
+    if (!sampleProject || !sampleProject.businessProblem || !sampleProject.stepByStepInstructions?.length || !sampleProject.rubricCriteria?.length) {
+      throw new Error('Test 13 failed: Project definition missing detailed enterprise instructions or rubric criteria.');
+    }
+    console.log(`Sample Project: "${sampleProject.title}" (Difficulty: ${sampleProject.difficulty}, Rubric Criteria: ${sampleProject.rubricCriteria.length})`);
+
+    // -------------------------------------------------------------
+    // Test 14: Project Workspace Initiation & Deliverable Submission
+    // -------------------------------------------------------------
+    console.log('\n--- TEST 14: PROJECT LIFECYCLE INITIATION & SUBMISSION ---');
+    const startProjRes = await fetch(`${baseUrl}/api/v1/projects/${sampleProject.id}/start`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ profileId })
+    });
+    const startedSubmission = await startProjRes.json();
+    console.log(`Started Project State: ${startedSubmission.status} (Expected IN_PROGRESS)`);
+
+    if (startedSubmission.status !== 'IN_PROGRESS') {
+      throw new Error('Test 14 failed: Starting project should yield IN_PROGRESS status.');
+    }
+
+    // Candidate submits deliverable with URLs and reflection
+    const submitDeliverablesRes = await fetch(`${baseUrl}/api/v1/projects/${sampleProject.id}/submissions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        projectId: sampleProject.id,
+        profileId,
+        repositoryUrl: 'https://github.com/alexvance/s4hana-gl-reconciliation-runbook',
+        liveDemoUrl: 'https://demo.example.com/s4hana-gl-audit',
+        projectExplanation: 'Engineered an automated S/4HANA General Ledger journal reconciliation workflow with posting runbooks.',
+        challengesEncountered: 'Navigating foreign currency ledger postings and multi-GAAP posting rules.',
+        skillsDemonstrated: sampleProject.targetSkills,
+        learningReflection: 'Deepened practical knowledge of ledger posting keys and financial compliance requirements.'
+      })
+    });
+    const candidateSubmission = await submitDeliverablesRes.json();
+    console.log(`Candidate Submission Status: ${candidateSubmission.status} (Expected SUBMITTED)`);
+    console.log(`Reviewer Type: ${candidateSubmission.reviewerType} (Expected AWAITING_REVIEW)`);
+
+    // Verify submission is NOT automatically marked COMPLETED upon upload
+    if (candidateSubmission.status !== 'SUBMITTED' || candidateSubmission.reviewerType !== 'AWAITING_REVIEW') {
+      throw new Error('Test 14 failed: Candidate submission must be SUBMITTED and AWAITING_REVIEW, not automatically COMPLETED.');
+    }
+
+    // -------------------------------------------------------------
+    // Test 15: Rubric Evaluation & Assessment Decision
+    // -------------------------------------------------------------
+    console.log('\n--- TEST 15: RUBRIC EVALUATION & ASSESSMENT TRANSITION ---');
+    const rubricAssessments = sampleProject.rubricCriteria.map((rc: { criterion: string; weightPercentage: number }) => ({
+      criterion: rc.criterion,
+      weightPercentage: rc.weightPercentage,
+      awardedScore: 92,
+      feedback: 'Demonstrated thorough accounting controls and automated reconciliation balance checking.',
+      isSatisfied: true
+    }));
+
+    const projectReviewRes = await fetch(`${baseUrl}/api/v1/projects/submissions/${candidateSubmission.id}/review`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        submissionId: candidateSubmission.id,
+        reviewerProfileId: 'lead-evaluator-01',
+        reviewerType: 'INDEPENDENT_REVIEWER',
+        status: 'COMPLETED',
+        rubricAssessments,
+        reviewerFeedback: 'Outstanding technical runbook with enterprise grade audit trail and posting documentation.'
+      })
+    });
+    const reviewedSubmission = await projectReviewRes.json();
+    console.log(`Reviewed Status: ${reviewedSubmission.status} (Expected COMPLETED)`);
+    console.log(`Overall Rubric Score: ${reviewedSubmission.overallScore}% (Expected >= 70%)`);
+
+    if (reviewedSubmission.status !== 'COMPLETED' || (reviewedSubmission.overallScore ?? 0) < 70) {
+      throw new Error('Test 15 failed: High-scoring rubric review should transition to COMPLETED.');
+    }
+
+    // -------------------------------------------------------------
+    // Test 16: Multi-Dimensional Career Readiness Scorecard
+    // -------------------------------------------------------------
+    console.log('\n--- TEST 16: EXPLAINABLE CAREER READINESS SCORECARD ---');
+    const readinessRes = await fetch(`${baseUrl}/api/v1/readiness/${profileId}/sap-s4hana-finance-consultant?completedMilestones=s4-fi-01,s4-fi-02`);
+    const readinessData = await readinessRes.json();
+
+    console.log(`Overall Readiness Score: ${readinessData.overallReadinessScore}%`);
+    console.log(`Transition Eligibility: ${readinessData.isReadinessEligible}`);
+    console.log(`Mandatory Gaps Remaining: ${readinessData.outstandingMandatoryGaps.length}`);
+    console.log(`Dimensions:
+  - Skill Coverage: ${readinessData.dimensions.skillCoverage.score}% (${readinessData.dimensions.skillCoverage.weightPercentage}%)
+  - Mandatory Req:  ${readinessData.dimensions.mandatoryRequirements.score}% (${readinessData.dimensions.mandatoryRequirements.weightPercentage}%)
+  - Learning Prog:  ${readinessData.dimensions.learningMilestones.score}% (${readinessData.dimensions.learningMilestones.weightPercentage}%)
+  - Project Evidence: ${readinessData.dimensions.projectEvidence.score}% (${readinessData.dimensions.projectEvidence.weightPercentage}%)`);
+
+    // Verify statutory disclaimer
+    if (!readinessData.disclaimer || !readinessData.disclaimer.includes('evidence-based progress assessment')) {
+      throw new Error('Test 16 failed: Readiness scorecard missing official statutory disclaimer.');
+    }
+
+    // -------------------------------------------------------------
+    // Test 17: Parameterized External Job Destinations
+    // -------------------------------------------------------------
+    console.log('\n--- TEST 17: PARAMETERIZED EXTERNAL JOB DESTINATIONS ---');
+    const jobsRes = await fetch(`${baseUrl}/api/v1/jobs/search-links/sap-s4hana-finance-consultant?location=Remote&keywords=SAP+S4HANA+Finance`);
+    const jobsData = await jobsRes.json();
+
+    console.log(`Role: ${jobsData.roleTitle}`);
+    console.log(`Destination Links Generated: ${jobsData.destinationLinks.length}`);
+    for (const link of jobsData.destinationLinks) {
+      console.log(`  - [${link.portalKey}] ${link.portalName}: ${link.destinationUrl}`);
+      if (!link.destinationUrl.startsWith('https://')) {
+        throw new Error(`Test 17 failed: Invalid destination URL for ${link.portalName}`);
+      }
+    }
+
+    // Verify zero-fabrication disclaimer
+    if (!jobsData.disclaimer || !jobsData.disclaimer.includes('Zero Fabrication Policy')) {
+      throw new Error('Test 17 failed: Job search missing Zero Fabrication Policy disclaimer.');
+    }
+
+    // Negative edge case: non-existent role
+    const badJobsRes = await fetch(`${baseUrl}/api/v1/jobs/search-links/non-existent-role-xyz`);
+    console.log(`Non-existent role jobs status: ${badJobsRes.status} (Expected 404)`);
+    if (badJobsRes.status !== 404) {
+      throw new Error('Test 17 failed: Querying jobs for unknown role should return 404.');
+    }
+
     console.log('\n================================================================');
-    console.log('ALL 12 END-TO-END WORKFLOW VERIFICATIONS PASSED SUCCESSFULLY!');
+    console.log('ALL 17 END-TO-END WORKFLOW VERIFICATIONS PASSED SUCCESSFULLY!');
     console.log('================================================================');
   } finally {
     server.close();
