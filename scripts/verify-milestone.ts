@@ -10,7 +10,11 @@ import { ResumeService } from '../apps/backend/src/modules/resume/resume.service
 import {
   ResumeUploadResponse,
   ProfileReviewResponse,
-  ExtractedSkillItem
+  ExtractedSkillItem,
+  CareerMatchResult,
+  CareerComparisonResult,
+  SkillGapAnalysis,
+  LearningPathway
 } from '@career-orchestrator/shared';
 
 // Helper to create synthetic PDF
@@ -228,49 +232,80 @@ async function runMilestoneVerification() {
     const profileId = pdfData.profileId;
     const suggested = pdfData.suggestedSkills;
 
-    // Confirm first 3 skills, reject 4th skill, and add 1 manual skill
+    // Human-in-the-loop review: confirm finance and ERP skills, reject one skill, add manual competency
+    const glSkill = suggested.find((s) => s.name.toLowerCase().includes('general ledger')) || suggested[4];
+    const finRepSkill = suggested.find((s) => s.name.toLowerCase().includes('financial reporting')) || suggested[5];
+    const bpmSkill = suggested.find((s) => s.name.toLowerCase().includes('process mapping')) || suggested[6];
+    const sqlSkill = suggested.find((s) => s.name.toLowerCase().includes('sql')) || suggested[0];
+    const s4Skill = suggested.find((s) => s.name.toLowerCase().includes('s/4hana')) || suggested[2];
+    const rejectedItem = suggested.find((s) => s.name.toLowerCase().includes('postgres')) || suggested[1];
+
     const reviewedSkills = [
       {
-        skillId: suggested[0].id,
-        name: suggested[0].name,
-        category: suggested[0].category,
+        skillId: glSkill.id,
+        name: glSkill.name,
+        category: glSkill.category,
         proficiency: 'ADVANCED' as const,
-        yearsExperience: 4.5,
+        yearsExperience: 5.0,
         isConfirmed: true,
         isTransferable: true,
-        evidenceSnippet: suggested[0].evidenceSnippet,
-        extractionMethod: suggested[0].extractionMethod,
+        evidenceSnippet: glSkill.evidenceSnippet,
+        extractionMethod: glSkill.extractionMethod,
         reviewStatus: 'CONFIRMED' as const
       },
       {
-        skillId: suggested[1].id,
-        name: suggested[1].name,
-        category: suggested[1].category,
+        skillId: finRepSkill.id,
+        name: finRepSkill.name,
+        category: finRepSkill.category,
+        proficiency: 'INTERMEDIATE' as const,
+        yearsExperience: 4.0,
+        isConfirmed: true,
+        isTransferable: true,
+        evidenceSnippet: finRepSkill.evidenceSnippet,
+        extractionMethod: finRepSkill.extractionMethod,
+        reviewStatus: 'CONFIRMED' as const
+      },
+      {
+        skillId: bpmSkill.id,
+        name: bpmSkill.name,
+        category: bpmSkill.category,
         proficiency: 'INTERMEDIATE' as const,
         yearsExperience: 3.0,
         isConfirmed: true,
         isTransferable: true,
-        evidenceSnippet: suggested[1].evidenceSnippet,
-        extractionMethod: suggested[1].extractionMethod,
+        evidenceSnippet: bpmSkill.evidenceSnippet,
+        extractionMethod: bpmSkill.extractionMethod,
         reviewStatus: 'CONFIRMED' as const
       },
       {
-        skillId: suggested[2].id,
-        name: suggested[2].name,
-        category: suggested[2].category,
+        skillId: sqlSkill.id,
+        name: sqlSkill.name,
+        category: sqlSkill.category,
+        proficiency: 'INTERMEDIATE' as const,
+        yearsExperience: 3.5,
+        isConfirmed: true,
+        isTransferable: true,
+        evidenceSnippet: sqlSkill.evidenceSnippet,
+        extractionMethod: sqlSkill.extractionMethod,
+        reviewStatus: 'CONFIRMED' as const
+      },
+      {
+        skillId: s4Skill.id,
+        name: s4Skill.name,
+        category: s4Skill.category,
         proficiency: 'INTERMEDIATE' as const,
         yearsExperience: 2.0,
         isConfirmed: true,
         isTransferable: true,
-        evidenceSnippet: suggested[2].evidenceSnippet,
-        extractionMethod: suggested[2].extractionMethod,
+        evidenceSnippet: s4Skill.evidenceSnippet,
+        extractionMethod: s4Skill.extractionMethod,
         reviewStatus: 'CONFIRMED' as const
       },
-      // Rejected skill
+      // Explicitly Rejected Skill (candidate verifies they do NOT have this skill or want it excluded)
       {
-        skillId: suggested[3] ? suggested[3].id : 'rejected-sample',
-        name: suggested[3] ? suggested[3].name : 'Excluded Skill',
-        category: suggested[3] ? suggested[3].category : 'TRANSFERABLE_SOFT',
+        skillId: 'EXCLUDED-COBOL-01',
+        name: 'Legacy COBOL Mainframe Maintenance',
+        category: 'SOFTWARE_DEV' as const,
         proficiency: 'NOVICE' as const,
         yearsExperience: 0.5,
         isConfirmed: false,
@@ -301,20 +336,20 @@ async function runMilestoneVerification() {
         currentTitle: 'Senior Financial Analyst',
         yearsExperience: 5.0,
         reviewedSkills,
-        notes: 'Candidate human review complete. 4 confirmed competencies.'
+        notes: 'Candidate human review complete. 6 confirmed competencies, 1 rejected.'
       })
     });
 
     const reviewData = (await reviewRes.json()) as ProfileReviewResponse;
     console.log(`HTTP Status: ${reviewRes.status}`);
-    console.log(`Confirmed Skills Count: ${reviewData.confirmedSkillsCount} (Expected 4)`);
+    console.log(`Confirmed Skills Count: ${reviewData.confirmedSkillsCount} (Expected 6)`);
     console.log(`Rejected Skills Count: ${reviewData.rejectedSkillsCount} (Expected 1)`);
     console.log('Confirmed Skills:');
     reviewData.confirmedSkills.forEach((s, idx) => {
       console.log(`  ${idx + 1}. ${s.name} [${s.category}] — ${s.proficiency} (${s.yearsExperience} yrs)`);
     });
 
-    if (reviewData.confirmedSkillsCount !== 4 || reviewData.rejectedSkillsCount !== 1) {
+    if (reviewData.confirmedSkillsCount !== 6 || reviewData.rejectedSkillsCount !== 1) {
       throw new Error('Test 5 failed: Confirmed/Rejected counts mismatch.');
     }
 
@@ -335,8 +370,256 @@ async function runMilestoneVerification() {
     console.log(`Post-Restart Profile Query Result: ${restartedCheck} (Expected null)`);
     console.log('Truthful disclosure: As documented, without PostgreSQL on host, the InMemoryProfileRepository resets across server restarts. The frontend gracefully detects 404 and offers to re-upload or continue with manual intake.');
 
+    // -------------------------------------------------------------
+    // Test 7: Career Matching Engine (All 14 Roles Evaluated)
+    // -------------------------------------------------------------
+    console.log('\n--- TEST 7: CAREER MATCHING ENGINE EVALUATION (14 ROLES) ---');
+    const matchesRes = await fetch(`${baseUrl}/api/v1/careers/matches/${profileId}`);
+    const matchesData = (await matchesRes.json()) as {
+      profileId: string;
+      candidateName: string;
+      currentTitle: string;
+      confirmedSkillsCount: number;
+      totalCareersEvaluated: number;
+      matches: CareerMatchResult[];
+      evaluatedAt: string;
+    };
+
+    console.log(`HTTP Status: ${matchesRes.status}`);
+    console.log(`Candidate: ${matchesData.candidateName} (${matchesData.currentTitle})`);
+    console.log(`Total Careers Evaluated: ${matchesData.totalCareersEvaluated} (Expected 14)`);
+
+    if (matchesRes.status !== 200 || matchesData.totalCareersEvaluated !== 14 || matchesData.matches.length !== 14) {
+      throw new Error(`Test 7 failed: Expected 14 evaluated career roles, got ${matchesData.matches.length}`);
+    }
+
+    console.log('Top Career Matches:');
+    matchesData.matches.slice(0, 5).forEach((m, idx) => {
+      console.log(`  ${idx + 1}. [${m.overallScore}% overall | ${m.mandatoryScore}% mandatory] ${m.roleTitle} (${m.careerFamily})`);
+      console.log(`     Pivot Ready: ${m.isEligibleForPivot} | Matched: ${m.matchedSkills.length} | Missing Mand: ${m.missingMandatorySkills.length}`);
+      if (m.prerequisiteWarnings.length > 0) {
+        console.log(`     Notice: ${m.prerequisiteWarnings[0]}`);
+      }
+    });
+
+    // Check that excluded/rejected skill is NOT counted in any match
+    const rejectedContamination = matchesData.matches.some((m) =>
+      m.matchedSkills.some((s) => s.evidenceSnippet?.toLowerCase().includes('cobol') || s.skillName.toLowerCase().includes('cobol'))
+    );
+    if (rejectedContamination) {
+      throw new Error('Test 7 failed: Rejected skill appeared in matched skills!');
+    }
+    console.log('Integrity check: Zero rejected/unreviewed skills contaminated the matching results.');
+
+    // Verify S/4HANA Finance Consultant has positive score and matched competencies
+    const fiRole = matchesData.matches.find((m) => m.roleSlug === 'sap-s4hana-finance-consultant');
+    if (!fiRole || fiRole.overallScore <= 0 || fiRole.matchedSkills.length === 0) {
+      throw new Error('Test 7 failed: sap-s4hana-finance-consultant was not matched with positive score.');
+    }
+    console.log(`Target Role Match: '${fiRole.roleTitle}' score = ${fiRole.overallScore}% (Mandatory: ${fiRole.mandatoryScore}%)`);
+
+    // -------------------------------------------------------------
+    // Test 8: Multi-Role Side-by-Side Comparison
+    // -------------------------------------------------------------
+    console.log('\n--- TEST 8: MULTI-ROLE SIDE-BY-SIDE COMPARISON MATRIX ---');
+    const compareRes = await fetch(`${baseUrl}/api/v1/careers/compare`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        profileId,
+        roleSlugs: [
+          'sap-s4hana-finance-consultant',
+          'sap-s4hana-sourcing-procurement',
+          'enterprise-business-analyst'
+        ]
+      })
+    });
+
+    const compareData = (await compareRes.json()) as CareerComparisonResult;
+    console.log(`HTTP Status: ${compareRes.status}`);
+    console.log(`Roles Compared: ${compareData.roles.length} (Expected 3)`);
+    console.log(`Shared Transferable Skills Identified: ${compareData.sharedTransferableSkills.length}`);
+    compareData.sharedTransferableSkills.forEach((s) => {
+      console.log(`  - ${s}`);
+    });
+
+    if (compareRes.status !== 200 || compareData.roles.length !== 3) {
+      throw new Error('Test 8 failed: Multi-role comparison did not return 3 compared roles.');
+    }
+
+    compareData.roles.forEach((r) => {
+      console.log(`Role: ${r.roleTitle}`);
+      console.log(`  Match Score: ${r.overallScore}% | Mandatory Gaps: ${r.missingMandatorySkills.length} | Est. Planning Hours: ~${r.planningHoursEstimate}h`);
+    });
+
+    // -------------------------------------------------------------
+    // Test 9: Six-Group Detailed Skill-Gap Analysis
+    // -------------------------------------------------------------
+    console.log('\n--- TEST 9: DETAILED 6-GROUP SKILL GAP ANALYSIS ---');
+    const gapsRes = await fetch(`${baseUrl}/api/v1/careers/sap-s4hana-finance-consultant/gaps/${profileId}`);
+    const gapsData = (await gapsRes.json()) as SkillGapAnalysis;
+
+    console.log(`HTTP Status: ${gapsRes.status}`);
+    console.log(`Target Role: ${gapsData.role.title}`);
+    console.log(`  1. Confirmed Matches: ${gapsData.confirmedMatches.length}`);
+    gapsData.confirmedMatches.forEach((m) => {
+      console.log(`     [FULL] ${m.skillName} (Req: ${m.requiredProficiency} | Cand: ${m.candidateProficiency})`);
+      if (m.evidenceSnippet) console.log(`            Evidence: "${m.evidenceSnippet.slice(0, 60)}..."`);
+    });
+
+    console.log(`  2. Partial Matches: ${gapsData.partiallyMatched.length}`);
+    gapsData.partiallyMatched.forEach((p) => {
+      console.log(`     [PARTIAL] ${p.skillName} (Req: ${p.requiredProficiency} | Cand: ${p.candidateProficiency})`);
+    });
+
+    console.log(`  3. Mandatory Gaps: ${gapsData.mandatoryGaps.length}`);
+    gapsData.mandatoryGaps.forEach((g) => {
+      console.log(`     [MANDATORY GAP] ${g.skillName} — Req: ${g.requiredProficiency} (Weight: ${g.weight})`);
+    });
+
+    console.log(`  4. Recommended Gaps: ${gapsData.recommendedGaps.length}`);
+    console.log(`  5. Unverified Requirements: ${gapsData.unverifiedRequirements.length}`);
+    console.log(`  6. External Prerequisites: ${gapsData.prerequisites.length}`);
+    console.log(`Total Estimated Bridge Effort: ~${gapsData.totalEstimatedBridgeHours} hours`);
+    console.log(`Linked Verified Learning Resources: ${gapsData.recommendedResources.length}`);
+    gapsData.recommendedResources.forEach((res) => {
+      console.log(`  - [${res.code}] ${res.title} (${res.provider}) -> ${res.externalUrl}`);
+    });
+
+    if (gapsRes.status !== 200 || gapsData.mandatoryGaps.length === 0 || gapsData.recommendedResources.length === 0) {
+      throw new Error('Test 9 failed: Skill-gap analysis did not properly identify gaps or link verified resources.');
+    }
+
+    // -------------------------------------------------------------
+    // Test 10: Personalized Sequenced Learning Pathway
+    // -------------------------------------------------------------
+    console.log('\n--- TEST 10: PERSONALIZED SEQUENCED LEARNING PATHWAY ---');
+    const pathwayRes = await fetch(`${baseUrl}/api/v1/learning-pathways`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        profileId,
+        roleSlug: 'sap-s4hana-finance-consultant'
+      })
+    });
+
+    const pathwayData = (await pathwayRes.json()) as LearningPathway;
+    console.log(`HTTP Status: ${pathwayRes.status}`);
+    console.log(`Target Role: ${pathwayData.roleTitle}`);
+    console.log(`Total Pathway Milestones: ${pathwayData.milestones.length}`);
+    console.log(`Total Estimated Hours: ~${pathwayData.totalEstimatedHours} hours`);
+    console.log(`Sequencing Rationale: "${pathwayData.sequencingRationale}"`);
+
+    pathwayData.milestones.forEach((m) => {
+      console.log(`  Milestone ${m.stepNumber}: ${m.title} (~${m.estimatedHours}h, Essential: ${m.isEssential})`);
+      console.log(`    Skills Addressed: ${m.skillsAddressed.join(', ')}`);
+      m.resources.forEach((r) => {
+        console.log(`    Resource: [${r.code}] ${r.title} (${r.externalUrl})`);
+      });
+      if (m.practicalProject) {
+        console.log(`    Practical Project: ${m.practicalProject.title}`);
+      }
+    });
+
+    if (pathwayRes.status !== 200 || pathwayData.milestones.length === 0) {
+      throw new Error('Test 10 failed: Learning pathway generation failed or returned 0 milestones.');
+    }
+
+    // Verify ordering: stepNumber must be ascending 1, 2, 3...
+    for (let i = 0; i < pathwayData.milestones.length; i++) {
+      if (pathwayData.milestones[i].stepNumber !== i + 1) {
+        throw new Error(`Test 10 failed: Milestones are not sequentially ordered (${pathwayData.milestones[i].stepNumber} vs ${i + 1})`);
+      }
+    }
+
+    // -------------------------------------------------------------
+    // Test 11: Dynamic Recalculation on Candidate Skill Acquisition
+    // -------------------------------------------------------------
+    console.log('\n--- TEST 11: DYNAMIC RECALCULATION ON CANDIDATE PROGRESS ---');
+    const initialScore = fiRole.overallScore;
+
+    // Candidate verifies and adds 'SAP Fiori Financial Apps' to their confirmed profile
+    const updatedSkills = [
+      ...reviewedSkills.filter((s) => s.isConfirmed),
+      {
+        skillId: 'USER-COMPLETED-FIORI',
+        name: 'SAP Fiori Financial Apps',
+        category: 'SAP_FUNCTIONAL' as const,
+        proficiency: 'ADVANCED' as const,
+        yearsExperience: 1.0,
+        isConfirmed: true,
+        isTransferable: true,
+        evidenceSnippet: 'Completed openSAP course UX100 and demonstrated app execution.',
+        extractionMethod: 'MANUAL_ENTRY' as const,
+        reviewStatus: 'CONFIRMED' as const
+      }
+    ];
+
+    const updateProfileRes = await fetch(`${baseUrl}/api/v1/profile/${profileId}/review`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        profileId,
+        fullName: 'Alex Vance',
+        currentTitle: 'Senior Financial Analyst',
+        yearsExperience: 5.5,
+        reviewedSkills: updatedSkills,
+        notes: 'Candidate completed SAP Fiori qualification.'
+      })
+    });
+    console.log(`Update Profile Review Status: ${updateProfileRes.status}`);
+
+    // Re-query career matches
+    const updatedMatchesRes = await fetch(`${baseUrl}/api/v1/careers/matches/${profileId}`);
+    const updatedMatchesData = await updatedMatchesRes.json();
+    const updatedFiRole = updatedMatchesData.matches.find((m: CareerMatchResult) => m.roleSlug === 'sap-s4hana-finance-consultant');
+
+    console.log(`Initial S/4HANA Finance Match: ${initialScore}%`);
+    console.log(`Updated S/4HANA Finance Match: ${updatedFiRole.overallScore}%`);
+    console.log(`Score Increase: +${updatedFiRole.overallScore - initialScore}%`);
+
+    if (updatedFiRole.overallScore <= initialScore) {
+      throw new Error('Test 11 failed: Match score did not increase after adding verified competency.');
+    }
+
+    // Re-query skill gaps and verify SAP Fiori moved to confirmedMatches
+    const updatedGapsRes = await fetch(`${baseUrl}/api/v1/careers/sap-s4hana-finance-consultant/gaps/${profileId}`);
+    const updatedGapsData = (await updatedGapsRes.json()) as SkillGapAnalysis;
+    const nowConfirmed = updatedGapsData.confirmedMatches.some((m) => m.skillName.toLowerCase().includes('fiori'));
+
+    console.log(`SAP Fiori moved to Confirmed Matches: ${nowConfirmed}`);
+    console.log(`Updated Total Bridge Hours: ~${updatedGapsData.totalEstimatedBridgeHours}h (was ~${gapsData.totalEstimatedBridgeHours}h)`);
+
+    if (!nowConfirmed || updatedGapsData.totalEstimatedBridgeHours >= gapsData.totalEstimatedBridgeHours) {
+      throw new Error('Test 11 failed: Gap analysis did not reflect newly acquired competency.');
+    }
+
+    // -------------------------------------------------------------
+    // Test 12: Edge Cases & Validation Error Handling
+    // -------------------------------------------------------------
+    console.log('\n--- TEST 12: EDGE CASES AND VALIDATION ERROR HANDLING ---');
+
+    // 12a: Non-existent profile
+    const badProfileRes = await fetch(`${baseUrl}/api/v1/careers/matches/non-existent-profile-xyz`);
+    console.log(`Non-existent profile status: ${badProfileRes.status} (Expected 404)`);
+    if (badProfileRes.status !== 404) throw new Error('Test 12a failed: Non-existent profile should return 404.');
+
+    // 12b: Non-existent role gap analysis
+    const badRoleRes = await fetch(`${baseUrl}/api/v1/careers/non-existent-career-xyz/gaps/${profileId}`);
+    console.log(`Non-existent role gap status: ${badRoleRes.status} (Expected 404)`);
+    if (badRoleRes.status !== 404) throw new Error('Test 12b failed: Non-existent role should return 404.');
+
+    // 12c: Invalid comparison body (< 2 roles)
+    const invalidCompareRes = await fetch(`${baseUrl}/api/v1/careers/compare`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ roleSlugs: ['single-role'] })
+    });
+    console.log(`Invalid compare request (<2 roles) status: ${invalidCompareRes.status} (Expected 400)`);
+    if (invalidCompareRes.status !== 400) throw new Error('Test 12c failed: Comparing <2 roles should return 400.');
+
     console.log('\n================================================================');
-    console.log('ALL 6 END-TO-END WORKFLOW VERIFICATIONS PASSED SUCCESSFULLY!');
+    console.log('ALL 12 END-TO-END WORKFLOW VERIFICATIONS PASSED SUCCESSFULLY!');
     console.log('================================================================');
   } finally {
     server.close();

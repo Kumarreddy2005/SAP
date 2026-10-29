@@ -1,22 +1,23 @@
 # Career Orchestrator — Project Status Log
 
 **Project:** Career Orchestrator (SAP Hackfest 2026)  
-**Current Phase:** Real End-to-End Resume Ingestion & Human-Reviewed Skill Extraction Workflow  
-**Overall Status:** **PASS** (15/15 automated backend tests pass, full monorepo typecheck clean, frontend production build clean, full E2E workflow verified)  
-**Last Updated:** 2026-10-28 21:58:00 UTC+05:30  
+**Current Phase:** Explainable Career-Matching Engine, Skill-Gap Analysis & Personalized Learning Pathway Generation  
+**Overall Status:** **PASS** (36/36 automated backend tests pass, full monorepo typecheck clean, frontend production build clean, full 12-stage E2E workflow verified)  
+**Last Updated:** 2026-10-29 08:00:00 UTC+05:30  
 
 ---
 
 ## 1. Phase Status Summary
 
-- **Multi-Format Text Extraction:** **PASS** (Mozilla `pdfjs-dist/legacy/build/pdf.js` for robust Node 20.11.1 PDF text extraction; `mammoth` for Word DOCX extraction).
-- **Deterministic Skill Ontology Matcher:** **PASS** (Word-boundary regex extraction across 9 categories, evidence snippets, explicit mention vs contextual inference, heuristic confidence scores 0.72–0.95, deduplication, unconfirmed `SUGGESTED` default).
-- **Multipart Upload & Validation:** **PASS** (`POST /api/v1/resume/upload` enforces 10MB limit, extension whitelist `.pdf`/`.docx`, binary magic byte validation `%PDF` and `PK\x03\x04`, graceful handling of empty/corrupt files).
-- **Human-in-the-Loop Review API:** **PASS** (`PUT /api/v1/profile/:id/review` validates payload via `ProfileReviewSubmissionSchema`, segregates confirmed from rejected skills, supports manual additions, updates candidate profile).
-- **Frontend Human Review Interface:** **PASS** (`ProfilePage.tsx` with real multipart upload and progress indicator; `SkillsReviewPage.tsx` with competency verification table, evidence inspection, calibrated proficiency dropdowns, inline name editing, modal for manual addition, and persist review button; `CareerExplorerPage.tsx` with real dynamic match percentage derived from confirmed candidate competencies).
-- **PostgreSQL & Repository Fallback:** **PASS** (Documented truthful status: PostgreSQL is not installed on host; implemented `InMemoryProfileRepository` fallback with non-durable session disclosure; tested graceful 404 behavior upon restart).
-- **Automated Verification Suite:** **PASS** (15/15 backend unit/integration tests passing in 3.95s; 6-stage end-to-end integration test passing; 100% monorepo typecheck clean).
-- **Visual Capture & Layout Audit:** **PASS** (All workflow views captured via headless Chrome at 1280x850 in `K:\SAP\screenshots` and brain artifacts).
+- **Curated Career Catalogue:** **PASS** (14 comprehensive career roles spanning SAP functional, SAP technical development, integration architecture, data analytics, enterprise analysis, cloud platform, QA automation, and agile project management; verified requirements, weights, and prerequisites).
+- **Deterministic Explainable Career Matching:** **PASS** (Transparent mathematical formula: $100 \times \frac{\sum (w_i \times f_i)}{\sum w_i}$; matches full 1.0, partial proficiency 0.4–0.75, unknown proficiency 0.5, missing 0.0; distinguishes evidence from assumptions; never treats unreviewed or rejected skills as confirmed).
+- **Multi-Role Side-by-Side Comparison:** **PASS** (`POST /api/v1/careers/compare` evaluates 2 to 4 roles concurrently; extracts shared transferable skills; presents role-specific mandatory and preferred gap deltas; estimates bridge hours).
+- **Detailed 6-Group Skill-Gap Analysis:** **PASS** (`GET /api/v1/careers/:slug/gaps/:profileId` breaks role requirements into: 1. Confirmed matches, 2. Partial matches, 3. Mandatory gaps, 4. Recommended gaps, 5. Unverified requirements, 6. External prerequisites; enriches each gap with verified learning resources and practical projects).
+- **Personalized Learning Pathway Generation:** **PASS** (`POST /api/v1/learning-pathways` dynamically generates sequenced roadmap milestones; prioritizes foundational processes before configuring; excludes elementary coursework for already-confirmed skills; maps verified SAP Learning Journeys and open courseware).
+- **Verified Official Learning Resources:** **PASS** (Direct official URLs to `learning.sap.com`, `openSAP`, and verified open documentation; direct links for `S4F01`, `S4F02`, `UX100`, `ACT100`, `RAP100`, `CLD900`, `TS450`, `CLD100`, `SAC01`, `CAP100`, Docker, PostgreSQL, Playwright).
+- **Frontend Pages Integration:** **PASS** (`CareerExplorerPage` with candidate-derived scores, ecosystem filters, sort controls, and Explain Score modal; `CareerComparisonPage` with shared transferable assets banner; `SkillGapPage` with 6 requirement categories and evidence inspection; `LearningPathwayPage` with dynamic milestone roadmap and session completion checkmarks).
+- **Automated Verification Suite:** **PASS** (36/36 backend unit/integration tests passing in 1.55s; 12-stage end-to-end integration test passing; 100% monorepo typecheck clean; 70 frontend modules compiled cleanly).
+- **Visual Capture & Layout Audit:** **PASS** (Headless Chrome captured 1280x850 screenshots across all milestone views: `04-career-explorer-matched.png`, `05-career-comparison.png`, `06-skill-gap.png`, `07-learning-pathway.png`).
 
 ---
 
@@ -27,24 +28,33 @@
 | `GET` | `/api/v1/health` | **200 OK** | System health, environment, timestamp. |
 | `POST` | `/api/v1/resume/upload` | **200 OK** | Multipart upload (`file` field). Validates format and binary magic bytes, extracts text via Mozilla PDF.js or Mammoth, runs deterministic ontology matcher, returns `ResumeUploadResponse`. |
 | `PUT` | `/api/v1/profile/:id/review` | **200 OK** | Submits human review (`ProfileReviewSubmissionSchema`). Segregates confirmed from rejected skills, persists updates, returns `ProfileReviewResponse`. |
-| `GET` | `/api/v1/profile/:id` | **200 OK** | Retrieves current stored candidate profile by ID. Returns 404 if profile does not exist or server was restarted. |
+| `GET` | `/api/v1/profile/:id` | **200 OK** | Retrieves stored candidate profile by ID. Returns 404 if profile does not exist or server was restarted. |
+| `GET` | `/api/v1/careers` | **200 OK** | Retrieves curated career catalogue (14 roles) with optional query filters (`search`, `ecosystem`, `family`, `track`). |
+| `GET` | `/api/v1/careers/:idOrSlug` | **200 OK** | Retrieves a single career role definition with full competency requirements, prerequisites, learning IDs, and project IDs. |
+| `GET` | `/api/v1/careers/matches/:profileId` | **200 OK** | Computes explainable match scores across all 14 catalogue roles using strictly candidate's confirmed competencies. |
+| `POST` | `/api/v1/careers/compare` | **200 OK** | Compares 2 to 4 career roles side-by-side with shared transferable skills and gap deltas. |
+| `GET` | `/api/v1/careers/:idOrSlug/gaps/:profileId` | **200 OK** | Performs 6-group skill-gap analysis with verified learning resources and practical projects. |
+| `POST` | `/api/v1/learning-pathways` | **200 OK** | Generates sequenced, personalized learning pathway bridging candidate's actual skill gaps. |
+| `GET` | `/api/v1/learning-resources` | **200 OK** | Returns complete catalogue of verified learning resources with direct URLs and verification metadata. |
 
 ---
 
 ## 3. Architecture & Modules Created
 
-### Backend Module (`apps/backend/src/modules/resume/`)
-- `file-validator.ts`: Validates 10MB size limit, file extensions, and binary magic bytes (`%PDF` for PDF, `PK\x03\x04` ZIP for DOCX).
-- `text-extractor.interface.ts`: Standard abstraction for document extractors.
-- `pdf-extractor.ts`: Mozilla PDF.js legacy engine (`pdfjs-dist/legacy/build/pdf.js`). Detects scanned/image-only PDFs and warns that OCR is not enabled.
-- `docx-extractor.ts`: Mammoth raw text extraction from binary buffers.
-- `skill-ontology.ts`: Curated ontology across 9 functional categories (Programming, Frontend, Backend, Databases, Cloud Platforms, Data Analytics, Domain Business, Project Management, Tools/Testing).
-- `deterministic-skill-extractor.ts`: Boundary-safe regex matcher (`\b...\b`), extracts supporting evidence snippets, distinguishes explicit vs contextual inference, heuristic confidence scores (0.72–0.95), deduplicates by code, sets `isConfirmed: false` and `reviewStatus: 'SUGGESTED'`.
-- `profile.repository.ts`: Repository interface and `InMemoryProfileRepository` fallback with session non-durability disclosure.
-- `resume.service.ts`: Orchestrates validation, text extraction, skill matching, and draft profile creation.
-- `profile.service.ts`: Handles candidate review submission, confirmed vs rejected filtering, and manual additions.
-- `resume.controller.ts`: Controller with input validation, error mapping, and HTTP status codes.
-- `resume.router.ts`: Multer memory storage and route definitions.
+### Career & Matching Module (`apps/backend/src/modules/`)
+- `career.catalogue.ts`: 14 structured career roles across 3 ecosystems (`SAP`, `HYBRID`, `NON_SAP`) and 8 career families.
+- `learning-resource.catalogue.ts`: 14 verified learning resources with official URLs and curriculum metadata.
+- `practical-projects.catalogue.ts`: 10 enterprise portfolio projects with rubrics and deliverables.
+- `career-matcher.service.ts`: Deterministic matching engine, multi-role comparison engine, prerequisite checker.
+- `skill-gap.service.ts`: 6-group gap categorization engine, bridge effort calculator, resource enrichment.
+- `pathway.service.ts`: Dynamic topological milestone generator with dependency sequencing.
+- `career.controller.ts` & `career.router.ts`: Express routes mounted in `apps/backend/src/app.ts`.
+
+### Automated Test Suites
+- `apps/backend/src/modules/resume/__tests__/resume-workflow.test.ts`: 15 unit/integration tests for resume ingestion & review.
+- `apps/backend/src/modules/career/__tests__/career-engine.test.ts`: 21 unit/integration tests covering matching, gap analysis, and learning pathways.
+- `scripts/verify-milestone.ts`: 12-stage end-to-end integration scenario verifying real resume ingestion $\to$ review $\to$ matching $\to$ comparison $\to$ gap analysis $\to$ learning pathway $\to$ progress recalculation $\to$ error handling.
+
 
 ### Shared Layer (`packages/shared/`)
 - `domain.types.ts`: `ExtractedSkillItem`, `ExtractionMethod`, `SkillReviewStatus`, `ResumeUploadResponse`, `ProfileReviewResponse`.

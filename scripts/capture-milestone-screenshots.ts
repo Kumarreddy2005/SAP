@@ -66,9 +66,18 @@ async function main() {
     await takeScreenshot('http://localhost:4173/skills-review', '03-skills-review.png');
     await takeScreenshot('http://localhost:4173/skills-review', '03-skills-review-real.png');
 
-    // 3. Career Explorer Screen
+    // 3. Career Explorer Screen (14 roles, filters, explainable scores)
     await takeScreenshot('http://localhost:4173/careers', '04-career-explorer.png');
     await takeScreenshot('http://localhost:4173/careers', '04-career-explorer-matched.png');
+
+    // 4. Career Comparison Matrix
+    await takeScreenshot('http://localhost:4173/careers/compare', '05-career-comparison.png');
+
+    // 5. Detailed Skill Gap Analysis (6 categorized groups)
+    await takeScreenshot('http://localhost:4173/career-gap', '06-skill-gap.png');
+
+    // 6. Personalized Learning Pathway (Sequenced milestones & verified resources)
+    await takeScreenshot('http://localhost:4173/learning', '07-learning-pathway.png');
 
     console.log('Screenshots captured successfully!');
   } finally {

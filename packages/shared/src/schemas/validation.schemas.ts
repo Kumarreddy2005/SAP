@@ -62,3 +62,33 @@ export const ProfileReviewSubmissionSchema = z.object({
 });
 
 export type ProfileReviewSubmission = z.infer<typeof ProfileReviewSubmissionSchema>;
+
+export const CareerCompareRequestSchema = z.object({
+  profileId: z.string().optional(),
+  roleSlugs: z
+    .array(z.string().min(1, 'Role slug cannot be empty'))
+    .min(2, 'At least two roles must be selected for comparison')
+    .max(4, 'A maximum of 4 roles may be compared simultaneously')
+});
+
+export type CareerCompareRequest = z.infer<typeof CareerCompareRequestSchema>;
+
+export const PathwayGenerationRequestSchema = z.object({
+  profileId: z.string().min(1, 'Profile ID is required'),
+  roleSlug: z.string().min(1, 'Role slug or identifier is required')
+});
+
+export type PathwayGenerationRequest = z.infer<typeof PathwayGenerationRequestSchema>;
+
+export const CareerFilterQuerySchema = z.object({
+  search: z.string().optional(),
+  ecosystem: z.enum(['ALL', 'SAP', 'HYBRID', 'NON_SAP']).optional().default('ALL'),
+  family: z.string().optional(),
+  track: z.string().optional(),
+  sortBy: z.enum(['match', 'title', 'effort', 'demand']).optional().default('match'),
+  sortOrder: z.enum(['asc', 'desc']).optional().default('desc'),
+  limit: z.coerce.number().min(1).max(100).optional().default(50),
+  page: z.coerce.number().min(1).optional().default(1)
+});
+
+export type CareerFilterQuery = z.infer<typeof CareerFilterQuerySchema>;

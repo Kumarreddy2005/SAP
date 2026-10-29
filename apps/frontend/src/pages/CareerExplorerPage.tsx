@@ -1,17 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Breadcrumbs } from '../components/common/Breadcrumbs';
 import { StepIndicator } from '../components/common/StepIndicator';
 import { Card } from '../components/common/Card';
 import { Button } from '../components/common/Button';
 import { Badge } from '../components/common/Badge';
-import { SearchIcon, ColumnsIcon, ArrowRightIcon, CheckIcon, InfoIcon } from '../components/common/Icons';
+import { Modal } from '../components/common/Modal';
+import {
+  SearchIcon,
+  ColumnsIcon,
+  ArrowRightIcon,
+  CheckIcon,
+  InfoIcon,
+  AlertTriangleIcon
+} from '../components/common/Icons';
 import { DEMO_CAREER_ROLES, ExtendedCareerRole } from '../demo/demoCareers';
 import { useCareerContext } from '../context/CareerContext';
+import { CareerMatchResult } from '@career-orchestrator/shared';
 
 export const CareerExplorerPage: React.FC = () => {
   const navigate = useNavigate();
   const {
+    currentProfileId,
     targetRoleSlug,
     setTargetRoleSlug,
     comparisonRoleSlugs,
@@ -19,34 +29,65 @@ export const CareerExplorerPage: React.FC = () => {
     calculateRoleMatch,
     isRealProfileReviewed,
     skills,
-    uploadedFile
+    uploadedFile,
+    careerMatches,
+    fetchCareerMatches
   } = useCareerContext();
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedTrack, setSelectedTrack] = useState<string>('ALL');
-  const [sapFilter, setSapFilter] = useState<'ALL' | 'SAP_ONLY' | 'NON_SAP'>('ALL');
+  const [selectedFamily, setSelectedFamily] = useState<string>('ALL');
+  const [ecosystemFilter, setEcosystemFilter] = useState<'ALL' | 'SAP' | 'HYBRID' | 'NON_SAP'>('ALL');
+  const [sortBy, setSortBy] = useState<'match' | 'effort' | 'title' | 'demand'>('match');
 
-  const confirmedCount = skills.filter((s) => s.isConfirmed).length;
+  // Explain match modal state
+  const [explainingRole, setExplainingRole] = useState<ExtendedCareerRole | null>(null);
+
+  const confirmedCount = skills.filter((s) => s.isConfirmed && s.reviewStatus === 'CONFIRMED').length;
+
+  // On mount, if profile is reviewed, make sure career matches are loaded from backend
+  useEffect(() => {
+    if (isRealProfileReviewed && currentProfileId && careerMatches.length === 0) {
+      fetchCareerMatches(currentProfileId);
+    }
+  }, [isRealProfileReviewed, currentProfileId, careerMatches.length, fetchCareerMatches]);
 
   const filteredRoles = DEMO_CAREER_ROLES.filter((role) => {
     const matchesSearch =
       role.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       role.summary.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      role.tags.some((t) => t.toLowerCase().includes(searchTerm.toLowerCase()));
+      (role.tags && role.tags.some((t) => t.toLowerCase().includes(searchTerm.toLowerCase()))) ||
+      role.requiredSkills.some((req) => req.skillName.toLowerCase().includes(searchTerm.toLowerCase()));
 
-    const matchesTrack = selectedTrack === 'ALL' || role.track === selectedTrack;
+    const matchesFamily = selectedFamily === 'ALL' || role.careerFamily === selectedFamily;
 
-    const matchesSap =
-      sapFilter === 'ALL' ||
-      (sapFilter === 'SAP_ONLY' && role.isSapEcosystem) ||
-      (sapFilter === 'NON_SAP' && !role.isSapEcosystem);
+    const matchesEcosystem =
+      ecosystemFilter === 'ALL' || role.ecosystem === ecosystemFilter;
 
-    return matchesSearch && matchesTrack && matchesSap;
+    return matchesSearch && matchesFamily && matchesEcosystem;
+  });
+
+  // Sorting
+  const sortedRoles = [...filteredRoles].sort((a, b) => {
+    const matchA = calculateRoleMatch(a).percentage;
+    const matchB = calculateRoleMatch(b).percentage;
+
+    if (sortBy === 'match') return matchB - matchA;
+    if (sortBy === 'effort') return a.learningHoursEstimate - b.learningHoursEstimate;
+    if (sortBy === 'title') return a.title.localeCompare(b.title);
+    if (sortBy === 'demand') {
+      const rank: Record<string, number> = { Critical: 3, High: 2, Moderate: 1 };
+      return (rank[b.marketDemand] || 0) - (rank[a.marketDemand] || 0);
+    }
+    return 0;
   });
 
   const handleSelectTarget = (role: ExtendedCareerRole) => {
     setTargetRoleSlug(role.slug);
     navigate('/career-gap');
+  };
+
+  const getBackendMatch = (slug: string): CareerMatchResult | undefined => {
+    return careerMatches.find((m) => m.roleSlug === slug);
   };
 
   return (
@@ -67,10 +108,10 @@ export const CareerExplorerPage: React.FC = () => {
       >
         <div>
           <h1 style={{ fontSize: '2rem', fontWeight: 700, color: '#001A47', marginBottom: '0.5rem' }}>
-            Career Role Explorer
+            Career Transition Explorer
           </h1>
           <p style={{ color: '#5B6876', fontSize: '1.05rem', maxWidth: '800px' }}>
-            Browse through active SAP pathways and adjacent enterprise roles. Inspect required competencies, compare options, and choose your target pivot.
+            Discover and compare viable career transitions across {DEMO_CAREER_ROLES.length} structured roles in SAP Functional, Technical, Integration, Data Analytics, and Hybrid Enterprise Engineering.
           </p>
         </div>
 
@@ -78,7 +119,7 @@ export const CareerExplorerPage: React.FC = () => {
         {comparisonRoleSlugs.length > 0 && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <Badge variant="purple" size="md">
-              {comparisonRoleSlugs.length} / 3 Roles Selected for Comparison
+              {comparisonRoleSlugs.length} / 4 Roles Selected for Comparison
             </Badge>
             <Button
               variant="secondary"
@@ -109,15 +150,15 @@ export const CareerExplorerPage: React.FC = () => {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <CheckIcon color="#107E3E" size={20} />
+            <CheckIcon color="#107E3E" size={22} />
             <div style={{ fontSize: '0.9rem', color: '#001A47' }}>
-              <strong>Personalized Match Engine Active:</strong> Calculated against your{' '}
-              <strong>{confirmedCount} confirmed competencies</strong>
-              {uploadedFile ? ` from ${uploadedFile.name}` : ''}. Green badges indicate verified candidate capability.
+              <strong>Explainable Matching Active:</strong> Scores are mathematically computed from your{' '}
+              <strong>{confirmedCount} confirmed profile competencies</strong>
+              {uploadedFile ? ` from ${uploadedFile.name}` : ''}. Unreviewed or rejected items are excluded from scoring.
             </div>
           </div>
           <Button variant="ghost" size="sm" onClick={() => navigate('/skills-review')}>
-            Adjust Reviewed Skills
+            Calibrate Reviewed Skills
           </Button>
         </div>
       ) : (
@@ -138,7 +179,7 @@ export const CareerExplorerPage: React.FC = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <InfoIcon color="#0A6ED1" size={20} />
             <div style={{ fontSize: '0.9rem', color: '#001A47' }}>
-              <strong>Demonstration Index Displayed:</strong> Scores below reflect default sample competencies. To see your true personalized match percentages, confirm your profile on the Skills Review page.
+              <strong>Demonstration Index Displayed:</strong> Scores below reflect baseline sample competencies. To calculate personalized matches against your genuine background, review your profile on the Skills Review page.
             </div>
           </div>
           <Button variant="outline" size="sm" onClick={() => navigate('/skills-review')}>
@@ -163,60 +204,98 @@ export const CareerExplorerPage: React.FC = () => {
         }}
       >
         {/* Search Input */}
-        <div style={{ position: 'relative', flex: '1 1 300px' }}>
+        <div style={{ position: 'relative', flex: '1 1 280px' }}>
           <div style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#8492A0' }}>
             <SearchIcon size={16} />
           </div>
           <input
             type="text"
-            placeholder="Search roles by title, keyword (e.g. S/4HANA, RAP, SQL, Finance)..."
+            placeholder="Search roles by title, technology, or required skill (e.g. S/4HANA, SQL, RAP)..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{ width: '100%', paddingLeft: '2.4rem' }}
           />
         </div>
 
-        {/* Track Filter */}
-        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <select
-            value={selectedTrack}
-            onChange={(e) => setSelectedTrack(e.target.value)}
-            style={{ fontSize: '0.85rem' }}
-          >
-            <option value="ALL">All Specialization Tracks</option>
-            <option value="SAP_FUNCTIONAL_CONSULTANT">SAP Functional Consultant</option>
-            <option value="SAP_TECHNICAL_DEVELOPER">SAP Technical Developer</option>
-            <option value="SAP_INTEGRATION_ARCHITECT">SAP Integration Architect</option>
-            <option value="ENTERPRISE_ANALYST">Enterprise Business Analyst</option>
-            <option value="HYBRID_CROSS_ERP">Hybrid / Cross-ERP</option>
-          </select>
-
+        {/* Filters */}
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
           {/* Ecosystem Filter */}
           <select
-            value={sapFilter}
-            onChange={(e) => setSapFilter(e.target.value as 'ALL' | 'SAP_ONLY' | 'NON_SAP')}
+            value={ecosystemFilter}
+            onChange={(e) => setEcosystemFilter(e.target.value as 'ALL' | 'SAP' | 'HYBRID' | 'NON_SAP')}
             style={{ fontSize: '0.85rem' }}
           >
-            <option value="ALL">All Ecosystems</option>
-            <option value="SAP_ONLY">SAP Ecosystem Only</option>
-            <option value="NON_SAP">Non-SAP Adjacent</option>
+            <option value="ALL">All Ecosystems ({DEMO_CAREER_ROLES.length})</option>
+            <option value="SAP">SAP Ecosystem Only</option>
+            <option value="HYBRID">Hybrid / Cross-ERP</option>
+            <option value="NON_SAP">Non-SAP Cloud</option>
+          </select>
+
+          {/* Career Family Filter */}
+          <select
+            value={selectedFamily}
+            onChange={(e) => setSelectedFamily(e.target.value)}
+            style={{ fontSize: '0.85rem' }}
+          >
+            <option value="ALL">All Career Families</option>
+            <option value="FUNCTIONAL_CONSULTING">Functional Consulting</option>
+            <option value="TECHNICAL_DEVELOPMENT">Technical Development</option>
+            <option value="INTEGRATION_ARCHITECTURE">Integration Architecture</option>
+            <option value="DATA_ANALYTICS">Data & Analytics</option>
+            <option value="ENTERPRISE_ANALYSIS">Enterprise Analysis</option>
+            <option value="CLOUD_PLATFORM">Cloud & Platform</option>
+            <option value="QA_TESTING">QA & Testing</option>
+            <option value="PROJECT_MANAGEMENT">Project Management</option>
+          </select>
+
+          {/* Sort By */}
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as 'match' | 'effort' | 'title' | 'demand')}
+            style={{ fontSize: '0.85rem' }}
+          >
+            <option value="match">Sort: Highest Match Score</option>
+            <option value="effort">Sort: Lowest Effort Estimate</option>
+            <option value="demand">Sort: Market Demand</option>
+            <option value="title">Sort: Role Title (A–Z)</option>
           </select>
         </div>
+      </div>
+
+      {/* Results Count Strip */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', fontSize: '0.875rem', color: '#5B6876' }}>
+        <span>
+          Showing <strong>{sortedRoles.length}</strong> of {DEMO_CAREER_ROLES.length} career transition roles
+        </span>
+        {searchTerm || selectedFamily !== 'ALL' || ecosystemFilter !== 'ALL' ? (
+          <button
+            onClick={() => {
+              setSearchTerm('');
+              setSelectedFamily('ALL');
+              setEcosystemFilter('ALL');
+              setSortBy('match');
+            }}
+            style={{ color: '#0A6ED1', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}
+          >
+            Reset Filters
+          </button>
+        ) : null}
       </div>
 
       {/* Career Roles Grid */}
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
           gap: '1.75rem',
           marginBottom: '2.5rem'
         }}
       >
-        {filteredRoles.map((role) => {
+        {sortedRoles.map((role) => {
           const isTarget = role.slug === targetRoleSlug;
           const isComparing = comparisonRoleSlugs.includes(role.slug);
           const matchResult = calculateRoleMatch(role);
+          const backendMatch = getBackendMatch(role.slug);
           const score = isRealProfileReviewed ? matchResult.percentage : role.matchScoreDemo;
 
           return (
@@ -233,12 +312,12 @@ export const CareerExplorerPage: React.FC = () => {
                   )}
                 </div>
               }
-              subtitle={role.track.replace(/_/g, ' ')}
+              subtitle={role.careerFamily.replace(/_/g, ' ')}
               action={
                 <div style={{ textAlign: 'right' }}>
                   <div
                     style={{
-                      fontSize: '1.3rem',
+                      fontSize: '1.4rem',
                       fontWeight: 800,
                       color: score >= 70 ? '#107E3E' : score >= 50 ? '#0A6ED1' : '#E9730C'
                     }}
@@ -258,26 +337,44 @@ export const CareerExplorerPage: React.FC = () => {
                 </div>
               }
               footer={
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem' }}>
-                  <button
-                    onClick={() => toggleComparisonRole(role.slug)}
-                    style={{
-                      fontSize: '0.82rem',
-                      fontWeight: 600,
-                      color: isComparing ? '#633CA3' : '#5B6876',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.35rem',
-                      padding: '0.3rem 0.6rem',
-                      borderRadius: '4px',
-                      backgroundColor: isComparing ? '#F2ECFA' : 'transparent',
-                      border: `1px solid ${isComparing ? '#DECFF2' : '#D9E1E8'}`,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    <ColumnsIcon size={14} />
-                    {isComparing ? 'Comparing ✓' : 'Add to Compare'}
-                  </button>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: '0.4rem' }}>
+                    <button
+                      onClick={() => toggleComparisonRole(role.slug)}
+                      style={{
+                        fontSize: '0.82rem',
+                        fontWeight: 600,
+                        color: isComparing ? '#633CA3' : '#5B6876',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        padding: '0.35rem 0.65rem',
+                        borderRadius: '4px',
+                        backgroundColor: isComparing ? '#F2ECFA' : 'transparent',
+                        border: `1px solid ${isComparing ? '#DECFF2' : '#D9E1E8'}`,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <ColumnsIcon size={14} />
+                      {isComparing ? 'Comparing ✓' : 'Compare'}
+                    </button>
+
+                    <button
+                      onClick={() => setExplainingRole(role)}
+                      style={{
+                        fontSize: '0.82rem',
+                        fontWeight: 600,
+                        color: '#0A6ED1',
+                        backgroundColor: '#EBF3FB',
+                        border: '1px solid #C4D5EA',
+                        padding: '0.35rem 0.65rem',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Explain Score
+                    </button>
+                  </div>
 
                   <Button
                     variant={isTarget ? 'secondary' : 'primary'}
@@ -286,27 +383,30 @@ export const CareerExplorerPage: React.FC = () => {
                     iconPosition="right"
                     onClick={() => handleSelectTarget(role)}
                   >
-                    {isTarget ? 'View Skill Gaps' : 'Select Target Role'}
+                    {isTarget ? 'View Skill Gaps' : 'Select Target Pathway'}
                   </Button>
                 </div>
               }
             >
               <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
-                <Badge variant={role.isSapEcosystem ? 'info' : 'neutral'} size="sm">
-                  {role.isSapEcosystem ? 'SAP Ecosystem' : 'Adjacent Enterprise'}
+                <Badge
+                  variant={role.ecosystem === 'SAP' ? 'info' : role.ecosystem === 'HYBRID' ? 'purple' : 'neutral'}
+                  size="sm"
+                >
+                  {role.ecosystem === 'SAP' ? 'SAP Ecosystem' : role.ecosystem === 'HYBRID' ? 'Hybrid / Cross-ERP' : 'Non-SAP Cloud'}
                 </Badge>
                 <Badge variant={role.marketDemand === 'Critical' ? 'critical' : 'warning'} size="sm">
                   {role.marketDemand} Demand
                 </Badge>
               </div>
 
-              <p style={{ color: '#5B6876', fontSize: '0.9rem', lineHeight: 1.5, marginBottom: '1.25rem', minHeight: '60px' }}>
+              <p style={{ color: '#5B6876', fontSize: '0.9rem', lineHeight: 1.5, marginBottom: '1.25rem', minHeight: '54px' }}>
                 {role.summary}
               </p>
 
               <div style={{ backgroundColor: '#FAFBFD', padding: '0.75rem', borderRadius: '6px', marginBottom: '1rem', border: '1px solid #EDF1F5' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#5B6876', marginBottom: '0.25rem' }}>
-                  <span>Estimated Bridge Effort:</span>
+                  <span>Planning Bridge Effort:</span>
                   <strong style={{ color: '#001A47' }}>~{role.learningHoursEstimate} hrs ({role.typicalPivotTimeline})</strong>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#5B6876' }}>
@@ -318,7 +418,7 @@ export const CareerExplorerPage: React.FC = () => {
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
                   <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#001A47', textTransform: 'uppercase' }}>
-                    Core Required Competencies:
+                    Required Competencies:
                   </span>
                   {isRealProfileReviewed && (
                     <span style={{ fontSize: '0.75rem', color: '#107E3E', fontWeight: 600 }}>
@@ -341,19 +441,106 @@ export const CareerExplorerPage: React.FC = () => {
                   })}
                 </div>
               </div>
+
+              {/* Warning if mandatory skills are missing and score is high */}
+              {backendMatch && backendMatch.missingMandatorySkills.length > 0 && backendMatch.overallScore > 50 && (
+                <div style={{ marginTop: '0.75rem', fontSize: '0.78rem', color: '#A05000', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                  <AlertTriangleIcon size={14} color="#E9730C" />
+                  <span>Notice: {backendMatch.missingMandatorySkills.length} essential mandatory requirement(s) missing.</span>
+                </div>
+              )}
             </Card>
           );
         })}
       </div>
 
-      {filteredRoles.length === 0 && (
+      {sortedRoles.length === 0 && (
         <div style={{ textAlign: 'center', padding: '3rem', backgroundColor: '#FFFFFF', borderRadius: '8px', border: '1px dashed #D9E1E8' }}>
           <h3 style={{ color: '#001A47', marginBottom: '0.5rem' }}>No Career Roles Match Your Filters</h3>
-          <p style={{ color: '#5B6876', marginBottom: '1rem' }}>Try clearing your search term or selecting "All Specialization Tracks".</p>
-          <Button variant="outline" size="sm" onClick={() => { setSearchTerm(''); setSelectedTrack('ALL'); setSapFilter('ALL'); }}>
+          <p style={{ color: '#5B6876', marginBottom: '1rem' }}>Try clearing your search query or adjusting your ecosystem and career family filters.</p>
+          <Button variant="outline" size="sm" onClick={() => { setSearchTerm(''); setSelectedFamily('ALL'); setEcosystemFilter('ALL'); }}>
             Reset All Filters
           </Button>
         </div>
+      )}
+
+      {/* Explain Match Modal */}
+      {explainingRole && (
+        <Modal
+          isOpen={true}
+          onClose={() => setExplainingRole(null)}
+          title={`Explainable Match: ${explainingRole.title}`}
+        >
+          <div style={{ fontSize: '0.9rem', color: '#222B35', lineHeight: 1.6 }}>
+            <div style={{ backgroundColor: '#FAFBFD', padding: '1rem', borderRadius: '6px', border: '1px solid #EDF1F5', marginBottom: '1.25rem' }}>
+              <div style={{ fontWeight: 600, color: '#001A47', marginBottom: '0.25rem' }}>
+                Mathematical Match Formula:
+              </div>
+              <code style={{ fontSize: '0.82rem', color: '#0A6ED1' }}>
+                Match Score = 100 × (sum(requirement_weight × match_factor) / sum(weights))
+              </code>
+              <p style={{ fontSize: '0.8rem', color: '#5B6876', marginTop: '0.5rem', marginBottom: 0 }}>
+                Derived deterministically by comparing your confirmed competencies and declared proficiencies against the published role requirements. Full match = 1.0; Partial proficiency = 0.4–0.75; Missing or rejected = 0.0.
+              </p>
+            </div>
+
+            <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#001A47', marginBottom: '0.5rem' }}>
+              Requirement Breakdown for {explainingRole.title}:
+            </h4>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', maxHeight: '280px', overflowY: 'auto', marginBottom: '1.25rem', paddingRight: '0.5rem' }}>
+              {explainingRole.requiredSkills.map((req) => {
+                const isMatched = calculateRoleMatch(explainingRole).matchedSkills.includes(req.skillName);
+                return (
+                  <div
+                    key={req.skillId}
+                    style={{
+                      padding: '0.75rem',
+                      borderRadius: '6px',
+                      border: `1px solid ${isMatched ? '#B8E3C8' : '#EDF1F5'}`,
+                      backgroundColor: isMatched ? '#F3FAF6' : '#FFFFFF'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <strong style={{ color: '#001A47' }}>{req.skillName}</strong>
+                      <Badge variant={isMatched ? 'success' : 'neutral'} size="sm">
+                        {isMatched ? '100% Match Factor' : '0.0 (Missing)'}
+                      </Badge>
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: '#5B6876', marginTop: '0.25rem' }}>
+                      Weight: {req.weight} • Minimum Level: {req.minimumLevel} • {req.isMandatory ? 'Mandatory Requirement' : 'Preferred Skill'}
+                    </div>
+                    {req.rationale && (
+                      <div style={{ fontSize: '0.78rem', color: '#8492A0', marginTop: '0.2rem', fontStyle: 'italic' }}>
+                        Rationale: {req.rationale}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div style={{ padding: '0.75rem', backgroundColor: '#FFF4E5', border: '1px solid #FFD099', borderRadius: '6px', fontSize: '0.8rem', color: '#A05000', marginBottom: '1.25rem' }}>
+              <strong>Important Advisory:</strong> Match scores represent syllabus and competency overlap to guide your professional development. They are not a probability of being hired or guaranteed employment.
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <Button variant="ghost" onClick={() => setExplainingRole(null)}>
+                Close Explanation
+              </Button>
+              <Button
+                variant="primary"
+                onClick={() => {
+                  setTargetRoleSlug(explainingRole.slug);
+                  setExplainingRole(null);
+                  navigate('/career-gap');
+                }}
+              >
+                Select Target & View Gaps →
+              </Button>
+            </div>
+          </div>
+        </Modal>
       )}
     </div>
   );
