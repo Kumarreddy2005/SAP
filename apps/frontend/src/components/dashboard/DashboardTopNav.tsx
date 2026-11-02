@@ -12,6 +12,7 @@ interface DashboardTopNavProps {
   onOpenSearch: () => void;
   isRealProfileReviewed: boolean;
   isRealProfileLoaded: boolean;
+  isDemoProfileActive: boolean;
   unreviewedSkillsCount: number;
   confirmedSkillsCount: number;
   completedLearningCount: number;
@@ -29,6 +30,7 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
   onOpenSearch,
   isRealProfileReviewed,
   isRealProfileLoaded,
+  isDemoProfileActive,
   unreviewedSkillsCount,
   confirmedSkillsCount,
   completedLearningCount,
@@ -119,13 +121,31 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
 
   const unreadCount = hasDismissedNotifications ? 0 : notifications.filter((n) => n.type === 'action' || n.type === 'info').length;
 
-  const initials = (candidateName || 'AV')
-    .split(' ')
-    .filter(Boolean)
-    .map((n) => n[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase() || 'AV';
+  const initials = isDemoProfileActive
+    ? 'AV'
+    : (candidateName || '')
+        .split(' ')
+        .filter(Boolean)
+        .map((n) => n[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase() || 'CO';
+
+  const statusLabel = isDemoProfileActive
+    ? 'Demo Baseline'
+    : isRealProfileReviewed
+    ? 'Verified Profile'
+    : isRealProfileLoaded
+    ? 'Intake Staged'
+    : 'Empty Session';
+
+  const statusFullLabel = isDemoProfileActive
+    ? 'Alex Vance (Demo Baseline)'
+    : isRealProfileReviewed
+    ? `${candidateName || 'Candidate'} (Verified Profile)`
+    : isRealProfileLoaded
+    ? `${candidateName || 'Candidate'} (Intake Staged)`
+    : 'No Candidate Profile (Empty Session)';
 
   return (
     <header
@@ -396,14 +416,10 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
 
             <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column' }} className="hide-on-mobile">
               <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#001A47' }}>
-                {candidateName || 'Candidate Session'}
+                {isDemoProfileActive ? 'Alex Vance' : candidateName || 'No Candidate'}
               </span>
               <span style={{ fontSize: '0.72rem', color: '#5B6876' }}>
-                {isRealProfileReviewed
-                  ? 'Verified Profile'
-                  : isRealProfileLoaded
-                  ? 'Intake Staged'
-                  : 'Demo Baseline'}
+                {statusLabel}
               </span>
             </div>
           </button>
@@ -426,35 +442,35 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
             >
               <div style={{ padding: '1rem', backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
                 <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#001A47' }}>
-                  {candidateName || 'Candidate Profile'}
+                  {isDemoProfileActive ? 'Alex Vance' : candidateName || 'Empty Session'}
                 </div>
                 <div style={{ fontSize: '0.75rem', color: '#5B6876', marginTop: '0.15rem' }}>
-                  {candidateTitle || 'Professional Candidate'}
+                  {candidateTitle || (isDemoProfileActive ? 'Lead Financial Systems Analyst' : 'No Role Registered')}
                 </div>
                 <div style={{ marginTop: '0.4rem' }}>
                   <span
                     style={{
                       fontSize: '0.7rem',
                       fontWeight: 600,
-                      backgroundColor: isRealProfileReviewed
+                      backgroundColor: isDemoProfileActive
+                        ? '#FEF3E8'
+                        : isRealProfileReviewed
                         ? '#E8F5ED'
                         : isRealProfileLoaded
                         ? '#EBF3FB'
-                        : '#FEF3E8',
-                      color: isRealProfileReviewed
+                        : '#F1F5F9',
+                      color: isDemoProfileActive
+                        ? '#E9730C'
+                        : isRealProfileReviewed
                         ? '#107E3E'
                         : isRealProfileLoaded
                         ? '#0A6ED1'
-                        : '#E9730C',
+                        : '#64748B',
                       padding: '0.15rem 0.5rem',
                       borderRadius: '4px'
                     }}
                   >
-                    {isRealProfileReviewed
-                      ? 'Verified Candidate Profile'
-                      : isRealProfileLoaded
-                      ? 'Custom Resume Loaded'
-                      : 'Alex Vance Demo Baseline'}
+                    {statusFullLabel}
                   </span>
                 </div>
               </div>

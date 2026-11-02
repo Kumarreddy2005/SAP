@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Breadcrumbs } from '../components/common/Breadcrumbs';
 import { StepIndicator } from '../components/common/StepIndicator';
@@ -17,8 +17,16 @@ export const ProfilePage: React.FC = () => {
     setUploadedFile,
     handleUploadSuccess,
     sessionResetToken,
+    sessionGeneration,
     loadDemoBaseline
   } = useCareerContext();
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const sessionGenRef = useRef<number>(sessionGeneration);
+
+  useEffect(() => {
+    sessionGenRef.current = sessionGeneration;
+  }, [sessionGeneration]);
 
   const [activeTab, setActiveTab] = useState<'upload' | 'manual'>('upload');
   const [dragActive, setDragActive] = useState(false);
@@ -38,11 +46,11 @@ export const ProfilePage: React.FC = () => {
     setUploadWarning(null);
     setUploadSuccessData(null);
     setFormErrors({});
-    const input = document.getElementById('resumeFileInput') as HTMLInputElement | null;
-    if (input) {
-      input.value = '';
+    setIsUploading(false);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
-  }, [sessionResetToken]);
+  }, [sessionResetToken, sessionGeneration]);
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -101,6 +109,7 @@ export const ProfilePage: React.FC = () => {
       return;
     }
 
+    const curGen = sessionGenRef.current;
     setIsUploading(true);
     setUploadError(null);
     setUploadWarning(null);
@@ -114,7 +123,12 @@ export const ProfilePage: React.FC = () => {
         body: formData
       });
 
+      // Discard response if candidate session was reset while upload was in flight
+      if (curGen !== sessionGenRef.current) return;
+
       const data = await response.json();
+
+      if (curGen !== sessionGenRef.current) return;
 
       if (!response.ok) {
         throw new Error(data.message || data.error || `Server responded with HTTP ${response.status}`);
@@ -133,14 +147,19 @@ export const ProfilePage: React.FC = () => {
       } else {
         // Automatically navigate to skills review after a brief confirmation
         setTimeout(() => {
-          navigate('/skills-review');
+          if (curGen === sessionGenRef.current) {
+            navigate('/skills-review');
+          }
         }, 600);
       }
     } catch (err: unknown) {
+      if (curGen !== sessionGenRef.current) return;
       const message = err instanceof Error ? err.message : 'Upload failed. Please try again.';
       setUploadError(message);
     } finally {
-      setIsUploading(false);
+      if (curGen === sessionGenRef.current) {
+        setIsUploading(false);
+      }
     }
   };
 
@@ -314,6 +333,7 @@ export const ProfilePage: React.FC = () => {
 
               <div style={{ marginTop: '0.5rem' }}>
                 <input
+                  ref={fileInputRef}
                   type="file"
                   id="resumeFileInput"
                   accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"

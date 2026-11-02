@@ -123,6 +123,21 @@ export class ResumeController {
         return;
       }
 
+      const existing = await this.profileService.getProfile(profileId);
+      if (!existing) {
+        const deletedSubmissions = await projectRepository.deleteSubmissionsByProfile(profileId);
+        res.status(404).json({
+          error: 'NotFound',
+          success: false,
+          profileId,
+          message: `Candidate profile with ID "${profileId}" was not found or has already expired from in-memory session storage.`,
+          deletedProfile: false,
+          deletedSubmissionsCount: deletedSubmissions,
+          storageType: 'IN_MEMORY_SESSION'
+        });
+        return;
+      }
+
       const deleted = await this.profileService.deleteProfile(profileId);
       const deletedSubmissions = await projectRepository.deleteSubmissionsByProfile(profileId);
 
@@ -131,7 +146,8 @@ export class ResumeController {
         profileId,
         deletedProfile: deleted,
         deletedSubmissionsCount: deletedSubmissions,
-        message: 'Candidate session successfully cleared from backend runtime.'
+        storageType: 'IN_MEMORY_SESSION',
+        message: 'Candidate session and associated project submissions successfully purged from in-memory development runtime.'
       });
     } catch (err: unknown) {
       console.error('[ResumeController] Profile deletion failed:', err);

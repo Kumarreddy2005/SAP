@@ -320,4 +320,14 @@ describe('Resume Ingestion & Skill Extraction Workflow Suite', () => {
     const afterDelete = await profileService.getProfile(uploaded.profileId);
     assert.strictEqual(afterDelete, null);
   });
+
+  // Test 18: Deleting nonexistent profile returns false gracefully
+  it('18. Candidate session purge: deleting nonexistent profile returns false without throwing', async () => {
+    const nonExistentId = 'nonexistent-profile-999';
+    const deleted = await profileService.deleteProfile(nonExistentId);
+    assert.strictEqual(deleted, false);
+
+    const check = await profileService.getProfile(nonExistentId);
+    assert.strictEqual(check, null);
+  });
 });

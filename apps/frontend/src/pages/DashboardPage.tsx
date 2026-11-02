@@ -34,6 +34,7 @@ export const DashboardPage: React.FC = () => {
     calculateRoleMatch,
     isRealProfileLoaded,
     isRealProfileReviewed,
+    isDemoProfileActive,
     currentProfileId,
     careerMatches,
     fetchCareerMatches,
@@ -86,12 +87,14 @@ export const DashboardPage: React.FC = () => {
 
   // Fetch readiness scorecard when target role changes
   useEffect(() => {
-    if (isRealProfileReviewed) {
+    if (isRealProfileReviewed && currentProfileId) {
       fetchReadinessScorecard(targetRoleSlug, currentProfileId || undefined);
     }
   }, [isRealProfileReviewed, targetRoleSlug, currentProfileId, fetchReadinessScorecard]);
 
   // Determine candidate confirmed and transferable competencies
+  const isEmptySession = !isDemoProfileActive && !isRealProfileLoaded && !currentProfileId && skills.length === 0;
+
   const confirmedSkills = skills.filter((s) => s.isConfirmed && s.reviewStatus === 'CONFIRMED');
   const unreviewedSkills = skills.filter((s) => !s.isConfirmed && s.reviewStatus !== 'REJECTED');
   const transferableSkills = confirmedSkills.filter((s) => s.isTransferable);
@@ -102,21 +105,35 @@ export const DashboardPage: React.FC = () => {
   );
   const localMatch = calculateRoleMatch(targetRole);
 
-  const isVerifiedBackendMatch = Boolean(isRealProfileReviewed && backendTargetMatch);
-  const targetMatchScore = isVerifiedBackendMatch
+  const isVerifiedBackendMatch = Boolean(!isEmptySession && isRealProfileReviewed && backendTargetMatch);
+  const targetMatchScore = isEmptySession
+    ? 0
+    : isVerifiedBackendMatch
     ? backendTargetMatch!.overallScore
     : localMatch.percentage;
 
-  const matchedSkillsList = isVerifiedBackendMatch
+  const matchedSkillsList = isEmptySession
+    ? []
+    : isVerifiedBackendMatch
     ? backendTargetMatch!.matchedSkills.map((m) => m.skillName)
     : localMatch.matchedSkills;
 
-  const missingSkillsList = isVerifiedBackendMatch
+  const missingSkillsList: string[] = isEmptySession
+    ? (targetRole.requiredSkills || []).filter((r) => r.isMandatory).map((r) => r.skillName)
+    : isVerifiedBackendMatch
     ? backendTargetMatch!.missingMandatorySkills.map((m) => m.skillName)
     : localMatch.missingSkills;
 
   // Compute matches for all 14 roles
   const rolesWithMatches = DEMO_CAREER_ROLES.map((role) => {
+    if (isEmptySession) {
+      return {
+        role,
+        matchScore: 0,
+        matchedSkills: [] as string[],
+        missingSkills: (role.requiredSkills || []).filter((r) => r.isMandatory).map((r) => r.skillName)
+      };
+    }
     const bMatch = careerMatches.find((m) => m.roleSlug === role.slug || m.roleId === role.id);
     if (isRealProfileReviewed && bMatch) {
       return {
@@ -181,6 +198,10 @@ export const DashboardPage: React.FC = () => {
 
   // Project workspace handlers
   const handleStartProject = async (projectId: string) => {
+    if (!currentProfileId && !isDemoProfileActive) {
+      navigate('/profile');
+      return;
+    }
     await startProjectWorkspace(projectId, currentProfileId || 'demo-profile');
   };
 
@@ -224,7 +245,7 @@ export const DashboardPage: React.FC = () => {
   // SECTION 2: Dynamic Next Recommended Action Resolution
   // --------------------------------------------------------------------------
   let nextAction: {
-    state: 'UNREVIEWED' | 'INTAKE_NEEDED' | 'UPSKILLING' | 'LEARNING_ACTIVE' | 'HIGH_READINESS';
+    state: 'EMPTY_SESSION' | 'UNREVIEWED' | 'INTAKE_NEEDED' | 'UPSKILLING' | 'LEARNING_ACTIVE' | 'HIGH_READINESS';
     badge: string;
     badgeBg: string;
     badgeColor: string;
@@ -233,9 +254,24 @@ export const DashboardPage: React.FC = () => {
     buttonLabel: string;
     buttonPath: string;
     buttonAction?: () => void;
+    secondaryButtonLabel?: string;
+    secondaryButtonAction?: () => void;
   };
 
-  if (!isRealProfileReviewed && skills.length > 0) {
+  if (isEmptySession) {
+    nextAction = {
+      state: 'EMPTY_SESSION',
+      badge: 'Empty Session • Intake Required',
+      badgeBg: '#F1F5F9',
+      badgeColor: '#475569',
+      title: 'Welcome to Career Orchestrator — Begin Transition Analysis',
+      description: 'Upload your resume document (PDF or DOCX) to extract and calibrate your competencies, or load the Alex Vance demo baseline to explore complete analytics.',
+      buttonLabel: 'Upload Resume Document →',
+      buttonPath: '/profile',
+      secondaryButtonLabel: 'Load Alex Vance Demo Baseline',
+      secondaryButtonAction: () => loadDemoBaseline()
+    };
+  } else if (!isRealProfileReviewed && skills.length > 0) {
     // State A: Resume uploaded or manual skills entered, but review pending
     nextAction = {
       state: 'UNREVIEWED',
@@ -309,23 +345,25 @@ export const DashboardPage: React.FC = () => {
       title: 'Background Intake',
       subtitle: isRealProfileLoaded
         ? uploadedFile?.name || 'Resume Uploaded'
+        : isDemoProfileActive
+        ? 'Alex Vance Demo Baseline'
         : manualProfile.fullName
-        ? 'Alex Vance Profile'
+        ? `${manualProfile.fullName} Profile`
         : 'Pending Intake',
-      isComplete: Boolean(isRealProfileLoaded || manualProfile.fullName),
-      isActive: !isRealProfileLoaded && !manualProfile.fullName,
+      isComplete: Boolean(isRealProfileLoaded || isDemoProfileActive || manualProfile.fullName),
+      isActive: !isRealProfileLoaded && !isDemoProfileActive && !manualProfile.fullName,
       path: '/profile'
     },
     {
       id: 'step-2',
       stepNumber: 2,
       title: 'Skills Review',
-      subtitle: isRealProfileReviewed
+      subtitle: isRealProfileReviewed && skills.length > 0
         ? `${confirmedSkills.length} Confirmed`
         : skills.length > 0
         ? `${skills.length} Pending Review`
         : '0 Skills',
-      isComplete: isRealProfileReviewed,
+      isComplete: isRealProfileReviewed && skills.length > 0,
       isActive: skills.length > 0 && !isRealProfileReviewed,
       path: '/skills-review'
     },
@@ -360,7 +398,14 @@ export const DashboardPage: React.FC = () => {
       id: 'step-6',
       stepNumber: 6,
       title: 'Practical Projects',
-      subtitle: projectStatus === 'REVIEWED' ? 'Rubric Scored (88/100)' : projectStatus === 'SUBMITTED' ? 'Awaiting Review' : projectStatus === 'IN_PROGRESS' ? 'Workspace Active' : 'Not Started',
+      subtitle:
+        projectStatus === 'REVIEWED'
+          ? `Rubric Scored (${currentSubmission?.overallScore || 88}/100)`
+          : projectStatus === 'SUBMITTED'
+          ? 'Awaiting Review'
+          : projectStatus === 'IN_PROGRESS'
+          ? 'Workspace Active'
+          : 'Not Started',
       isComplete: projectStatus === 'REVIEWED',
       isActive: projectStatus === 'IN_PROGRESS' || projectStatus === 'SUBMITTED',
       path: '/projects'
@@ -369,9 +414,10 @@ export const DashboardPage: React.FC = () => {
       id: 'step-7',
       stepNumber: 7,
       title: 'Readiness & Jobs',
-      subtitle: readinessScorecard?.overallReadinessScore !== undefined
-        ? `${readinessScorecard.overallReadinessScore}% Readiness Score`
-        : 'Evaluation Available',
+      subtitle:
+        readinessScorecard?.overallReadinessScore !== undefined
+          ? `${readinessScorecard.overallReadinessScore}% Readiness Score`
+          : 'Evaluation Available',
       isComplete: Boolean(readinessScorecard && readinessScorecard.overallReadinessScore >= 75),
       isActive: Boolean(readinessScorecard && readinessScorecard.overallReadinessScore < 75),
       path: '/readiness'
@@ -382,14 +428,15 @@ export const DashboardPage: React.FC = () => {
     <div style={{ minHeight: '100vh', backgroundColor: '#F8FAFC', display: 'flex', flexDirection: 'column' }}>
       {/* SECTION 1: Unified Executive Top Navigation Header */}
       <DashboardTopNav
-        candidateName={manualProfile.fullName}
-        candidateTitle={manualProfile.currentTitle}
+        candidateName={isDemoProfileActive ? 'Alex Vance' : manualProfile.fullName}
+        candidateTitle={isDemoProfileActive ? 'Lead Financial Systems Analyst' : manualProfile.currentTitle}
         targetRoleSlug={targetRoleSlug}
         allRoles={DEMO_CAREER_ROLES}
         onSelectTargetRole={setTargetRoleSlug}
         onOpenSearch={() => setIsSearchPaletteOpen(true)}
         isRealProfileReviewed={isRealProfileReviewed}
         isRealProfileLoaded={isRealProfileLoaded}
+        isDemoProfileActive={isDemoProfileActive}
         unreviewedSkillsCount={unreviewedSkills.length}
         confirmedSkillsCount={confirmedSkills.length}
         completedLearningCount={completedLearningCount}
@@ -411,7 +458,335 @@ export const DashboardPage: React.FC = () => {
           flex: 1
         }}
       >
-        {/* SECTION 2: Dynamic Next Recommended Action Banner */}
+        {/* SECTION 2: Career Transition Overview Header & 4-Stat Bar */}
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div>
+              <h1 style={{ fontSize: '1.45rem', fontWeight: 800, color: '#001A47', margin: 0, letterSpacing: '-0.01em' }}>
+                Your Career Transition
+              </h1>
+              <p style={{ fontSize: '0.82rem', color: '#64748B', margin: '0.2rem 0 0' }}>
+                Deterministic AI intelligence mapping your enterprise competencies to verified SAP career destinations
+              </p>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span
+                style={{
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  backgroundColor: isDemoProfileActive
+                    ? '#FEF3E8'
+                    : isRealProfileReviewed
+                    ? '#E8F5ED'
+                    : isRealProfileLoaded
+                    ? '#EBF3FB'
+                    : '#F1F5F9',
+                  color: isDemoProfileActive
+                    ? '#E9730C'
+                    : isRealProfileReviewed
+                    ? '#107E3E'
+                    : isRealProfileLoaded
+                    ? '#0A6ED1'
+                    : '#64748B',
+                  padding: '0.25rem 0.65rem',
+                  borderRadius: '20px',
+                  border: `1px solid ${
+                    isDemoProfileActive
+                      ? '#FBD38D'
+                      : isRealProfileReviewed
+                      ? '#B8E3C8'
+                      : isRealProfileLoaded
+                      ? '#B9D5F5'
+                      : '#CBD5E1'
+                  }`
+                }}
+              >
+                {isDemoProfileActive
+                  ? 'Demo Baseline Active (Alex Vance)'
+                  : isRealProfileReviewed
+                  ? 'Verified Candidate Profile'
+                  : isRealProfileLoaded
+                  ? 'Intake Staged (Review Pending)'
+                  : 'Empty Session'}
+              </span>
+            </div>
+          </div>
+
+          <section
+            style={{
+              backgroundColor: '#FFFFFF',
+              border: '1px solid #D9E1E8',
+              borderRadius: '12px',
+              padding: '1.25rem 1.5rem',
+              boxShadow: '0 2px 8px rgba(0, 26, 71, 0.04)',
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+              gap: '1.25rem'
+            }}
+          >
+            {/* Stat 1: Candidate Identity */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', borderRight: '1px solid #EDF1F5', paddingRight: '1rem' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Candidate Profile
+              </span>
+              <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#001A47' }}>
+                {isDemoProfileActive ? 'Alex Vance' : manualProfile.fullName || 'No Candidate Loaded'}
+              </div>
+              <div style={{ fontSize: '0.82rem', color: '#475569' }}>
+                {isDemoProfileActive ? 'Senior Financial Analyst' : manualProfile.currentTitle || 'Title Not Specified'} • {manualProfile.yearsExperience > 0 ? `${manualProfile.yearsExperience} yrs exp` : 'Intake pending'}
+              </div>
+            </div>
+
+            {/* Stat 2: Resume Document Source */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', borderRight: '1px solid #EDF1F5', paddingRight: '1rem' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Document Source
+              </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <FileTextIcon size={18} color="#0A6ED1" />
+                <span style={{ fontSize: '0.95rem', fontWeight: 700, color: '#001A47', wordBreak: 'break-all' }}>
+                  {uploadedFile ? uploadedFile.name : isDemoProfileActive ? 'Alex Vance Demo Baseline' : 'No Resume Uploaded'}
+                </span>
+              </div>
+              <div>
+                <span
+                  style={{
+                    fontSize: '0.72rem',
+                    fontWeight: 600,
+                    backgroundColor: uploadedFile ? '#E8F5ED' : isDemoProfileActive ? '#FEF3E8' : '#F1F5F9',
+                    color: uploadedFile ? '#107E3E' : isDemoProfileActive ? '#E9730C' : '#64748B',
+                    padding: '0.15rem 0.5rem',
+                    borderRadius: '4px'
+                  }}
+                >
+                  {uploadedFile ? 'Parsed in-memory (PDF/DOCX)' : isDemoProfileActive ? 'Curated Hackathon Baseline' : 'Upload Pending'}
+                </span>
+              </div>
+            </div>
+
+            {/* Stat 3: Target Role Selection */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', borderRight: '1px solid #EDF1F5', paddingRight: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Target Career Goal
+                </span>
+                <button
+                  onClick={() => setIsRolePickerModalOpen(true)}
+                  style={{
+                    fontSize: '0.72rem',
+                    color: '#0A6ED1',
+                    fontWeight: 700,
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: 0
+                  }}
+                >
+                  Change Role
+                </button>
+              </div>
+              <div style={{ fontSize: '1rem', fontWeight: 800, color: '#001A47' }}>
+                {targetRole.title}
+              </div>
+              <div style={{ fontSize: '0.8rem', color: '#64748B' }}>
+                {targetRole.ecosystem} • {targetRole.track.replace(/_/g, ' ')}
+              </div>
+            </div>
+
+            {/* Stat 4: Competency Calibration Status */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                Competency Status
+              </span>
+              <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#001A47' }}>
+                {isRealProfileReviewed
+                  ? `${confirmedSkills.length} Confirmed (${transferableSkills.length} Transferable)`
+                  : skills.length > 0
+                  ? `${skills.length} Extracted (Review Pending)`
+                  : '0 Skills Registered'}
+              </div>
+              <div>
+                <span
+                  style={{
+                    fontSize: '0.72rem',
+                    fontWeight: 600,
+                    backgroundColor: isRealProfileReviewed ? '#E8F5ED' : skills.length > 0 ? '#FEF3E8' : '#F1F5F9',
+                    color: isRealProfileReviewed ? '#107E3E' : skills.length > 0 ? '#E9730C' : '#64748B',
+                    padding: '0.15rem 0.5rem',
+                    borderRadius: '4px'
+                  }}
+                >
+                  {isRealProfileReviewed ? 'Calibrated for Transition Engine' : skills.length > 0 ? 'Human Review Required' : 'Intake Required'}
+                </span>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        {/* SECTION 3: Four Meaningful Quantitative Metric Cards */}
+        <section
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+            gap: '1.25rem'
+          }}
+        >
+          {/* Metric 1: Confirmed Skills */}
+          <div
+            onClick={() => {
+              if (confirmedSkills.length > 0) setSkillsModalFilter('CONFIRMED');
+              else navigate('/skills-review');
+            }}
+            style={{
+              backgroundColor: '#FFFFFF',
+              border: '1px solid #D9E1E8',
+              borderRadius: '10px',
+              padding: '1.25rem',
+              boxShadow: '0 2px 6px rgba(0, 26, 71, 0.04)',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = '#0A6ED1';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 26, 71, 0.08)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = '#D9E1E8';
+              e.currentTarget.style.boxShadow = '0 2px 6px rgba(0, 26, 71, 0.04)';
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>
+                Confirmed Skills
+              </span>
+              <span style={{ fontSize: '0.7rem', fontWeight: 700, color: confirmedSkills.length > 0 ? '#107E3E' : '#64748B', backgroundColor: confirmedSkills.length > 0 ? '#E8F5ED' : '#F1F5F9', padding: '0.15rem 0.45rem', borderRadius: '4px' }}>
+                {isRealProfileReviewed ? 'Calibrated' : `${unreviewedSkills.length} unreviewed`}
+              </span>
+            </div>
+            <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#001A47' }}>
+              {confirmedSkills.length}
+            </div>
+            <div style={{ fontSize: '0.78rem', color: '#64748B', marginTop: '0.35rem' }}>
+              {confirmedSkills.length > 0 ? `${transferableSkills.length} Transferable to target role` : 'No verified competencies'}
+            </div>
+          </div>
+
+          {/* Metric 2: Transferable Skills */}
+          <div
+            onClick={() => {
+              if (transferableSkills.length > 0) setSkillsModalFilter('TRANSFERABLE');
+              else navigate('/skills-review');
+            }}
+            style={{
+              backgroundColor: '#FFFFFF',
+              border: '1px solid #D9E1E8',
+              borderRadius: '10px',
+              padding: '1.25rem',
+              boxShadow: '0 2px 6px rgba(0, 26, 71, 0.04)',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = '#0A6ED1';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 26, 71, 0.08)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = '#D9E1E8';
+              e.currentTarget.style.boxShadow = '0 2px 6px rgba(0, 26, 71, 0.04)';
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>
+                Transferable Skills
+              </span>
+              <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#0A6ED1', backgroundColor: '#EBF3FB', padding: '0.15rem 0.45rem', borderRadius: '4px' }}>
+                Cross-Functional
+              </span>
+            </div>
+            <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#001A47' }}>
+              {transferableSkills.length}
+            </div>
+            <div style={{ fontSize: '0.78rem', color: '#64748B', marginTop: '0.35rem' }}>
+              {transferableSkills.length > 0 ? `Strengths mapped to ${targetRole.ecosystem}` : 'Awaiting skill review'}
+            </div>
+          </div>
+
+          {/* Metric 3: Priority Skill Gaps */}
+          <div
+            onClick={() => navigate('/careers')}
+            style={{
+              backgroundColor: '#FFFFFF',
+              border: '1px solid #D9E1E8',
+              borderRadius: '10px',
+              padding: '1.25rem',
+              boxShadow: '0 2px 6px rgba(0, 26, 71, 0.04)',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = '#0A6ED1';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 26, 71, 0.08)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = '#D9E1E8';
+              e.currentTarget.style.boxShadow = '0 2px 6px rgba(0, 26, 71, 0.04)';
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>
+                Priority Skill Gaps
+              </span>
+              <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#BB0000', backgroundColor: '#FDEDED', padding: '0.15rem 0.45rem', borderRadius: '4px' }}>
+                Mandatory
+              </span>
+            </div>
+            <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#001A47' }}>
+              {isRealProfileReviewed ? missingSkillsList.length : skills.length > 0 ? missingSkillsList.length : 0}
+            </div>
+            <div style={{ fontSize: '0.78rem', color: '#64748B', marginTop: '0.35rem' }}>
+              {missingSkillsList.length > 0 ? `Required competencies for ${targetRole.title}` : 'No identified gaps'}
+            </div>
+          </div>
+
+          {/* Metric 4: Learning Milestones */}
+          <div
+            onClick={() => navigate('/learning')}
+            style={{
+              backgroundColor: '#FFFFFF',
+              border: '1px solid #D9E1E8',
+              borderRadius: '10px',
+              padding: '1.25rem',
+              boxShadow: '0 2px 6px rgba(0, 26, 71, 0.04)',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.borderColor = '#0A6ED1';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 26, 71, 0.08)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.borderColor = '#D9E1E8';
+              e.currentTarget.style.boxShadow = '0 2px 6px rgba(0, 26, 71, 0.04)';
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>
+                Curriculum Completed
+              </span>
+              <span style={{ fontSize: '0.7rem', fontWeight: 700, color: honestLearningPct === 100 ? '#107E3E' : '#0A6ED1', backgroundColor: honestLearningPct === 100 ? '#E8F5ED' : '#EBF3FB', padding: '0.15rem 0.45rem', borderRadius: '4px' }}>
+                {honestLearningPct}% Progress
+              </span>
+            </div>
+            <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#001A47' }}>
+              {completedLearningCount} / {totalLearningCount}
+            </div>
+            <div style={{ fontSize: '0.78rem', color: '#64748B', marginTop: '0.35rem' }}>
+              Self-reported milestone completions
+            </div>
+          </div>
+        </section>
+
+        {/* SECTION 4: Dynamic Next Recommended Action Banner */}
         <section
           style={{
             backgroundColor: '#FFFFFF',
@@ -455,7 +830,32 @@ export const DashboardPage: React.FC = () => {
             </p>
           </div>
 
-          <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            {nextAction.secondaryButtonLabel && (
+              <button
+                onClick={() => {
+                  if (nextAction.secondaryButtonAction) {
+                    nextAction.secondaryButtonAction();
+                  }
+                }}
+                style={{
+                  backgroundColor: '#FFFFFF',
+                  color: '#0A6ED1',
+                  border: '1px solid #CBD5E1',
+                  borderRadius: '6px',
+                  padding: '0.75rem 1.25rem',
+                  fontSize: '0.92rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease'
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F0F6FC')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#FFFFFF')}
+              >
+                {nextAction.secondaryButtonLabel}
+              </button>
+            )}
+
             <button
               onClick={() => {
                 if (nextAction.buttonAction) {
@@ -487,118 +887,7 @@ export const DashboardPage: React.FC = () => {
           </div>
         </section>
 
-        {/* SECTION 3: Candidate Overview Horizontal 4-Stat Card */}
-        <section
-          style={{
-            backgroundColor: '#FFFFFF',
-            border: '1px solid #D9E1E8',
-            borderRadius: '12px',
-            padding: '1.25rem 1.5rem',
-            boxShadow: '0 2px 8px rgba(0, 26, 71, 0.04)',
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-            gap: '1.25rem'
-          }}
-        >
-          {/* Stat 1: Candidate Identity */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', borderRight: '1px solid #EDF1F5', paddingRight: '1rem' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Candidate Profile
-            </span>
-            <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#001A47' }}>
-              {manualProfile.fullName || 'Candidate Intake Pending'}
-            </div>
-            <div style={{ fontSize: '0.82rem', color: '#475569' }}>
-              {manualProfile.currentTitle || 'Professional Title Not Set'} • {manualProfile.yearsExperience > 0 ? `${manualProfile.yearsExperience} yrs exp` : 'Intake pending'}
-            </div>
-          </div>
-
-          {/* Stat 2: Resume Document Source */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', borderRight: '1px solid #EDF1F5', paddingRight: '1rem' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Document Source
-            </span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <FileTextIcon size={18} color="#0A6ED1" />
-              <span style={{ fontSize: '0.95rem', fontWeight: 700, color: '#001A47', wordBreak: 'break-all' }}>
-                {uploadedFile ? uploadedFile.name : manualProfile.fullName ? 'Alex Vance Demo Baseline' : 'No Resume Uploaded'}
-              </span>
-            </div>
-            <div>
-              <span
-                style={{
-                  fontSize: '0.72rem',
-                  fontWeight: 600,
-                  backgroundColor: uploadedFile ? '#E8F5ED' : '#FEF3E8',
-                  color: uploadedFile ? '#107E3E' : '#E9730C',
-                  padding: '0.15rem 0.5rem',
-                  borderRadius: '4px'
-                }}
-              >
-                {uploadedFile ? 'Parsed in-memory (PDF/DOCX)' : manualProfile.fullName ? 'Curated Hackathon Baseline' : 'Upload Pending'}
-              </span>
-            </div>
-          </div>
-
-          {/* Stat 3: Target Role Selection */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', borderRight: '1px solid #EDF1F5', paddingRight: '1rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                Target Career Goal
-              </span>
-              <button
-                onClick={() => setIsRolePickerModalOpen(true)}
-                style={{
-                  fontSize: '0.72rem',
-                  color: '#0A6ED1',
-                  fontWeight: 700,
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: 0
-                }}
-              >
-                Change Role
-              </button>
-            </div>
-            <div style={{ fontSize: '1rem', fontWeight: 800, color: '#001A47' }}>
-              {targetRole.title}
-            </div>
-            <div style={{ fontSize: '0.8rem', color: '#64748B' }}>
-              {targetRole.ecosystem} • {targetRole.track.replace(/_/g, ' ')}
-            </div>
-          </div>
-
-          {/* Stat 4: Competency Calibration Status */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              Competency Status
-            </span>
-            <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#001A47' }}>
-              {isRealProfileReviewed
-                ? `${confirmedSkills.length} Confirmed (${transferableSkills.length} Transferable)`
-                : skills.length > 0
-                ? `${skills.length} Extracted (Review Pending)`
-                : '0 Skills Registered'}
-            </div>
-            <div>
-              <span
-                style={{
-                  fontSize: '0.72rem',
-                  fontWeight: 600,
-                  backgroundColor: isRealProfileReviewed ? '#E8F5ED' : '#FEF3E8',
-                  color: isRealProfileReviewed ? '#107E3E' : '#E9730C',
-                  padding: '0.15rem 0.5rem',
-                  borderRadius: '4px'
-                }}
-              >
-                {isRealProfileReviewed ? 'Calibrated for Transition Engine' : 'Human Review Required'}
-              </span>
-            </div>
-          </div>
-        </section>
-
-        {/* SECTION 4: Visual Career Transition Map (Horizontal 7-step journey) */}
+        {/* SECTION 5: Visual Career Transition Map (Horizontal 7-step journey) */}
         <section
           style={{
             backgroundColor: '#FFFFFF',
@@ -725,7 +1014,9 @@ export const DashboardPage: React.FC = () => {
                     {targetRole.title}
                   </h3>
                   <div style={{ fontSize: '0.8rem', color: '#64748B', marginTop: '0.2rem' }}>
-                    {isVerifiedBackendMatch
+                    {isEmptySession
+                      ? 'No candidate loaded — upload a resume or load demo baseline'
+                      : isVerifiedBackendMatch
                       ? 'Verified Backend AI Matching Engine (Deterministic Ontology)'
                       : isRealProfileReviewed
                       ? 'Local Calibration Fallback'
@@ -754,8 +1045,41 @@ export const DashboardPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Notice if skills unreviewed */}
-              {!isRealProfileReviewed && (
+              {/* Notice for session state */}
+              {isEmptySession ? (
+                <div
+                  style={{
+                    backgroundColor: '#F8FAFC',
+                    border: '1px solid #CBD5E1',
+                    borderRadius: '8px',
+                    padding: '0.75rem 1rem',
+                    marginBottom: '1.25rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '0.75rem'
+                  }}
+                >
+                  <span style={{ color: '#475569', fontSize: '0.82rem' }}>
+                    Upload a candidate resume or load the demo candidate to calculate verified role match scores.
+                  </span>
+                  <button
+                    onClick={() => navigate('/profile')}
+                    style={{
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      color: '#0A6ED1',
+                      background: 'none',
+                      border: '1px solid #0A6ED1',
+                      borderRadius: '4px',
+                      padding: '0.25rem 0.6rem',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Go to Intake
+                  </button>
+                </div>
+              ) : !isRealProfileReviewed ? (
                 <div
                   style={{
                     backgroundColor: '#FEF3E8',
@@ -789,7 +1113,7 @@ export const DashboardPage: React.FC = () => {
                     Review Skills
                   </button>
                 </div>
-              )}
+              ) : null}
 
               {/* Matched vs Missing Skills Summary */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
@@ -818,7 +1142,7 @@ export const DashboardPage: React.FC = () => {
                     <span>Priority Gaps ({missingSkillsList.length})</span>
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: '0.5rem' }}>
-                    {missingSkillsList.slice(0, 4).map((s) => (
+                    {missingSkillsList.slice(0, 4).map((s: string) => (
                       <span key={s} style={{ fontSize: '0.72rem', backgroundColor: '#FDEDED', color: '#BB0000', padding: '0.15rem 0.45rem', borderRadius: '4px', fontWeight: 500 }}>
                         {s}
                       </span>
@@ -1082,7 +1406,7 @@ export const DashboardPage: React.FC = () => {
                     }}
                   >
                     {projectStatus === 'REVIEWED'
-                      ? 'REVIEWED & SCORED (88/100)'
+                      ? `REVIEWED & SCORED (${currentSubmission?.overallScore || 88}/100)`
                       : projectStatus === 'SUBMITTED'
                       ? 'SUBMITTED (AWAITING REVIEW)'
                       : projectStatus === 'IN_PROGRESS'

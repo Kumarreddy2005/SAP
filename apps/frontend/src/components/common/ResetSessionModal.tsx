@@ -10,22 +10,32 @@ interface ResetSessionModalProps {
 
 export const ResetSessionModal: React.FC<ResetSessionModalProps> = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
-  const { startNewCandidateSession, currentProfileId } = useCareerContext();
+  const { startNewProfile, currentProfileId, isDemoProfileActive } = useCareerContext();
   const [isClearing, setIsClearing] = useState(false);
+  const [backendError, setBackendError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
   const handleConfirmReset = async () => {
+    if (isClearing) return;
     setIsClearing(true);
-    try {
-      await startNewCandidateSession();
+    setBackendError(null);
+
+    const result = await startNewProfile();
+    if (result.success) {
+      setIsClearing(false);
       onClose();
       navigate('/profile');
-    } catch (err) {
-      console.error('Failed to clear candidate session:', err);
-    } finally {
+    } else {
       setIsClearing(false);
+      setBackendError(result.error || 'Failed to purge candidate session from backend runtime.');
     }
+  };
+
+  const handleClose = () => {
+    if (isClearing) return;
+    setBackendError(null);
+    onClose();
   };
 
   return (
@@ -41,9 +51,7 @@ export const ResetSessionModal: React.FC<ResetSessionModalProps> = ({ isOpen, on
         justifyContent: 'center',
         padding: '1.5rem'
       }}
-      onClick={() => {
-        if (!isClearing) onClose();
-      }}
+      onClick={handleClose}
     >
       <div
         style={{
@@ -89,16 +97,16 @@ export const ResetSessionModal: React.FC<ResetSessionModalProps> = ({ isOpen, on
             </div>
             <div>
               <h3 id="reset-modal-title" style={{ fontSize: '1.15rem', fontWeight: 700, color: '#9B2C2C', margin: 0 }}>
-                Clear Candidate Session?
+                Start New Candidate Profile?
               </h3>
               <p style={{ fontSize: '0.8rem', color: '#C53030', margin: '0.15rem 0 0' }}>
-                Prepare for a completely fresh candidate intake
+                Prepare a completely clean intake session
               </p>
             </div>
           </div>
 
           <button
-            onClick={onClose}
+            onClick={handleClose}
             disabled={isClearing}
             aria-label="Close dialog"
             style={{
@@ -116,9 +124,34 @@ export const ResetSessionModal: React.FC<ResetSessionModalProps> = ({ isOpen, on
 
         {/* Content Body */}
         <div style={{ padding: '1.5rem' }}>
+          {/* Visible Backend Error Banner */}
+          {backendError && (
+            <div
+              style={{
+                backgroundColor: '#FFF5F5',
+                border: '1px solid #E53E3E',
+                borderRadius: '8px',
+                padding: '0.85rem 1rem',
+                marginBottom: '1.25rem',
+                color: '#C53030',
+                fontSize: '0.88rem',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '0.5rem'
+              }}
+            >
+              <AlertTriangleIcon size={18} color="#E53E3E" />
+              <div>
+                <strong>Backend Deletion Error:</strong> {backendError}
+                <div style={{ fontSize: '0.78rem', color: '#742A2A', marginTop: '0.25rem' }}>
+                  The candidate session could not be verified as purged on the server. Please retry or verify backend connectivity.
+                </div>
+              </div>
+            </div>
+          )}
+
           <p style={{ color: '#2D3748', fontSize: '0.95rem', lineHeight: 1.5, marginBottom: '1.25rem' }}>
-            This will remove your uploaded resume, extracted skills, confirmed competencies, gap analyses,
-            learning progress, and project workspace submissions from this browser session.
+            This will permanently remove the current candidate session from memory and reset the platform to a completely empty state.
           </p>
 
           <div
@@ -131,24 +164,24 @@ export const ResetSessionModal: React.FC<ResetSessionModalProps> = ({ isOpen, on
             }}
           >
             <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#4A5568', marginBottom: '0.5rem' }}>
-              The following session items will be permanently cleared:
+              The following session items will be cleared:
             </div>
             <ul style={{ margin: 0, paddingLeft: '1.25rem', fontSize: '0.85rem', color: '#718096', lineHeight: 1.6 }}>
-              <li>Uploaded resume file cache and extracted text snippets</li>
-              <li>Confirmed and rejected skill ratings (resets to 0 skills)</li>
-              <li>Selected target career and computed match percentages</li>
-              <li>Calculated skill gaps and customized learning pathway</li>
-              <li>Active project workspace deliverables and rubric evaluations</li>
-              {currentProfileId && (
+              <li>Uploaded resume file references and extracted text snippets</li>
+              <li>All candidate skills (suggested, confirmed, and rejected)</li>
+              <li>Calculated career match scores and skill gap analyses</li>
+              <li>Active learning pathway and milestone completion states</li>
+              <li>Candidate project submissions and workspace deliverables</li>
+              {currentProfileId && !isDemoProfileActive && (
                 <li style={{ color: '#C53030', fontWeight: 600 }}>
-                  Backend in-memory profile session ({currentProfileId})
+                  Purges in-memory profile session ID ({currentProfileId}) via API
                 </li>
               )}
             </ul>
           </div>
 
           <p style={{ fontSize: '0.85rem', color: '#718096', margin: 0 }}>
-            You will be redirected to the Background Intake page to upload a new resume document.
+            After reset, you will be redirected to Background Intake to upload a new resume. You can still reload the Alex Vance Demo Baseline at any time from the profile menu.
           </p>
         </div>
 
@@ -166,7 +199,7 @@ export const ResetSessionModal: React.FC<ResetSessionModalProps> = ({ isOpen, on
         >
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             disabled={isClearing}
             style={{
               padding: '0.6rem 1.25rem',
@@ -202,7 +235,7 @@ export const ResetSessionModal: React.FC<ResetSessionModalProps> = ({ isOpen, on
             }}
           >
             <TrashIcon size={16} />
-            {isClearing ? 'Clearing Session...' : 'Clear Profile & Start Again'}
+            {isClearing ? 'Purging Session...' : 'Clear Session & Start Fresh'}
           </button>
         </div>
       </div>

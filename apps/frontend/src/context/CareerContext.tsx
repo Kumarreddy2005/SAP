@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import {
   HealthResponse,
   ProficiencyLevel,
@@ -39,6 +39,7 @@ interface CareerContextType {
   // Profile & Ingestion State
   currentProfileId: string | null;
   setCurrentProfileId: (id: string | null) => void;
+  isDemoProfileActive: boolean;
   manualProfile: ManualProfileData;
   setManualProfile: React.Dispatch<React.SetStateAction<ManualProfileData>>;
   uploadedFile: { name: string; size: number; type: string } | null;
@@ -47,10 +48,13 @@ interface CareerContextType {
   extractionWarnings: string[];
   isRealProfileLoaded: boolean;
   isRealProfileReviewed: boolean;
+  isResettingSession: boolean;
   sessionResetToken: number;
+  sessionGeneration: number;
   handleUploadSuccess: (res: ResumeUploadResponse) => void;
   handleReviewSuccess: (res: ProfileReviewResponse) => void;
-  startNewCandidateSession: () => Promise<void>;
+  startNewProfile: () => Promise<{ success: boolean; error?: string }>;
+  startNewCandidateSession: () => Promise<{ success: boolean; error?: string }>;
   loadDemoBaseline: () => void;
   resetToDemoData: () => void;
 
@@ -109,7 +113,7 @@ interface CareerContextType {
   startProjectWorkspace: (projectId: string, profileId?: string) => Promise<ProjectSubmission | null>;
   submitProjectDeliverables: (input: ProjectSubmissionInput) => Promise<ProjectSubmission | null>;
   reviewProjectDeliverables: (input: ProjectReviewInput) => Promise<ProjectSubmission | null>;
-  fetchUserSubmissions: (profileId?: string) => Promise<void>;
+  fetchUserSubmissions: (profileId?: string, isDemo?: boolean) => Promise<void>;
 
   // Career Readiness Scorecard
   readinessScorecard: CareerReadinessScorecard | null;
@@ -130,12 +134,26 @@ const CareerContext = createContext<CareerContextType | undefined>(undefined);
 
 export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // 1. Ingestion & Profile State
-  const [currentProfileId, setCurrentProfileId] = useState<string | null>(null);
+  const [currentProfileId, setCurrentProfileId] = useState<string | null>('demo-profile');
+  const [isDemoProfileActive, setIsDemoProfileActive] = useState<boolean>(true);
   const [extractedTextPreview, setExtractedTextPreview] = useState<string>('');
   const [extractionWarnings, setExtractionWarnings] = useState<string[]>([]);
   const [isRealProfileLoaded, setIsRealProfileLoaded] = useState<boolean>(false);
-  const [isRealProfileReviewed, setIsRealProfileReviewed] = useState<boolean>(false);
+  const [isRealProfileReviewed, setIsRealProfileReviewed] = useState<boolean>(true);
+  const [isResettingSession, setIsResettingSession] = useState<boolean>(false);
   const [sessionResetToken, setSessionResetToken] = useState<number>(0);
+  const [sessionGeneration, setSessionGeneration] = useState<number>(0);
+
+  // References for request cancellation and generation guarding
+  const sessionGenerationRef = useRef<number>(0);
+  const activeAbortControllerRef = useRef<AbortController | null>(null);
+
+  const abortPendingRequests = useCallback(() => {
+    if (activeAbortControllerRef.current) {
+      activeAbortControllerRef.current.abort();
+    }
+    activeAbortControllerRef.current = new AbortController();
+  }, []);
 
   const [manualProfile, setManualProfile] = useState<ManualProfileData>({
     fullName: 'Alex Vance',
@@ -230,29 +248,35 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   /**
-   * Fetch explainable career matches from backend
+   * Fetch explainable career matches from backend with generation guarding
    */
   const fetchCareerMatches = useCallback(async (profileId?: string) => {
     const pid = profileId || currentProfileId;
     if (!pid) return;
 
+    const curGen = sessionGenerationRef.current;
     setIsLoadingMatches(true);
     setMatchesError(null);
 
     try {
       const res = await fetch(`/api/v1/careers/matches/${pid}`);
+      if (curGen !== sessionGenerationRef.current) return;
       if (!res.ok) {
         throw new Error(`Failed to fetch career matches (HTTP ${res.status})`);
       }
       const data = await res.json();
+      if (curGen !== sessionGenerationRef.current) return;
       if (data && Array.isArray(data.matches)) {
         setCareerMatches(data.matches);
       }
     } catch (err: unknown) {
+      if (curGen !== sessionGenerationRef.current) return;
       const msg = err instanceof Error ? err.message : 'Error fetching matches';
       setMatchesError(msg);
     } finally {
-      setIsLoadingMatches(false);
+      if (curGen === sessionGenerationRef.current) {
+        setIsLoadingMatches(false);
+      }
     }
   }, [currentProfileId]);
 
@@ -263,17 +287,22 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const pid = profileId || currentProfileId;
     if (!pid) return null;
 
+    const curGen = sessionGenerationRef.current;
     setIsLoadingGaps(true);
     try {
       const res = await fetch(`/api/v1/careers/${roleSlug}/gaps/${pid}`);
+      if (curGen !== sessionGenerationRef.current) return null;
       if (!res.ok) return null;
       const data = (await res.json()) as SkillGapAnalysis;
+      if (curGen !== sessionGenerationRef.current) return null;
       setCurrentGapAnalysis(data);
       return data;
     } catch {
       return null;
     } finally {
-      setIsLoadingGaps(false);
+      if (curGen === sessionGenerationRef.current) {
+        setIsLoadingGaps(false);
+      }
     }
   }, [currentProfileId]);
 
@@ -284,6 +313,7 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const pid = profileId || currentProfileId;
     if (!pid) return null;
 
+    const curGen = sessionGenerationRef.current;
     setIsLoadingPathway(true);
     try {
       const res = await fetch('/api/v1/learning-pathways', {
@@ -291,14 +321,18 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ profileId: pid, roleSlug })
       });
+      if (curGen !== sessionGenerationRef.current) return null;
       if (!res.ok) return null;
       const data = (await res.json()) as LearningPathway;
+      if (curGen !== sessionGenerationRef.current) return null;
       setCurrentPathway(data);
       return data;
     } catch {
       return null;
     } finally {
-      setIsLoadingPathway(false);
+      if (curGen === sessionGenerationRef.current) {
+        setIsLoadingPathway(false);
+      }
     }
   }, [currentProfileId]);
 
@@ -307,6 +341,7 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
    */
   const fetchComparison = useCallback(async (roleSlugs: string[], profileId?: string) => {
     const pid = profileId || currentProfileId;
+    const curGen = sessionGenerationRef.current;
     setIsLoadingComparison(true);
     try {
       const res = await fetch('/api/v1/careers/compare', {
@@ -314,14 +349,18 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ profileId: pid || undefined, roleSlugs })
       });
+      if (curGen !== sessionGenerationRef.current) return null;
       if (!res.ok) return null;
       const data = (await res.json()) as CareerComparisonResult;
+      if (curGen !== sessionGenerationRef.current) return null;
       setComparisonResult(data);
       return data;
     } catch {
       return null;
     } finally {
-      setIsLoadingComparison(false);
+      if (curGen === sessionGenerationRef.current) {
+        setIsLoadingComparison(false);
+      }
     }
   }, [currentProfileId]);
 
@@ -350,13 +389,33 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     []
   );
 
+  /**
+   * SAFE SUBMISSIONS FETCHER:
+   * Prevents the demo submission from resurrecting when session is empty.
+   * If profileId is null/undefined and isDemo is false, clears submissions and does NOT query backend.
+   */
   const fetchUserSubmissions = useCallback(
-    async (profileId?: string) => {
-      const pid = profileId || currentProfileId || 'demo-profile';
+    async (profileId?: string, isDemo = false) => {
+      const pid = profileId !== undefined ? profileId : currentProfileId;
+
+      if (!pid && !isDemo) {
+        setActiveProjectSubmissions({});
+        return;
+      }
+
+      const targetPid = isDemo ? 'demo-profile' : pid;
+      if (!targetPid || (targetPid === 'demo-profile' && !isDemo && !isDemoProfileActive)) {
+        setActiveProjectSubmissions({});
+        return;
+      }
+
+      const curGen = sessionGenerationRef.current;
       try {
-        const res = await fetch(`/api/v1/projects/submissions/${pid}`);
+        const res = await fetch(`/api/v1/projects/submissions/${targetPid}`);
+        if (curGen !== sessionGenerationRef.current) return;
         if (!res.ok) return;
         const data = await res.json();
+        if (curGen !== sessionGenerationRef.current) return;
         const map: Record<string, ProjectSubmission> = {};
         (data.submissions || []).forEach((s: ProjectSubmission) => {
           map[s.projectId] = s;
@@ -366,12 +425,14 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         // Fallback
       }
     },
-    [currentProfileId]
+    [currentProfileId, isDemoProfileActive]
   );
 
   const startProjectWorkspace = useCallback(
     async (projectId: string, profileId?: string) => {
-      const pid = profileId || currentProfileId || 'demo-profile';
+      const pid = profileId || currentProfileId;
+      if (!pid) return null; // Never silently fall back to demo-profile for empty candidate!
+
       try {
         const res = await fetch(`/api/v1/projects/${projectId}/start`, {
           method: 'POST',
@@ -399,7 +460,6 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (!res.ok) return null;
       const data = (await res.json()) as ProjectSubmission;
       setActiveProjectSubmissions((prev) => ({ ...prev, [input.projectId]: data }));
-      // Also update legacy state for compatibility
       setProjectSubmissions((prev) => ({
         ...prev,
         [input.projectId]: {
@@ -437,7 +497,13 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const fetchReadinessScorecard = useCallback(
     async (roleSlug?: string, profileId?: string) => {
       const targetSlug = roleSlug || targetRoleSlug;
-      const pid = profileId || currentProfileId || 'demo-profile';
+      const pid = profileId || currentProfileId;
+      if (!pid) {
+        setReadinessScorecard(null);
+        return null;
+      }
+
+      const curGen = sessionGenerationRef.current;
       setIsLoadingReadiness(true);
       try {
         const completedQuery =
@@ -445,14 +511,18 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
             ? `?completedMilestones=${completedLearningIds.join(',')}`
             : '';
         const res = await fetch(`/api/v1/readiness/${pid}/${targetSlug}${completedQuery}`);
+        if (curGen !== sessionGenerationRef.current) return null;
         if (!res.ok) return null;
         const data = (await res.json()) as CareerReadinessScorecard;
+        if (curGen !== sessionGenerationRef.current) return null;
         setReadinessScorecard(data);
         return data;
       } catch {
         return null;
       } finally {
-        setIsLoadingReadiness(false);
+        if (curGen === sessionGenerationRef.current) {
+          setIsLoadingReadiness(false);
+        }
       }
     },
     [targetRoleSlug, currentProfileId, completedLearningIds]
@@ -484,14 +554,17 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     [targetRoleSlug]
   );
 
-  // Initial load of projects catalogue and submissions
+  // Initial load of projects catalogue; only load demo submissions if demo profile is active
   useEffect(() => {
     fetchProjects();
-    fetchUserSubmissions();
-  }, [fetchProjects, fetchUserSubmissions]);
+    if (isDemoProfileActive) {
+      fetchUserSubmissions('demo-profile', true);
+    }
+  }, [fetchProjects, isDemoProfileActive]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleUploadSuccess = (res: ResumeUploadResponse) => {
     setCurrentProfileId(res.profileId);
+    setIsDemoProfileActive(false);
     setUploadedFile({
       name: res.filename,
       size: res.fileSizeBytes,
@@ -504,6 +577,12 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setSkills(res.suggestedSkills);
     setIsRealProfileLoaded(true);
     setIsRealProfileReviewed(false);
+    setActiveProjectSubmissions({});
+    setCareerMatches([]);
+    setMatchesError(null);
+    setCurrentGapAnalysis(null);
+    setCurrentPathway(null);
+    setReadinessScorecard(null);
   };
 
   const handleReviewSuccess = (res: ProfileReviewResponse) => {
@@ -511,22 +590,47 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setIsRealProfileReviewed(true);
     if (res.profileId && res.profileId !== 'demo-profile') {
       fetchCareerMatches(res.profileId);
+      fetchUserSubmissions(res.profileId);
     }
   };
 
-  const startNewCandidateSession = async () => {
+  /**
+   * ACTION 1: START NEW PROFILE (True Empty Candidate Intake Session)
+   * Completely purges the candidate session from frontend state and backend in-memory storage.
+   * Does NOT repopulate Alex Vance demo data.
+   */
+  const startNewProfile = async (): Promise<{ success: boolean; error?: string }> => {
+    if (isResettingSession) return { success: false, error: 'Reset operation already in progress' };
+    setIsResettingSession(true);
+
+    abortPendingRequests();
+
     const pid = currentProfileId;
+    let backendError: string | null = null;
+
     if (pid && pid !== 'demo-profile') {
       try {
-        await fetch(`/api/v1/profile/${pid}`, {
+        const res = await fetch(`/api/v1/profile/${pid}`, {
           method: 'DELETE'
         });
-      } catch (err) {
-        console.warn('[CareerContext] Could not delete backend profile on reset:', err);
+        // 200 is success, 404 is acceptable (already purged), 500 or others is a real failure
+        if (!res.ok && res.status !== 404) {
+          const errJson = await res.json().catch(() => ({}));
+          backendError = errJson.message || `Backend responded with HTTP ${res.status}`;
+        }
+      } catch (err: unknown) {
+        backendError = err instanceof Error ? err.message : 'Network error during backend deletion';
       }
     }
 
+    if (backendError) {
+      setIsResettingSession(false);
+      return { success: false, error: backendError };
+    }
+
+    // Reset all context state to pure empty intake
     setCurrentProfileId(null);
+    setIsDemoProfileActive(false);
     setUploadedFile(null);
     setExtractedTextPreview('');
     setExtractionWarnings([]);
@@ -539,31 +643,52 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       education: '',
       responsibilities: ''
     });
-    setSkills([]);
+    setSkills([]); // EMPTY array (zero skills)
     setCareerMatches([]);
+    setMatchesError(null);
     setCurrentGapAnalysis(null);
     setCurrentPathway(null);
     setComparisonResult(null);
     setCompletedLearningIds([]);
     setProjectSubmissions({});
-    setActiveProjectSubmissions({});
+    setActiveProjectSubmissions({}); // Zero project submissions
     setReadinessScorecard(null);
     setJobSearchData(null);
+    setTargetRoleSlug('sap-s4hana-finance-consultant');
+    setComparisonRoleSlugs([
+      'sap-s4hana-finance-consultant',
+      'sap-abap-cloud-developer'
+    ]);
 
+    // Selective storage cleanup (candidate state only)
     try {
-      sessionStorage.clear();
+      sessionStorage.removeItem('career_orchestrator_candidate');
+      sessionStorage.removeItem('career_orchestrator_staged_file');
       localStorage.removeItem('career_orchestrator_profile');
       localStorage.removeItem('career_orchestrator_skills');
       localStorage.removeItem('career_orchestrator_target');
+      localStorage.removeItem('career_orchestrator_submissions');
     } catch (err) {
-      console.warn('[CareerContext] Error clearing browser storage on reset:', err);
+      console.warn('[CareerContext] Storage cleanup warning:', err);
     }
 
+    sessionGenerationRef.current += 1;
+    setSessionGeneration(sessionGenerationRef.current);
     setSessionResetToken((prev) => prev + 1);
+    setIsResettingSession(false);
+
+    return { success: true };
   };
 
+  /**
+   * ACTION 2: LOAD DEMO BASELINE
+   * Explicitly loads the Alex Vance demo candidate with calibrated skills and intended demo project submissions.
+   */
   const loadDemoBaseline = () => {
-    setCurrentProfileId(null);
+    abortPendingRequests();
+
+    setCurrentProfileId('demo-profile');
+    setIsDemoProfileActive(true);
     setUploadedFile(null);
     setExtractedTextPreview('');
     setExtractionWarnings([]);
@@ -577,22 +702,33 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
     setSkills(INITIAL_DEMO_SKILLS);
     setIsRealProfileLoaded(false);
-    setIsRealProfileReviewed(false);
+    setIsRealProfileReviewed(true);
     setTargetRoleSlug('sap-s4hana-finance-consultant');
+    setComparisonRoleSlugs([
+      'sap-s4hana-finance-consultant',
+      'sap-abap-cloud-developer'
+    ]);
     setCareerMatches([]);
+    setMatchesError(null);
     setCurrentGapAnalysis(null);
     setCurrentPathway(null);
     setComparisonResult(null);
     setCompletedLearningIds([]);
     setProjectSubmissions({});
-    setActiveProjectSubmissions({});
     setReadinessScorecard(null);
     setJobSearchData(null);
+
+    // Explicitly load demo project submission for Alex Vance
+    void fetchUserSubmissions('demo-profile', true);
+
+    sessionGenerationRef.current += 1;
+    setSessionGeneration(sessionGenerationRef.current);
     setSessionResetToken((prev) => prev + 1);
   };
 
+  const startNewCandidateSession = startNewProfile;
   const resetToDemoData = () => {
-    void startNewCandidateSession();
+    void startNewProfile();
   };
 
   const confirmSkill = (id: string) => {
@@ -675,6 +811,7 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     const activeConfirmedSkills = skills.filter((s) => s.isConfirmed && s.reviewStatus === 'CONFIRMED');
 
+    // If zero confirmed skills, return 0% fit score with all requirements missing
     if (activeConfirmedSkills.length === 0) {
       return {
         percentage: 0,
@@ -723,6 +860,7 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       value={{
         currentProfileId,
         setCurrentProfileId,
+        isDemoProfileActive,
         manualProfile,
         setManualProfile,
         uploadedFile,
@@ -731,12 +869,15 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         extractionWarnings,
         isRealProfileLoaded,
         isRealProfileReviewed,
+        isResettingSession,
+        sessionResetToken,
+        sessionGeneration,
         handleUploadSuccess,
         handleReviewSuccess,
-        resetToDemoData,
+        startNewProfile,
         startNewCandidateSession,
         loadDemoBaseline,
-        sessionResetToken,
+        resetToDemoData,
         skills,
         setSkills,
         confirmSkill,

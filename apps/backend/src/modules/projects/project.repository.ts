@@ -128,14 +128,21 @@ export class InMemoryProjectRepository implements ProjectRepository {
   }
 
   async deleteSubmissionsByProfile(profileId: string): Promise<number> {
-    let deletedCount = 0;
-    for (const [key, sub] of Array.from(this.submissions.entries())) {
+    const matchingSubIds = new Set<string>();
+    const keysToDelete: string[] = [];
+
+    for (const [key, sub] of this.submissions.entries()) {
       if (sub.profileId === profileId) {
-        this.submissions.delete(key);
-        deletedCount++;
+        keysToDelete.push(key);
+        matchingSubIds.add(sub.id);
       }
     }
-    return deletedCount;
+
+    for (const key of keysToDelete) {
+      this.submissions.delete(key);
+    }
+
+    return matchingSubIds.size;
   }
 }
 

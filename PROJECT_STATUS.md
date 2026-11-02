@@ -1,35 +1,27 @@
 # Career Orchestrator — Project Status Log
 
 **Project:** Career Orchestrator (SAP Hackfest 2026)  
-**Current Milestone:** Minimal Enterprise Dashboard Overhaul, True Candidate Session Reset & Real Backend Data Integration  
-**Overall Status:** **HACKATHON DEMO READY** (52/52 automated backend tests pass, full monorepo typecheck clean, frontend production build clean, 17-stage E2E workflow verified, 15 desktop & mobile screenshots verified)  
-**Last Updated:** 2026-11-03 02:25:00 UTC+05:30  
+**Current Milestone:** Deep Reset Bug Fix, Premium Minimal Enterprise Dashboard & Zero-Fabrication Candidate Session Isolation  
+**Overall Status:** **HACKATHON DEMO READY** (53/53 automated backend tests pass, full monorepo typecheck clean across all 3 workspaces, production bundling clean, 17-stage E2E workflow verified, 15 desktop & mobile screenshots updated and verified)  
+**Last Updated:** 2026-11-03 02:50:00 UTC+05:30  
 
 ---
 
 ## 1. Milestone Status Summary
 
-- **Minimal Executive Career Intelligence Dashboard (`/dashboard`):** **PASS** (Replaced cluttered dual-sidebar layout with a sleek, minimal enterprise interface. Features unified top navigation header, prominent dynamic Next Recommended Action banner, horizontal 4-stat Candidate Overview card, 7-step Career Transition Roadmap, two-column Career Intelligence section with real backend matching and pure-SVG Career DNA Radar, honest fractional learning progress, practical project workspace status, and alternative curated pathways labeled "Curated SAP Catalogue Assessment (October 2026)").
-- **True Candidate Session Reset & Fresh Intake Workflow:** **PASS** (Replaced incomplete demo reset with `startNewCandidateSession()` and `ResetSessionModal`. Invokes `DELETE /api/v1/profile/:id` to purge candidate data and submissions from backend in-memory repository; clears all context state including `skills` back to `[]` (empty array); resets browser storage; clears native file input `#resumeFileInput`; navigates to fresh `/profile` intake screen with zero remnant resume data; provides dedicated "Or load Alex Vance Demo Profile for Hackathon Presentation" option).
-- **Backend Candidate Session Purge API (`DELETE /api/v1/profile/:id`):** **PASS** (Deletes candidate profile and all associated project submissions from backend memory; verified with automated regression test 17).
-- **Dynamic Next Recommended Action Banner:** **PASS** (State-driven recommendation banner guiding candidate through 5 distinct workflow states: Intake Required $\to$ Skills Review Calibration $\to$ Priority Milestone Upskilling $\to$ Learning In Progress $\to$ High Readiness & Evidence Submission).
-- **Executive Career Intelligence Dashboard (`/dashboard`):** **PASS** (Enterprise-grade SaaS dashboard with white/light-grey surfaces, SAP Horizon blue & subtle purple accents, responsive top nav with functional global search, notification center, candidate profile menu with quick demo-reset, and quick target-role calibration).
-- **Career Identity & Personalized Transition Narrative:** **PASS** (Candidate metadata dynamically analyzed against active target role; derives top confirmed transferable skills and identifies primary ERP customizing focus areas; quick role switcher).
-- **Verifiable 5-Stage Transition Roadmap:** **PASS** (Transparent, documented progress formula: $P = \frac{P_{\text{profile}} + P_{\text{skills}} + P_{\text{career}} + P_{\text{learning}} + P_{\text{projects}}}{5}$; toggleable formula disclosure modal; zero arbitrary percentages).
-- **6 Interactive KPI Cards:** **PASS** (Skills Identified, Skills Confirmed, Transferable Skills, Recommended Roles, Remaining Skill Gaps, Projects Completed; clicking each card triggers corresponding detail drawer, filter, or page navigation).
-- **Career DNA Radar Chart (Pure SVG):** **PASS** (6 competency dimensions: SAP Functional, SAP Technical, Software Engineering, Data & Analytics, Domain & Business, Soft Skills; candidate confirmed polygon vs target benchmark polygon; interactive legend toggles; vertex hover tooltips; clickable perimeter labels with dimension detail inspection).
-- **Recommended Target Career Opportunities:** **PASS** (Top curated roles ranked by explainable weighted match score $100 \times \frac{\sum w_i f_i}{\sum w_i}$; confirmed matching skills pills; missing requirements count; explain formula modal; one-click "Set as Target").
-- **Interactive Skill Gap Matrix:** **PASS** (Filterable by All, Critical, Important, Preferred, Met; expandable rows revealing requirement rationale, curated learning courses with SAP Learning Hub links, and practical challenge workspaces).
-- **Personalized Learning Pathway:** **PASS** (Sequenced milestones for active role; self-reported progress checkboxes with live roadmap update; official SAP course launch buttons; transparent disclosure that external LMS sync is not connected).
-- **Practical Projects & Evidence Portfolio:** **PASS** (Visual lifecycle: Build $\to$ Submit $\to$ Review $\to$ Showcase; filterable by challenge state; modal deliverable submission; simulated rubric scoring with locked catalogue weights).
-- **Career Intelligence & Ecosystem Insights:** **PASS** (Emerging technology trends in track: Clean Core ABAP, RAP, CDS Views, Fiori; market demand profile; high-leverage strategic next actions; side-by-side comparison shortcut).
-- **Global Search Palette:** **PASS** (Real-time keyboard-accessible modal search across all 14 SAP roles, extracted skills, learning modules, and practical projects; keyboard shortcuts `/` and `Cmd+K`).
-- **Human-in-the-Loop Skill Calibration:** **PASS** (Zero silent invention of proficiency or experience; explicit candidate selection strictly required for confirmation; extraction confidence score preserved separately from proficiency; validation blocks uncalibrated submissions).
-- **Project Assessment Integrity & Evaluator Disclosures:** **PASS** (Rubric weights exclusively enforced from project catalogue; criteria not in definition are rejected; self-assessment capped at `REVIEWED` status; simulated independent evaluator mode explicitly labeled with transparent non-authenticated disclosure).
-- **Learning Progress & SAP Verification Truthfulness:** **PASS** (Milestone completions labeled as "Self-reported progress"; removed all claims that clicking external SAP links verifies course completion; evidence limitations disclosed).
-- **Profile Workflow Validation & Demo Separation:** **PASS** (Unreviewed profiles strictly blocked from generating career matches, skill gaps, role comparisons, or personalized pathways; candidate profiles clearly segregated from demo baseline with visual UI badges).
-- **Automated Verification Suite:** **PASS** (51/51 backend unit/integration tests passing in 2.0s; 17-stage end-to-end integration test passing; 100% monorepo typecheck clean; Vite production build passing with 0 warnings).
-- **Visual Capture & Layout Audit:** **PASS** (Headless Chrome captured 1280x850 desktop and 375x812 mobile screenshots across all 11 platform views including the new Executive Dashboard: `00-dashboard-desktop.png`, `mobile-00-dashboard.png`, and `01-landing-page.png` through `10-job-destinations.png` in `screenshots/` and brain artifact directory).
+- **Deep Candidate Session Reset & Distinct Workflows:** **PASS** (Separated candidate workflows into two distinct, non-aliased actions: `Start New Profile` and `Load Alex Vance Demo Baseline`. Fixed demo submission resurrection by removing fallback to `'demo-profile'` in `fetchUserSubmissions`, eliminating ghost key lookups in `project.repository.ts`, purging both compound `${profileId}:${projectId}` and `${sub.id}` keys, and guarding asynchronous requests with `AbortController` and `sessionGeneration` ref guards. Fully clears React refs, native file inputs, error banners, and browser cache).
+- **Backend Candidate Session Purge API (`DELETE /api/v1/profile/:id`):** **PASS** (Returns HTTP 200 on successful purge with storage metadata and deleted submission counts; returns deliberate HTTP 404 with documented JSON when nonexistent or already expired; verified with automated regression tests 17 & 18).
+- **Premium Minimal Enterprise Dashboard (`/dashboard`):** **PASS** (Redesigned into a cohesive SAP-inspired command center with white/light-grey content surfaces, deep navy typography, and SAP blue accents:
+  1. *Executive Top Navigation:* Compact header with brand identity, one target-role selector, search palette trigger, live session signals popover, and profile dropdown menu.
+  2. *Candidate Overview Bar:* 4-column overview displaying candidate identity, resume document source, active target role goal, and competency calibration status with distinct badges (`Alex Vance (Demo Baseline)`, `Verified Profile`, `Intake Staged`, or `Empty Session`).
+  3. *Four Meaningful Quantitative Metrics:* Confirmed Competencies, Transferable Skills, Priority Skill Gaps, and Learning Milestones Completed — honest counts with zero artificial multipliers, distinguishing suggested from confirmed skills.
+  4. *Dynamic Next Recommended Action Banner:* ONE prominent strategic recommendation card deriving purely from candidate state (Empty Session $\to$ Skills Review Calibration $\to$ Priority Milestone Upskilling $\to$ Learning In Progress $\to$ High Readiness & Evidence Submission). Includes secondary action for one-click demo baseline loading.
+  5. *7-Stage Transition Roadmap:* Compact interactive milestone journey from Background Intake to Readiness & Job Destinations with genuine status indicators (`DONE`, `ACTIVE`, `NEXT`).
+  6. *Two-Column Career Intelligence Grid:* Left column houses Target Role Match Breakdown with honest empty session state and SVG Career DNA Radar Chart; right column houses Target Learning Pathway with fractional progress and Practical Project Workspace.
+  7. *Curated 14-Role Alternative Pathways:* 4 alternative career recommendations sorted by match score with matched/gap counts and quick target switching).
+- **Zero-Fabrication Data Integrity:** **PASS** (Never displays hardcoded 88/100 project scores or artificial 34% multipliers for empty candidate sessions; never claims unreviewed profiles have verified AI match scores; strictly separates demo data with amber baseline badges).
+- **Automated Verification Suite:** **PASS** (53/53 backend unit/integration tests passing in 2.4s; 17-stage end-to-end integration test passing; 100% monorepo typecheck clean; Vite production build compiling cleanly).
+- **Visual Capture & Layout Audit:** **PASS** (Headless Chrome captured 1280x850 desktop and 375x812 mobile screenshots across all 11 platform views including the redesigned Executive Dashboard: `00-dashboard-desktop.png`, `mobile-00-dashboard.png`, and `01-landing-page.png` through `10-job-destinations.png` in `screenshots/` and artifact directory).
 
 ---
 
@@ -41,7 +33,7 @@
 | `POST` | `/api/v1/resume/upload` | **200 OK** | Multipart upload (`file` field). Validates format and binary magic bytes, extracts text via Mozilla PDF.js or Mammoth, runs deterministic ontology matcher, returns `ResumeUploadResponse`. |
 | `PUT` | `/api/v1/profile/:id/review` | **200 OK** | Submits human review (`ProfileReviewSubmissionSchema`). Segregates confirmed from rejected skills, persists updates, returns `ProfileReviewResponse`. |
 | `GET` | `/api/v1/profile/:id` | **200 OK** | Retrieves stored candidate profile by ID. Returns 404 if profile does not exist or server was restarted. |
-| `DELETE` | `/api/v1/profile/:id` | **200 OK** | Purges candidate profile and associated practical project submissions from in-memory repository for a clean session reset. |
+| `DELETE` | `/api/v1/profile/:id` | **200 OK / 404** | Purges candidate profile and associated practical project submissions from in-memory repository for a clean session reset. Returns 404 if already expired/nonexistent. |
 | `GET` | `/api/v1/careers` | **200 OK** | Retrieves curated career catalogue (14 roles) with optional query filters (`search`, `ecosystem`, `family`, `track`). |
 | `GET` | `/api/v1/careers/:idOrSlug` | **200 OK** | Retrieves a single career role definition with full competency requirements, prerequisites, learning IDs, and project IDs. |
 | `GET` | `/api/v1/careers/matches/:profileId` | **200 OK** | Computes explainable match scores across all 14 catalogue roles using strictly candidate's confirmed competencies. |
@@ -85,12 +77,12 @@
 
 | Test Suite / Verification Step | Result | Details |
 | :--- | :---: | :--- |
-| **Backend Automated Unit & Integration Suite** | **PASS (51/51)** | `npm test` running 51 tests across 7 test suites covering career matching (11), skill gaps (5), learning pathways (6), project lifecycle & rubrics (8), readiness scorecards (3), external job destinations (2), and resume ingestion/review (16). Includes regression test 10b, rubric guard test 7b, and skill review default test 16. Duration: 2.0s. |
+| **Backend Automated Unit & Integration Suite** | **PASS (53/53)** | `npm test` running 53 tests across 7 test suites covering career matching (11), skill gaps (5), learning pathways (6), project lifecycle & rubrics (8), readiness scorecards (3), external job destinations (2), and resume ingestion/review (18). Includes regression test 10b, rubric guard test 7b, skill review default test 16, candidate purge test 17, and nonexistent delete test 18. Duration: 2.4s. |
 | **End-to-End Milestone Verification** | **PASS (17/17)** | `verify-milestone.ts` tested real PDF & DOCX ingestion, human review, explainable matching, comparison, 6-group gap analysis, sequenced pathway, dynamic progress recalculation, edge cases, project discovery, workspace initiation, deliverable submission, rubric review, readiness scorecard, and parameterized job destinations. |
 | **Monorepo Global Typecheck** | **PASS** | `npm run typecheck` across `shared`, `backend`, and `frontend` (0 errors). |
-| **Frontend Production Build** | **PASS** | `npm run build:frontend` compiled 66 modules cleanly into `dist/` in 3.00s. |
+| **Frontend Production Build** | **PASS** | `npm run build:frontend` compiled 76 modules cleanly into `dist/` in 2.65s. |
 | **Backend Production Build** | **PASS** | `npm run build:backend` compiled TypeScript cleanly into `dist/`. |
-| **Visual Capture & Layout Audit** | **PASS** | Captured 15 screenshots (10 desktop + 5 mobile) into `screenshots/` and artifact directory (`01-landing-page.png` through `10-job-destinations.png`, plus `mobile-01` through `mobile-09`). |
+| **Visual Capture & Layout Audit** | **PASS** | Captured 15 screenshots (10 desktop + 5 mobile) into `screenshots/` and artifact directory (`00-dashboard-desktop.png` through `10-job-destinations.png`, plus `mobile-00` through `mobile-09`). |
 
 ---
 
