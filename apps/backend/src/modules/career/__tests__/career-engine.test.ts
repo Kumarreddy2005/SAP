@@ -97,15 +97,31 @@ describe('Explainable Career-Matching Engine Suite', () => {
     const skills = [createSkill('General Ledger Accounting', 'NOVICE', true, 'CONFIRMED')];
 
     const result = matcher.evaluateSingleRole(role, skills);
-    const partialMatch = result.partiallyMatchedSkills.find(
+    // Mandatory skill below required level remains an outstanding mandatory requirement
+    const mandatoryGap = result.missingMandatorySkills.find(
       (s) => s.skillName === 'General Ledger Accounting'
     );
-    assert.ok(partialMatch, 'Should be categorized as partially matched');
-    assert.equal(partialMatch.status, 'PARTIAL_MATCH');
+    assert.ok(mandatoryGap, 'Mandatory skill below required proficiency must remain an outstanding requirement');
+    assert.equal(mandatoryGap.status, 'PARTIAL_MATCH');
     assert.ok(
-      partialMatch.matchFactor > 0 && partialMatch.matchFactor < 1.0,
-      `Expected factor between 0 and 1, got ${partialMatch.matchFactor}`
+      mandatoryGap.matchFactor > 0 && mandatoryGap.matchFactor < 1.0,
+      `Expected factor between 0 and 1, got ${mandatoryGap.matchFactor}`
     );
+    assert.equal(result.isEligibleForPivot, false, 'Candidate must not be eligible when mandatory proficiency is unmet');
+
+    // Preferred skill below required level can remain a partial match without blocking eligibility
+    const roleWithPref = matcher.evaluateSingleRole(role, [
+      createSkill('General Ledger Accounting', 'ADVANCED'),
+      createSkill('S/4HANA Finance Customizing (IMG)', 'INTERMEDIATE'),
+      createSkill('SAP Fiori Financial Apps', 'INTERMEDIATE'),
+      createSkill('Financial Reporting & IFRS', 'INTERMEDIATE'),
+      createSkill('Business Process Mapping', 'NOVICE') // Preferred skill requiring INTERMEDIATE
+    ]);
+    const prefPartial = roleWithPref.partiallyMatchedSkills.find(
+      (s) => s.skillName === 'Business Process Mapping'
+    );
+    assert.ok(prefPartial, 'Preferred skill below required level should be in partiallyMatchedSkills');
+    assert.equal(roleWithPref.isEligibleForPivot, true);
   });
 
   test('5. Unreviewed skills (reviewStatus = SUGGESTED) do not count as confirmed', () => {
@@ -149,11 +165,13 @@ describe('Explainable Career-Matching Engine Suite', () => {
     };
 
     const result = matcher.evaluateSingleRole(role, [skillWithoutProficiency]);
-    const partial = result.partiallyMatchedSkills.find(
+    // Mandatory skill with undeclared proficiency remains an outstanding mandatory requirement
+    const uncalibrated = result.missingMandatorySkills.find(
       (s) => s.skillName === 'General Ledger Accounting'
     );
-    assert.ok(partial, 'Should be flagged as partial/unverified');
-    assert.equal(partial.matchFactor, 0.5);
+    assert.ok(uncalibrated, 'Should be flagged as uncalibrated mandatory requirement');
+    assert.equal(uncalibrated.matchFactor, 0.5);
+    assert.ok(result.unverifiedRequirements.some((s) => s.skillName === 'General Ledger Accounting'));
   });
 
   test('8. Essential prerequisites are displayed independently of the weighted score', () => {
@@ -191,6 +209,67 @@ describe('Explainable Career-Matching Engine Suite', () => {
     );
     assert.equal(results.length, CAREER_CATALOGUE.length);
   });
+
+  test('10b. Regression: Proficiency matrix combinations across NOVICE, INTERMEDIATE, ADVANCED, EXPERT', () => {
+    const role = getRoleByIdOrSlug('sap-s4hana-finance-consultant')!;
+    // Mandatory requirements:
+    // General Ledger Accounting (Req: ADVANCED)
+    // S/4HANA Finance Customizing (IMG) (Req: INTERMEDIATE)
+    // SAP Fiori Financial Apps (Req: INTERMEDIATE)
+    // Financial Reporting & IFRS (Req: INTERMEDIATE)
+
+    // Combination 1: NOVICE in mandatory skill requiring ADVANCED -> NOT eligible
+    const rNovice = matcher.evaluateSingleRole(role, [
+      createSkill('General Ledger Accounting', 'NOVICE'),
+      createSkill('S/4HANA Finance Customizing (IMG)', 'ADVANCED'),
+      createSkill('SAP Fiori Financial Apps', 'ADVANCED'),
+      createSkill('Financial Reporting & IFRS', 'ADVANCED')
+    ]);
+    assert.equal(rNovice.isEligibleForPivot, false);
+    assert.ok(rNovice.missingMandatorySkills.some((s) => s.skillName === 'General Ledger Accounting'));
+
+    // Combination 2: INTERMEDIATE in mandatory skill requiring ADVANCED -> NOT eligible
+    const rInter = matcher.evaluateSingleRole(role, [
+      createSkill('General Ledger Accounting', 'INTERMEDIATE'),
+      createSkill('S/4HANA Finance Customizing (IMG)', 'ADVANCED'),
+      createSkill('SAP Fiori Financial Apps', 'ADVANCED'),
+      createSkill('Financial Reporting & IFRS', 'ADVANCED')
+    ]);
+    assert.equal(rInter.isEligibleForPivot, false);
+    assert.ok(rInter.missingMandatorySkills.some((s) => s.skillName === 'General Ledger Accounting'));
+
+    // Combination 3: ADVANCED in mandatory skill requiring ADVANCED -> ELIGIBLE
+    const rAdv = matcher.evaluateSingleRole(role, [
+      createSkill('General Ledger Accounting', 'ADVANCED'),
+      createSkill('S/4HANA Finance Customizing (IMG)', 'INTERMEDIATE'),
+      createSkill('SAP Fiori Financial Apps', 'INTERMEDIATE'),
+      createSkill('Financial Reporting & IFRS', 'INTERMEDIATE')
+    ]);
+    assert.equal(rAdv.isEligibleForPivot, true);
+    assert.equal(rAdv.missingMandatorySkills.length, 0);
+
+    // Combination 4: EXPERT in mandatory skill requiring ADVANCED -> ELIGIBLE (exceeds requirement)
+    const rExpert = matcher.evaluateSingleRole(role, [
+      createSkill('General Ledger Accounting', 'EXPERT'),
+      createSkill('S/4HANA Finance Customizing (IMG)', 'EXPERT'),
+      createSkill('SAP Fiori Financial Apps', 'EXPERT'),
+      createSkill('Financial Reporting & IFRS', 'EXPERT')
+    ]);
+    assert.equal(rExpert.isEligibleForPivot, true);
+    assert.equal(rExpert.missingMandatorySkills.length, 0);
+    assert.equal(rExpert.mandatoryScore, 100);
+
+    // Combination 5: Preferred skill below required level (NOVICE for Business Process Mapping) -> Remains PARTIAL MATCH, does NOT block eligibility
+    const rPrefNovice = matcher.evaluateSingleRole(role, [
+      createSkill('General Ledger Accounting', 'ADVANCED'),
+      createSkill('S/4HANA Finance Customizing (IMG)', 'INTERMEDIATE'),
+      createSkill('SAP Fiori Financial Apps', 'INTERMEDIATE'),
+      createSkill('Financial Reporting & IFRS', 'INTERMEDIATE'),
+      createSkill('Business Process Mapping', 'NOVICE') // preferred skill requiring INTERMEDIATE
+    ]);
+    assert.equal(rPrefNovice.isEligibleForPivot, true);
+    assert.ok(rPrefNovice.partiallyMatchedSkills.some((s) => s.skillName === 'Business Process Mapping'));
+  });
 });
 
 describe('Detailed Skill-Gap Analysis Suite', () => {
@@ -198,17 +277,22 @@ describe('Detailed Skill-Gap Analysis Suite', () => {
 
   test('11. Correctly classifies requirements into matched, partial, mandatory, and recommended gaps', () => {
     const skills = [
-      // Full match for General Ledger (required ADVANCED)
+      // Full match for General Ledger (required ADVANCED, candidate ADVANCED)
       createSkill('General Ledger Accounting', 'ADVANCED', true, 'CONFIRMED'),
-      // Partial match for Customizing (required INTERMEDIATE, candidate NOVICE)
-      createSkill('S/4HANA Finance Customizing (IMG)', 'NOVICE', true, 'CONFIRMED')
+      // Mandatory gap: Customizing (required INTERMEDIATE, candidate NOVICE -> mandatory gap)
+      createSkill('S/4HANA Finance Customizing (IMG)', 'NOVICE', true, 'CONFIRMED'),
+      // Partial match: Preferred skill below required level (candidate NOVICE, required INTERMEDIATE)
+      createSkill('Business Process Mapping', 'NOVICE', true, 'CONFIRMED')
     ];
 
     const analysis = gapService.analyzeSkillGaps('sap-s4hana-finance-consultant', skills)!;
     assert.ok(analysis);
     assert.ok(analysis.confirmedMatches.some((m) => m.skillName === 'General Ledger Accounting'));
     assert.ok(
-      analysis.partiallyMatched.some((p) => p.skillName === 'S/4HANA Finance Customizing (IMG)')
+      analysis.mandatoryGaps.some((g) => g.skillName === 'S/4HANA Finance Customizing (IMG)')
+    );
+    assert.ok(
+      analysis.partiallyMatched.some((p) => p.skillName === 'Business Process Mapping')
     );
     assert.ok(
       analysis.mandatoryGaps.some((g) => g.skillName === 'SAP Fiori Financial Apps')

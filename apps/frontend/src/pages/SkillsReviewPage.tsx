@@ -141,8 +141,8 @@ export const SkillsReviewPage: React.FC = () => {
             skillId: s.id,
             name: s.name,
             category: s.category,
-            proficiency: s.proficiency,
-            yearsExperience: s.yearsExperience,
+            proficiency: s.proficiency || 'INTERMEDIATE',
+            yearsExperience: s.yearsExperience !== undefined ? s.yearsExperience : 1.0,
             isConfirmed: s.isConfirmed,
             isTransferable: s.isTransferable,
             evidenceSnippet: s.evidenceSnippet || '',
@@ -539,7 +539,7 @@ export const SkillsReviewPage: React.FC = () => {
                       {/* Proficiency Level Select */}
                       <td style={{ padding: '0.85rem 0.75rem' }}>
                         <select
-                          value={skill.proficiency}
+                          value={skill.proficiency || ''}
                           disabled={isRejected}
                           onChange={(e) => updateProficiency(skill.id, e.target.value as ProficiencyLevel)}
                           style={{
@@ -547,9 +547,11 @@ export const SkillsReviewPage: React.FC = () => {
                             padding: '0.35rem 0.5rem',
                             borderRadius: '4px',
                             border: '1px solid #D9E1E8',
-                            width: '100%'
+                            width: '100%',
+                            color: skill.proficiency ? '#001A47' : '#8492A0'
                           }}
                         >
+                          <option value="" disabled>Select Level...</option>
                           <option value="NOVICE">Novice (L1)</option>
                           <option value="INTERMEDIATE">Intermediate (L2)</option>
                           <option value="ADVANCED">Advanced (L3)</option>
@@ -566,7 +568,8 @@ export const SkillsReviewPage: React.FC = () => {
                             min="0"
                             max="40"
                             disabled={isRejected}
-                            value={skill.yearsExperience}
+                            placeholder="—"
+                            value={skill.yearsExperience !== undefined ? skill.yearsExperience : ''}
                             onChange={(e) => updateYearsExperience(skill.id, parseFloat(e.target.value) || 0)}
                             style={{
                               width: '55px',

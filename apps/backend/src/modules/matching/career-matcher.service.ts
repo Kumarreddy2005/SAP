@@ -172,7 +172,16 @@ export class CareerMatcherService {
       if (status === 'FULL_MATCH') {
         matchedSkills.push(matchDetail);
       } else {
-        partiallyMatchedSkills.push(matchDetail);
+        if (req.isMandatory) {
+          // Rule: A mandatory skill below required proficiency must remain an outstanding mandatory requirement
+          missingMandatorySkills.push(matchDetail);
+          prerequisiteWarnings.push(
+            `Essential requirement below required level: '${req.skillName}' requires ${req.minimumLevel} proficiency, candidate verified at ${candidateMatch.proficiency || 'uncalibrated'}.`
+          );
+        } else {
+          // Rule: A preferred skill below required level can remain a partial match
+          partiallyMatchedSkills.push(matchDetail);
+        }
       }
     }
 
@@ -189,8 +198,8 @@ export class CareerMatcherService {
         ? Math.round((preferredMatchedWeight / preferredTotalWeight) * 100)
         : 100;
 
-    // Prerequisite eligibility check: mandatory gaps generate active warnings
-    const isEligibleForPivot = missingMandatorySkills.length === 0;
+    // Prerequisite eligibility check: mandatory gaps or insufficient proficiency block eligibility
+    const isEligibleForPivot = missingMandatorySkills.length === 0 && confirmedSkills.length > 0;
 
     const scoreFormula = `Score = 100 * (sum(weight * matchFactor) / sum(weights)) = 100 * (${matchedWeight.toFixed(2)} / ${totalWeight.toFixed(2)}) = ${overallScore}%`;
 

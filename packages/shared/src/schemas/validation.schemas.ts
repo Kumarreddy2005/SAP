@@ -135,7 +135,16 @@ export const ProjectSubmissionInputSchema = z.object({
   learningReflection: z
     .string()
     .min(10, 'Learning reflection must be at least 10 characters detailing key takeaways'),
-  supportingEvidenceUrls: z.array(z.string().url('Evidence links must be valid URLs')).optional(),
+  supportingEvidenceUrls: z
+    .array(
+      z
+        .string()
+        .trim()
+        .refine((val) => /^https?:\/\/.+/.test(val), {
+          message: 'Evidence links must be valid http:// or https:// URLs'
+        })
+    )
+    .optional(),
   alternativeEvidenceDescription: z.string().optional(),
   rubricAssessments: z.array(RubricScoreItemSchema).optional()
 });

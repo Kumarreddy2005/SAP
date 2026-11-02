@@ -67,9 +67,9 @@ export class DeterministicSkillExtractor implements SkillExtractor {
           code: def.code,
           name: def.name,
           category: def.category,
-          proficiency: 'INTERMEDIATE', // Safe baseline; user calibrates in review
-          yearsExperience: 2.0,         // Conservative placeholder for user verification
-          isConfirmed: false,          // Never auto-confirm; upholds human-in-the-loop principle
+          proficiency: undefined, // Unassessed until candidate calibration during human review
+          yearsExperience: undefined, // Not fabricated; candidate provides in human review
+          isConfirmed: false, // Never auto-confirm; upholds human-in-the-loop principle
           isTransferable: def.isTransferable,
           confidenceScore: heuristicConfidence,
           extractionMethod: 'EXPLICIT_MENTION',
@@ -104,8 +104,8 @@ export class DeterministicSkillExtractor implements SkillExtractor {
           code: def.code,
           name: def.name,
           category: def.category,
-          proficiency: 'NOVICE',
-          yearsExperience: 1.0,
+          proficiency: undefined, // Unassessed until candidate calibration during human review
+          yearsExperience: undefined, // Not fabricated; candidate provides in human review
           isConfirmed: false,
           isTransferable: def.isTransferable,
           confidenceScore: 0.72, // Inferred matches carry lower heuristic confidence

@@ -4,6 +4,7 @@ import { ProjectService } from '../project.service';
 import { InMemoryProjectRepository } from '../project.repository';
 import { ReadinessService } from '../../readiness/readiness.service';
 import { JobSearchService } from '../../jobs/job-search.service';
+import { pathwayService } from '../../pathway/pathway.service';
 import { InMemoryProfileRepository } from '../../resume/profile.repository';
 import { ProfileService } from '../../resume/profile.service';
 import { ExtractedSkillItem } from '@career-orchestrator/shared';
@@ -242,16 +243,23 @@ describe('Career Readiness Scorecard Suite', () => {
       isReviewed: true
     });
 
+    // Generate pathway milestones to obtain valid IDs and verify invalid IDs are rejected
+    const pathway = pathwayService.generatePathway('sap-s4hana-finance-consultant', created.confirmedSkills, created.id);
+    const validIds = pathway ? pathway.milestones.map((m) => m.milestoneId) : [];
+
+    // Passing valid IDs plus unknown/fake IDs to test milestone integrity validation
     const scorecard = await readiness.computeReadinessScorecard(
       created.id,
       'sap-s4hana-finance-consultant',
-      ['milestone-01', 'milestone-02']
+      [...validIds, 'fake-unknown-id-xyz', 'fake-unknown-id-xyz']
     );
 
     assert.ok(scorecard);
     assert.equal(scorecard.isReadinessEligible, true);
     assert.equal(scorecard.outstandingMandatoryGaps.length, 0);
     assert.equal(scorecard.dimensions.mandatoryRequirements.score, 100);
+    // Fake IDs should have been filtered out
+    assert.equal(scorecard.learningMilestoneProgress.completedCount, validIds.length);
     assert.ok(scorecard.overallReadinessScore >= 70);
   });
 });

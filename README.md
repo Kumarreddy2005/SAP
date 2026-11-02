@@ -85,14 +85,24 @@ From the root repository directory:
 | :--- | :--- |
 | `npm run build` | Builds shared package, backend, and frontend |
 | `npm run typecheck` | Runs TypeScript compiler checks across all workspaces |
+| `npm test` | Runs 49 automated backend unit and integration tests |
+| `npx tsx scripts/verify-milestone.ts` | Runs the full 17-stage end-to-end integration verification |
 | `npm run start:backend` | Starts the production-compiled Express API server (`http://localhost:5000`) |
 | `npm run dev:backend` | Starts the backend with live reloading (`tsx watch`) |
 | `npm run dev:frontend` | Starts the Vite React frontend dev server (`http://localhost:5173`) |
-| `npm run preview:frontend` | Previews the production-built frontend (`http://localhost:4173` or specified port) |
+| `npm run preview:frontend` | Previews the production-built frontend (`http://localhost:4173`) |
 
 ---
 
-## 6. Verification & Health Check
+## 6. Hackathon Live Demo & Presentation
+
+For the complete 3–5 minute presentation script, live demo walkthrough for the **Alex Morgan / Alex Vance** persona, Mermaid architecture diagrams, and offline fallback procedures, see:
+
+👉 **[HACKATHON_DEMO_GUIDE.md](file:///K:/SAP/HACKATHON_DEMO_GUIDE.md)**
+
+---
+
+## 7. Verification & Health Check
 
 The backend exposes an operational status endpoint:
 
@@ -103,14 +113,15 @@ The backend exposes an operational status endpoint:
     "status": "ok",
     "application": "Career Orchestrator",
     "environment": "development",
-    "timestamp": "2026-10-28T15:11:14.385Z"
+    "timestamp": "2026-11-02T19:20:00.000Z"
   }
   ```
 
 ---
 
-## 7. Known Limitations
+## 8. Known Limitations & Truthful Disclosures
 
-1. **PostgreSQL Availability:** PostgreSQL is not currently installed or running on the local host machine. The application foundation has been designed cleanly to operate and pass health-checks without an active database connection for this phase. Database migrations and Prisma integration will execute once database connection credentials are provided.
+1. **PostgreSQL Availability:** PostgreSQL is not currently installed or running on the local host machine. The backend operates with an in-memory repository fallback. All candidate profiles, reviews, and project submissions remain active for the server session. Session disclosures are prominently displayed in the UI.
 2. **Terminal Sandbox NVM Node Resolution:** When executing commands in restricted sandboxes on Windows, NVM symlinks pointing to `%LOCALAPPDATA%\nvm` require bypass approval due to OS-level user directory boundaries.
-3. **Curated Catalogs:** Career roles and learning resource mappings are currently defined via shared domain schemas; database persistence and seeding will occur in the next implementation phase.
+3. **Statutory Non-Hiring Guarantee:** The platform explicitly disclaims that readiness scorecards and match ratings represent hiring or employment guarantees.
+4. **Zero Fabrication Policy:** External job destinations are query-parameterized deep links to official search portals (SAP Official Careers, LinkedIn, Indeed) rather than unauthorized scraping or hallucinated listings.

@@ -41,8 +41,8 @@ export interface ExtractedSkillItem {
   code: string;
   name: string;
   category: SkillCategory;
-  proficiency: ProficiencyLevel;
-  yearsExperience: number;
+  proficiency?: ProficiencyLevel;
+  yearsExperience?: number;
   isConfirmed: boolean;
   isTransferable: boolean;
   confidenceScore: number;

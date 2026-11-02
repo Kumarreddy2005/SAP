@@ -131,35 +131,38 @@ export class ProjectService {
 
     const now = new Date().toISOString();
 
-    // Calculate weighted overall score from rubric assessments
+    // Calculate weighted overall score strictly against defined project rubric criteria
     let totalScore = 0;
     let totalWeight = 0;
 
-    const rubricAssessments = input.rubricAssessments.map((a) => {
-      const definedCrit = project.rubricCriteria.find((rc) => rc.criterion === a.criterion);
-      const weight = definedCrit?.weightPercentage || a.weightPercentage || 25;
-      const score = Math.min(100, Math.max(0, a.awardedScore ?? 0));
+    const rubricAssessments = project.rubricCriteria.map((definedCrit) => {
+      const match = input.rubricAssessments.find(
+        (a) => a.criterion.trim().toLowerCase() === definedCrit.criterion.trim().toLowerCase()
+      );
+      const weight = definedCrit.weightPercentage;
+      const score = Math.min(100, Math.max(0, match?.awardedScore ?? 0));
 
       totalScore += (score * weight) / 100;
       totalWeight += weight;
 
       return {
-        criterion: a.criterion,
+        criterion: definedCrit.criterion,
         weightPercentage: weight,
         awardedScore: score,
-        feedback: a.feedback || undefined,
+        feedback: match?.feedback || undefined,
         isSatisfied: score >= 70
       };
     });
 
     const overallScore = totalWeight > 0 ? Math.round((totalScore / totalWeight) * 100) : 0;
 
-    // Determine target lifecycle state:
-    // If input status is requested and valid, use it; otherwise infer based on score:
-    // score >= 75 -> 'COMPLETED', score >= 60 -> 'REVIEWED', score < 60 -> 'NEEDS_REVISION'
+    // Apply strict lifecycle state resolution
     let resolvedStatus: ProjectLifecycleState = input.status;
-    if (input.status === 'COMPLETED' && overallScore < 70) {
+    if (overallScore < 70) {
       resolvedStatus = 'NEEDS_REVISION';
+    } else if (input.status === 'COMPLETED' && input.reviewerType === 'SELF_ASSESSMENT') {
+      // Self-assessment alone cannot unilaterally award COMPLETED status without independent review
+      resolvedStatus = 'REVIEWED';
     }
 
     const updated: ProjectSubmission = {
@@ -169,6 +172,7 @@ export class ProjectService {
       overallScore,
       reviewerFeedback: input.reviewerFeedback,
       reviewerType: input.reviewerType,
+      submittedAt: existing.submittedAt || now,
       reviewedAt: now,
       updatedAt: now
     };

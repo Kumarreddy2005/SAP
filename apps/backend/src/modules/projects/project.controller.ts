@@ -167,6 +167,13 @@ export class ProjectController {
 
       res.status(200).json(updated);
     } catch (err: unknown) {
+      if (err instanceof Error && err.message.includes('Cannot review project deliverables')) {
+        res.status(400).json({
+          error: 'InvalidLifecycleTransition',
+          message: err.message
+        });
+        return;
+      }
       next(err);
     }
   };

@@ -75,7 +75,7 @@ export class JobSearchService {
       destinationLinks,
       recommendedPreparationSkills,
       disclaimer:
-        'Zero Fabrication Policy: All job search destinations link directly to official third-party career portals. Career Orchestrator strictly refrains from fabricating synthetic employment vacancies, scraping private employer databases without authorization, or predicting commercial hiring outcomes.'
+        'Zero Fabrication Policy: All job search destinations link directly to official third-party career portals. Career Orchestrator strictly refrains from fabricating synthetic employment vacancies, does not scrape private employer databases without authorization, and does not predict commercial hiring outcomes.'
     };
   }
 }
