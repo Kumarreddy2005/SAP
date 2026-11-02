@@ -70,4 +70,8 @@ export class ProfileService {
   async getProfile(profileId: string): Promise<StoredProfile | null> {
     return this.repo.getProfileById(profileId);
   }
+
+  async deleteProfile(profileId: string): Promise<boolean> {
+    return this.repo.deleteProfile(profileId);
+  }
 }

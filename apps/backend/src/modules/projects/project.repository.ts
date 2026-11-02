@@ -11,6 +11,7 @@ export interface ProjectRepository {
   getSubmissionsByProfile(profileId: string): Promise<ProjectSubmission[]>;
   saveSubmission(submission: ProjectSubmission): Promise<ProjectSubmission>;
   startProject(projectId: string, profileId: string): Promise<ProjectSubmission>;
+  deleteSubmissionsByProfile(profileId: string): Promise<number>;
 }
 
 /**
@@ -124,6 +125,17 @@ export class InMemoryProjectRepository implements ProjectRepository {
     };
 
     return this.saveSubmission(newSub);
+  }
+
+  async deleteSubmissionsByProfile(profileId: string): Promise<number> {
+    let deletedCount = 0;
+    for (const [key, sub] of Array.from(this.submissions.entries())) {
+      if (sub.profileId === profileId) {
+        this.submissions.delete(key);
+        deletedCount++;
+      }
+    }
+    return deletedCount;
   }
 }
 

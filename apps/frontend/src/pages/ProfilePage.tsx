@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Breadcrumbs } from '../components/common/Breadcrumbs';
 import { StepIndicator } from '../components/common/StepIndicator';
@@ -15,7 +15,9 @@ export const ProfilePage: React.FC = () => {
     manualProfile,
     setManualProfile,
     setUploadedFile,
-    handleUploadSuccess
+    handleUploadSuccess,
+    sessionResetToken,
+    loadDemoBaseline
   } = useCareerContext();
 
   const [activeTab, setActiveTab] = useState<'upload' | 'manual'>('upload');
@@ -28,6 +30,19 @@ export const ProfilePage: React.FC = () => {
 
   // Form validation errors for manual intake
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  // Reset local state whenever candidate session is reset
+  useEffect(() => {
+    setSelectedFileObj(null);
+    setUploadError(null);
+    setUploadWarning(null);
+    setUploadSuccessData(null);
+    setFormErrors({});
+    const input = document.getElementById('resumeFileInput') as HTMLInputElement | null;
+    if (input) {
+      input.value = '';
+    }
+  }, [sessionResetToken]);
 
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
@@ -417,7 +432,27 @@ export const ProfilePage: React.FC = () => {
               </div>
             )}
 
-            <div style={{ marginTop: '2rem', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+            <div style={{ marginTop: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  loadDemoBaseline();
+                  navigate('/skills-review');
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#0A6ED1',
+                  fontSize: '0.85rem',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  textDecoration: 'underline',
+                  padding: 0
+                }}
+              >
+                Or load Alex Vance Demo Profile for Hackathon Presentation
+              </button>
+
               <Button
                 variant="primary"
                 size="md"

@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { ProfileReviewSubmissionSchema } from '@career-orchestrator/shared';
 import { ResumeService } from './resume.service';
 import { ProfileService } from './profile.service';
+import { projectRepository } from '../projects/project.repository';
 
 export class ResumeController {
   private resumeService = new ResumeService();
@@ -107,6 +108,33 @@ export class ResumeController {
 
       res.status(200).json(profile);
     } catch (err: unknown) {
+      next(err);
+    }
+  };
+
+  deleteProfile = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const profileId = req.params.id;
+      if (!profileId) {
+        res.status(400).json({
+          error: 'BadRequest',
+          message: 'Profile identifier is required.'
+        });
+        return;
+      }
+
+      const deleted = await this.profileService.deleteProfile(profileId);
+      const deletedSubmissions = await projectRepository.deleteSubmissionsByProfile(profileId);
+
+      res.status(200).json({
+        success: true,
+        profileId,
+        deletedProfile: deleted,
+        deletedSubmissionsCount: deletedSubmissions,
+        message: 'Candidate session successfully cleared from backend runtime.'
+      });
+    } catch (err: unknown) {
+      console.error('[ResumeController] Profile deletion failed:', err);
       next(err);
     }
   };

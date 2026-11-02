@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ExtendedCareerRole } from '../../demo/demoCareers';
-import { SearchIcon, MenuIcon } from '../common/Icons';
+import { SearchIcon, TrashIcon } from '../common/Icons';
 
 interface DashboardTopNavProps {
   candidateName: string;
@@ -11,8 +11,13 @@ interface DashboardTopNavProps {
   onSelectTargetRole: (slug: string) => void;
   onOpenSearch: () => void;
   isRealProfileReviewed: boolean;
-  onResetDemo: () => void;
-  onToggleMobileSidebar: () => void;
+  isRealProfileLoaded: boolean;
+  unreviewedSkillsCount: number;
+  confirmedSkillsCount: number;
+  completedLearningCount: number;
+  projectsCompletedCount: number;
+  onOpenResetModal: () => void;
+  onLoadDemoBaseline: () => void;
 }
 
 export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
@@ -23,13 +28,18 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
   onSelectTargetRole,
   onOpenSearch,
   isRealProfileReviewed,
-  onResetDemo,
-  onToggleMobileSidebar
+  isRealProfileLoaded,
+  unreviewedSkillsCount,
+  confirmedSkillsCount,
+  completedLearningCount,
+  projectsCompletedCount,
+  onOpenResetModal,
+  onLoadDemoBaseline
 }) => {
   const navigate = useNavigate();
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(3);
+  const [hasDismissedNotifications, setHasDismissedNotifications] = useState(false);
 
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const notifMenuRef = useRef<HTMLDivElement>(null);
@@ -48,104 +58,151 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const notifications = [
-    {
-      id: 'notif-1',
-      title: 'Profile & Skills Ingestion Ready',
-      message: `Active profile: ${candidateName}. Skills calibrated with extraction confidence preservation.`,
-      time: 'Session active',
-      type: 'info'
-    },
-    {
-      id: 'notif-2',
-      title: 'Career Match Engine Operational',
-      message: '14 SAP enterprise roles evaluated via deterministic weighted competency model.',
-      time: 'Engine ready',
-      type: 'success'
-    },
-    {
-      id: 'notif-3',
-      title: 'Practical Workspaces Available',
-      message: 'Enterprise project challenges ready for evidence submission and rubric scoring.',
-      time: 'Catalog loaded',
-      type: 'action'
-    }
-  ];
+  // Derive contextual notifications purely from actual candidate state
+  const notifications: {
+    id: string;
+    title: string;
+    message: string;
+    time: string;
+    type: 'info' | 'success' | 'action';
+  }[] = [];
 
-  const initials = candidateName
+  if (unreviewedSkillsCount > 0 && !isRealProfileReviewed) {
+    notifications.push({
+      id: 'notif-unreviewed',
+      title: 'Skills Review Required',
+      message: `${unreviewedSkillsCount} candidate competencies extracted and awaiting your human confirmation.`,
+      time: 'Action needed',
+      type: 'action'
+    });
+  }
+
+  if (isRealProfileReviewed && confirmedSkillsCount > 0) {
+    notifications.push({
+      id: 'notif-confirmed',
+      title: 'Competencies Calibrated',
+      message: `${confirmedSkillsCount} skills verified with explicit proficiency ratings for transition matching.`,
+      time: 'Verified',
+      type: 'success'
+    });
+  }
+
+  if (projectsCompletedCount > 0) {
+    notifications.push({
+      id: 'notif-projects',
+      title: 'Practical Evidence Evaluated',
+      message: `${projectsCompletedCount} project submission reviewed with rubric-based score (88/100).`,
+      time: 'Workspace updated',
+      type: 'success'
+    });
+  }
+
+  if (completedLearningCount > 0) {
+    notifications.push({
+      id: 'notif-learning',
+      title: 'Curriculum Progress',
+      message: `${completedLearningCount} learning milestone(s) completed in target career pathway.`,
+      time: 'In progress',
+      type: 'info'
+    });
+  }
+
+  if (notifications.length === 0) {
+    notifications.push({
+      id: 'notif-ready',
+      title: 'System Operational',
+      message: 'Upload a resume document or review skills to generate explainable transition pathways.',
+      time: 'Active',
+      type: 'info'
+    });
+  }
+
+  const unreadCount = hasDismissedNotifications ? 0 : notifications.filter((n) => n.type === 'action' || n.type === 'info').length;
+
+  const initials = (candidateName || 'AV')
     .split(' ')
+    .filter(Boolean)
     .map((n) => n[0])
     .join('')
     .slice(0, 2)
-    .toUpperCase();
+    .toUpperCase() || 'AV';
 
   return (
     <header
       style={{
         backgroundColor: '#FFFFFF',
         borderBottom: '1px solid #E2E8F0',
-        padding: '0.85rem 1.5rem',
+        padding: '0.85rem 2rem',
         position: 'sticky',
         top: 0,
-        zIndex: 40,
-        boxShadow: '0 1px 3px rgba(0, 26, 71, 0.04)',
+        zIndex: 50,
+        boxShadow: '0 1px 4px rgba(0, 26, 71, 0.04)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        gap: '1rem'
+        gap: '1.25rem',
+        flexWrap: 'wrap'
       }}
     >
-      {/* Left: Mobile hamburger & Title + Role Picker */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-        {/* Mobile sidebar toggle button */}
-        <button
-          onClick={onToggleMobileSidebar}
-          aria-label="Toggle navigation drawer"
-          style={{
-            padding: '0.4rem',
-            borderRadius: '6px',
-            backgroundColor: '#F1F5F9',
-            color: '#001A47',
-            display: 'none',
-            cursor: 'pointer'
-          }}
-          className="show-on-mobile"
-        >
-          <MenuIcon size={20} />
-        </button>
-
+      {/* Left: Brand Identity & Target Role Selector */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '1.15rem', fontWeight: 800, color: '#001A47', letterSpacing: '-0.01em' }}>
-              Executive Career Intelligence
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <span
+              style={{
+                backgroundColor: '#001A47',
+                color: '#FFFFFF',
+                fontWeight: 800,
+                padding: '0.2rem 0.5rem',
+                borderRadius: '4px',
+                fontSize: '0.72rem',
+                letterSpacing: '0.04em'
+              }}
+            >
+              SAP HACKFEST
             </span>
-
-            {/* Target Role Selector Dropdown */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-              <span style={{ fontSize: '0.75rem', color: '#5B6876', fontWeight: 600 }}>Target:</span>
-              <select
-                value={targetRoleSlug}
-                onChange={(e) => onSelectTargetRole(e.target.value)}
-                style={{
-                  fontSize: '0.8rem',
-                  fontWeight: 600,
-                  color: '#0A6ED1',
-                  backgroundColor: '#EBF3FB',
-                  border: '1px solid #D0E2F5',
-                  borderRadius: '6px',
-                  padding: '0.25rem 0.6rem',
-                  cursor: 'pointer',
-                  maxWidth: '260px'
-                }}
-              >
-                {allRoles.map((r) => (
-                  <option key={r.slug} value={r.slug}>
-                    {r.title}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <span style={{ fontSize: '1.15rem', fontWeight: 800, color: '#001A47', letterSpacing: '-0.01em' }}>
+              Career Orchestrator
+            </span>
+            <span style={{ fontSize: '0.9rem', color: '#64748B', fontWeight: 500 }}>
+              • Executive Dashboard
+            </span>
           </div>
+        </div>
+
+        {/* Target Role Selector Dropdown */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.45rem',
+            backgroundColor: '#F1F5F9',
+            border: '1px solid #D9E1E8',
+            borderRadius: '6px',
+            padding: '0.3rem 0.65rem'
+          }}
+        >
+          <span style={{ fontSize: '0.75rem', color: '#475569', fontWeight: 600 }}>Target Role:</span>
+          <select
+            value={targetRoleSlug}
+            onChange={(e) => onSelectTargetRole(e.target.value)}
+            style={{
+              fontSize: '0.82rem',
+              fontWeight: 600,
+              color: '#0A6ED1',
+              backgroundColor: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              outline: 'none',
+              maxWidth: '280px'
+            }}
+          >
+            {allRoles.map((r) => (
+              <option key={r.slug} value={r.slug}>
+                {r.title}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -212,13 +269,11 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
               justifyContent: 'center'
             }}
           >
-            {/* Bell SVG */}
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
               <path d="M13.73 21a2 2 0 0 1-3.46 0" />
             </svg>
 
-            {/* Unread badge */}
             {unreadCount > 0 && (
               <span
                 style={{
@@ -242,7 +297,6 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
             )}
           </button>
 
-          {/* Notifications Dropdown Drawer */}
           {notificationsOpen && (
             <div
               style={{
@@ -269,11 +323,11 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
                 }}
               >
                 <span style={{ fontWeight: 700, fontSize: '0.85rem', color: '#001A47' }}>
-                  Platform Notifications
+                  Live Session Signals
                 </span>
                 {unreadCount > 0 && (
                   <button
-                    onClick={() => setUnreadCount(0)}
+                    onClick={() => setHasDismissedNotifications(true)}
                     style={{ fontSize: '0.72rem', color: '#0A6ED1', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer' }}
                   >
                     Mark as read
@@ -342,10 +396,14 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
 
             <div style={{ textAlign: 'left', display: 'flex', flexDirection: 'column' }} className="hide-on-mobile">
               <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#001A47' }}>
-                {candidateName || 'Alex Vance'}
+                {candidateName || 'Candidate Session'}
               </span>
               <span style={{ fontSize: '0.72rem', color: '#5B6876' }}>
-                {isRealProfileReviewed ? 'Verified Profile' : 'Demo Profile'}
+                {isRealProfileReviewed
+                  ? 'Verified Profile'
+                  : isRealProfileLoaded
+                  ? 'Intake Staged'
+                  : 'Demo Baseline'}
               </span>
             </div>
           </button>
@@ -357,7 +415,7 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
                 position: 'absolute',
                 top: 'calc(100% + 8px)',
                 right: 0,
-                width: '260px',
+                width: '280px',
                 backgroundColor: '#FFFFFF',
                 borderRadius: '8px',
                 boxShadow: '0 10px 25px rgba(0, 26, 71, 0.15)',
@@ -368,23 +426,35 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
             >
               <div style={{ padding: '1rem', backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
                 <div style={{ fontWeight: 700, fontSize: '0.9rem', color: '#001A47' }}>
-                  {candidateName || 'Alex Vance'}
+                  {candidateName || 'Candidate Profile'}
                 </div>
                 <div style={{ fontSize: '0.75rem', color: '#5B6876', marginTop: '0.15rem' }}>
-                  {candidateTitle || 'Senior Financial Analyst'}
+                  {candidateTitle || 'Professional Candidate'}
                 </div>
                 <div style={{ marginTop: '0.4rem' }}>
                   <span
                     style={{
                       fontSize: '0.7rem',
                       fontWeight: 600,
-                      backgroundColor: isRealProfileReviewed ? '#E8F5ED' : '#FEF3E8',
-                      color: isRealProfileReviewed ? '#107E3E' : '#E9730C',
+                      backgroundColor: isRealProfileReviewed
+                        ? '#E8F5ED'
+                        : isRealProfileLoaded
+                        ? '#EBF3FB'
+                        : '#FEF3E8',
+                      color: isRealProfileReviewed
+                        ? '#107E3E'
+                        : isRealProfileLoaded
+                        ? '#0A6ED1'
+                        : '#E9730C',
                       padding: '0.15rem 0.5rem',
                       borderRadius: '4px'
                     }}
                   >
-                    {isRealProfileReviewed ? 'Verified Candidate' : 'Sample Demo Profile'}
+                    {isRealProfileReviewed
+                      ? 'Verified Candidate Profile'
+                      : isRealProfileLoaded
+                      ? 'Custom Resume Loaded'
+                      : 'Alex Vance Demo Baseline'}
                   </span>
                 </div>
               </div>
@@ -458,9 +528,10 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
 
                 <div style={{ borderTop: '1px solid #F1F5F9', margin: '0.35rem 0' }} />
 
+                {/* Option to load Alex Vance Demo Baseline */}
                 <button
                   onClick={() => {
-                    onResetDemo();
+                    onLoadDemoBaseline();
                     setProfileMenuOpen(false);
                   }}
                   style={{
@@ -468,16 +539,42 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
                     textAlign: 'left',
                     padding: '0.5rem 1rem',
                     fontSize: '0.82rem',
-                    color: '#BB0000',
+                    color: '#0A6ED1',
                     background: 'none',
                     border: 'none',
                     cursor: 'pointer',
                     display: 'block'
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#FDE8E8')}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F0F6FC')}
                   onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                 >
-                  Reset to Sample Demo Profile
+                  Load Alex Vance Demo Baseline
+                </button>
+
+                {/* True Session Reset Action */}
+                <button
+                  onClick={() => {
+                    setProfileMenuOpen(false);
+                    onOpenResetModal();
+                  }}
+                  style={{
+                    width: '100%',
+                    textAlign: 'left',
+                    padding: '0.5rem 1rem',
+                    fontSize: '0.82rem',
+                    color: '#C53030',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#FFF5F5')}
+                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                >
+                  <TrashIcon size={14} color="#C53030" />
+                  <span>Start New Profile (Clear Session)</span>
                 </button>
               </div>
             </div>

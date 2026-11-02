@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useCareerContext } from '../../context/CareerContext';
-import { MenuIcon, CloseIcon } from '../common/Icons';
+import { MenuIcon, CloseIcon, TrashIcon } from '../common/Icons';
+import { ResetSessionModal } from '../common/ResetSessionModal';
 
 export const Navbar: React.FC = () => {
   const location = useLocation();
   const { healthStatus, backendHealth } = useCareerContext();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
 
   const navLinks = [
     { label: 'Overview', path: '/' },
@@ -163,6 +165,30 @@ export const Navbar: React.FC = () => {
             </span>
           </div>
 
+          {/* Reset / New Session Button */}
+          <button
+            onClick={() => setIsResetModalOpen(true)}
+            title="Clear current candidate data and start fresh intake"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.35rem',
+              backgroundColor: 'rgba(235, 87, 87, 0.15)',
+              border: '1px solid rgba(235, 87, 87, 0.35)',
+              color: '#FFA8A8',
+              padding: '0.3rem 0.75rem',
+              borderRadius: '4px',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
+            }}
+            className="hide-on-mobile"
+          >
+            <TrashIcon size={13} color="#FFA8A8" />
+            <span>Reset Intake</span>
+          </button>
+
           {/* Mobile hamburger button */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -211,9 +237,39 @@ export const Navbar: React.FC = () => {
                 </Link>
               );
             })}
+            <button
+              onClick={() => {
+                setMobileMenuOpen(false);
+                setIsResetModalOpen(true);
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                color: '#FFA8A8',
+                backgroundColor: 'rgba(235, 87, 87, 0.15)',
+                border: '1px solid rgba(235, 87, 87, 0.35)',
+                padding: '0.65rem 1rem',
+                borderRadius: '4px',
+                fontSize: '0.95rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                marginTop: '0.5rem',
+                textAlign: 'left'
+              }}
+            >
+              <TrashIcon size={16} color="#FFA8A8" />
+              <span>Reset Candidate Session</span>
+            </button>
           </div>
         </div>
       )}
+
+      {/* Confirmation Modal */}
+      <ResetSessionModal
+        isOpen={isResetModalOpen}
+        onClose={() => setIsResetModalOpen(false)}
+      />
     </header>
   );
 };

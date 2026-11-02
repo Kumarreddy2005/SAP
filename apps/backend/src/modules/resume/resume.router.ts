@@ -23,3 +23,6 @@ profileRouter.put('/:id/review', controller.reviewProfile);
 
 // GET /api/v1/profile/:id
 profileRouter.get('/:id', controller.getProfile);
+
+// DELETE /api/v1/profile/:id
+profileRouter.delete('/:id', controller.deleteProfile);

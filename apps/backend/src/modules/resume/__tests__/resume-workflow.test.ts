@@ -303,4 +303,21 @@ describe('Resume Ingestion & Skill Extraction Workflow Suite', () => {
     assert.strictEqual(confirmed.yearsExperience, 4.0);
     assert.strictEqual(confirmed.confidenceScore, sqlSkill.confidenceScore);
   });
+
+  // Test 17: Candidate session reset & profile deletion
+  it('17. Candidate session purge: successfully removes profile and verified existence returns null', async () => {
+    const text = 'Data Engineer skilled in Python and SQL.';
+    const buffer = await createTestPdfBuffer(text);
+    const uploaded = await resumeService.processResumeUpload(buffer, 'data_engineer.pdf');
+
+    const created = await profileService.getProfile(uploaded.profileId);
+    assert.ok(created);
+    assert.strictEqual(created.id, uploaded.profileId);
+
+    const deleted = await profileService.deleteProfile(uploaded.profileId);
+    assert.strictEqual(deleted, true);
+
+    const afterDelete = await profileService.getProfile(uploaded.profileId);
+    assert.strictEqual(afterDelete, null);
+  });
 });

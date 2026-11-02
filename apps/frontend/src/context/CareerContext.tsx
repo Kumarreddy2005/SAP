@@ -47,8 +47,11 @@ interface CareerContextType {
   extractionWarnings: string[];
   isRealProfileLoaded: boolean;
   isRealProfileReviewed: boolean;
+  sessionResetToken: number;
   handleUploadSuccess: (res: ResumeUploadResponse) => void;
   handleReviewSuccess: (res: ProfileReviewResponse) => void;
+  startNewCandidateSession: () => Promise<void>;
+  loadDemoBaseline: () => void;
   resetToDemoData: () => void;
 
   // Skills State
@@ -132,6 +135,7 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [extractionWarnings, setExtractionWarnings] = useState<string[]>([]);
   const [isRealProfileLoaded, setIsRealProfileLoaded] = useState<boolean>(false);
   const [isRealProfileReviewed, setIsRealProfileReviewed] = useState<boolean>(false);
+  const [sessionResetToken, setSessionResetToken] = useState<number>(0);
 
   const [manualProfile, setManualProfile] = useState<ManualProfileData>({
     fullName: 'Alex Vance',
@@ -510,20 +514,85 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
-  const resetToDemoData = () => {
+  const startNewCandidateSession = async () => {
+    const pid = currentProfileId;
+    if (pid && pid !== 'demo-profile') {
+      try {
+        await fetch(`/api/v1/profile/${pid}`, {
+          method: 'DELETE'
+        });
+      } catch (err) {
+        console.warn('[CareerContext] Could not delete backend profile on reset:', err);
+      }
+    }
+
     setCurrentProfileId(null);
     setUploadedFile(null);
     setExtractedTextPreview('');
     setExtractionWarnings([]);
-    setSkills(INITIAL_DEMO_SKILLS);
     setIsRealProfileLoaded(false);
     setIsRealProfileReviewed(false);
+    setManualProfile({
+      fullName: '',
+      currentTitle: '',
+      yearsExperience: 0,
+      education: '',
+      responsibilities: ''
+    });
+    setSkills([]);
     setCareerMatches([]);
     setCurrentGapAnalysis(null);
     setCurrentPathway(null);
+    setComparisonResult(null);
+    setCompletedLearningIds([]);
+    setProjectSubmissions({});
     setActiveProjectSubmissions({});
     setReadinessScorecard(null);
     setJobSearchData(null);
+
+    try {
+      sessionStorage.clear();
+      localStorage.removeItem('career_orchestrator_profile');
+      localStorage.removeItem('career_orchestrator_skills');
+      localStorage.removeItem('career_orchestrator_target');
+    } catch (err) {
+      console.warn('[CareerContext] Error clearing browser storage on reset:', err);
+    }
+
+    setSessionResetToken((prev) => prev + 1);
+  };
+
+  const loadDemoBaseline = () => {
+    setCurrentProfileId(null);
+    setUploadedFile(null);
+    setExtractedTextPreview('');
+    setExtractionWarnings([]);
+    setManualProfile({
+      fullName: 'Alex Vance',
+      currentTitle: 'Senior Financial Analyst',
+      yearsExperience: 4.5,
+      education: 'Bachelor of Science in Accounting & Information Systems',
+      responsibilities:
+        'Manage general ledger journal reconciliation, statutory balance sheet audits, and SQL-based variance audits.'
+    });
+    setSkills(INITIAL_DEMO_SKILLS);
+    setIsRealProfileLoaded(false);
+    setIsRealProfileReviewed(false);
+    setTargetRoleSlug('sap-s4hana-finance-consultant');
+    setCareerMatches([]);
+    setCurrentGapAnalysis(null);
+    setCurrentPathway(null);
+    setComparisonResult(null);
+    setCompletedLearningIds([]);
+    setProjectSubmissions({});
+    setActiveProjectSubmissions({});
+    setReadinessScorecard(null);
+    setJobSearchData(null);
+    setSessionResetToken((prev) => prev + 1);
+  };
+
+  const resetToDemoData = () => {
+    void startNewCandidateSession();
   };
 
   const confirmSkill = (id: string) => {
@@ -665,6 +734,9 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         handleUploadSuccess,
         handleReviewSuccess,
         resetToDemoData,
+        startNewCandidateSession,
+        loadDemoBaseline,
+        sessionResetToken,
         skills,
         setSkills,
         confirmSkill,

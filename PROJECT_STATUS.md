@@ -1,15 +1,19 @@
 # Career Orchestrator — Project Status Log
 
 **Project:** Career Orchestrator (SAP Hackfest 2026)  
-**Current Milestone:** Premium Interactive Executive Dashboard & Hackathon Release Check  
-**Overall Status:** **HACKATHON DEMO READY** (51/51 automated backend tests pass, full monorepo typecheck clean, frontend production build clean, 17-stage E2E workflow verified, 17 desktop & mobile screenshots verified)  
-**Last Updated:** 2026-11-02 22:45:00 UTC+05:30  
+**Current Milestone:** Minimal Enterprise Dashboard Overhaul, True Candidate Session Reset & Real Backend Data Integration  
+**Overall Status:** **HACKATHON DEMO READY** (52/52 automated backend tests pass, full monorepo typecheck clean, frontend production build clean, 17-stage E2E workflow verified, 15 desktop & mobile screenshots verified)  
+**Last Updated:** 2026-11-03 02:25:00 UTC+05:30  
 
 ---
 
 ## 1. Milestone Status Summary
 
-- **Executive Career Intelligence Dashboard (`/dashboard`):** **PASS** (Enterprise-grade SaaS dashboard with collapsible dark navy sidebar, white/light-grey surfaces, SAP Horizon blue & subtle purple accents, responsive top nav with functional global search, notification center, candidate profile menu with quick demo-reset, and quick target-role calibration).
+- **Minimal Executive Career Intelligence Dashboard (`/dashboard`):** **PASS** (Replaced cluttered dual-sidebar layout with a sleek, minimal enterprise interface. Features unified top navigation header, prominent dynamic Next Recommended Action banner, horizontal 4-stat Candidate Overview card, 7-step Career Transition Roadmap, two-column Career Intelligence section with real backend matching and pure-SVG Career DNA Radar, honest fractional learning progress, practical project workspace status, and alternative curated pathways labeled "Curated SAP Catalogue Assessment (October 2026)").
+- **True Candidate Session Reset & Fresh Intake Workflow:** **PASS** (Replaced incomplete demo reset with `startNewCandidateSession()` and `ResetSessionModal`. Invokes `DELETE /api/v1/profile/:id` to purge candidate data and submissions from backend in-memory repository; clears all context state including `skills` back to `[]` (empty array); resets browser storage; clears native file input `#resumeFileInput`; navigates to fresh `/profile` intake screen with zero remnant resume data; provides dedicated "Or load Alex Vance Demo Profile for Hackathon Presentation" option).
+- **Backend Candidate Session Purge API (`DELETE /api/v1/profile/:id`):** **PASS** (Deletes candidate profile and all associated project submissions from backend memory; verified with automated regression test 17).
+- **Dynamic Next Recommended Action Banner:** **PASS** (State-driven recommendation banner guiding candidate through 5 distinct workflow states: Intake Required $\to$ Skills Review Calibration $\to$ Priority Milestone Upskilling $\to$ Learning In Progress $\to$ High Readiness & Evidence Submission).
+- **Executive Career Intelligence Dashboard (`/dashboard`):** **PASS** (Enterprise-grade SaaS dashboard with white/light-grey surfaces, SAP Horizon blue & subtle purple accents, responsive top nav with functional global search, notification center, candidate profile menu with quick demo-reset, and quick target-role calibration).
 - **Career Identity & Personalized Transition Narrative:** **PASS** (Candidate metadata dynamically analyzed against active target role; derives top confirmed transferable skills and identifies primary ERP customizing focus areas; quick role switcher).
 - **Verifiable 5-Stage Transition Roadmap:** **PASS** (Transparent, documented progress formula: $P = \frac{P_{\text{profile}} + P_{\text{skills}} + P_{\text{career}} + P_{\text{learning}} + P_{\text{projects}}}{5}$; toggleable formula disclosure modal; zero arbitrary percentages).
 - **6 Interactive KPI Cards:** **PASS** (Skills Identified, Skills Confirmed, Transferable Skills, Recommended Roles, Remaining Skill Gaps, Projects Completed; clicking each card triggers corresponding detail drawer, filter, or page navigation).
@@ -37,6 +41,7 @@
 | `POST` | `/api/v1/resume/upload` | **200 OK** | Multipart upload (`file` field). Validates format and binary magic bytes, extracts text via Mozilla PDF.js or Mammoth, runs deterministic ontology matcher, returns `ResumeUploadResponse`. |
 | `PUT` | `/api/v1/profile/:id/review` | **200 OK** | Submits human review (`ProfileReviewSubmissionSchema`). Segregates confirmed from rejected skills, persists updates, returns `ProfileReviewResponse`. |
 | `GET` | `/api/v1/profile/:id` | **200 OK** | Retrieves stored candidate profile by ID. Returns 404 if profile does not exist or server was restarted. |
+| `DELETE` | `/api/v1/profile/:id` | **200 OK** | Purges candidate profile and associated practical project submissions from in-memory repository for a clean session reset. |
 | `GET` | `/api/v1/careers` | **200 OK** | Retrieves curated career catalogue (14 roles) with optional query filters (`search`, `ecosystem`, `family`, `track`). |
 | `GET` | `/api/v1/careers/:idOrSlug` | **200 OK** | Retrieves a single career role definition with full competency requirements, prerequisites, learning IDs, and project IDs. |
 | `GET` | `/api/v1/careers/matches/:profileId` | **200 OK** | Computes explainable match scores across all 14 catalogue roles using strictly candidate's confirmed competencies. |
