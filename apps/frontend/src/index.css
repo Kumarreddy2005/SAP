@@ -121,8 +121,18 @@ input::placeholder, textarea::placeholder {
 }
 
 /* Print & Responsive utility helpers */
+.show-on-mobile {
+  display: none !important;
+}
+
 @media (max-width: 768px) {
   .hide-on-mobile {
     display: none !important;
+  }
+  .show-on-mobile {
+    display: flex !important;
+  }
+  .radar-grid {
+    grid-template-columns: 1fr !important;
   }
 }

@@ -37,6 +37,7 @@ npm run dev:frontend
 graph TD
     subgraph Client ["Frontend Client (React 18 + Vite + TypeScript)"]
         UI_Landing["Landing Page /"]
+        UI_Dashboard["Executive Dashboard /dashboard"]
         UI_Profile["Profile Ingestion /profile"]
         UI_Review["Human Skills Review /skills-review"]
         UI_Careers["Career Explorer & Comparison /careers"]
@@ -111,11 +112,15 @@ flowchart LR
 
 ---
 
-### ACT I — Landing Page & The Value Proposition (30 Seconds)
-- **Navigate to:** `http://localhost:4173/`
+### ACT I — Landing Page & The Executive Cockpit (45 Seconds)
+- **Navigate to:** `http://localhost:4173/` and click **"Open Executive Dashboard"** (`/dashboard`).
 - **Narrative:**
-  > *"Every year, millions of experienced professionals want to pivot into enterprise ecosystems like SAP, but they get stuck behind jargon, unexplainable black-box AI matchers, and generic course recommendations. Career Orchestrator solves this with explainable AI, human-in-the-loop agency, verified learning journeys, and hands-on portfolio proof."*
-- **Action:** Point out the key pillars (Explainable Fit, Human Review, Verified SAP Courses, Portfolio Evidence). Click **"Start Career Transition"** or navigate to `/profile`.
+  > *"Career Orchestrator provides an enterprise SaaS executive cockpit that brings every dimension of career transition into unified, real-time focus. Notice the dark navy collapsible sidebar, responsive global search palette with instant keyboard filtering across roles and skills, and our 5-stage documented transition progress tracker. Our interactive pure-SVG Career DNA radar visualizes candidate competencies across 6 enterprise dimensions directly against target role benchmarks."*
+- **Action:**
+  1. Demonstrate the **Global Search Palette** (press `/` or click search: type *"Finance"* or *"SQL"* to see live matches).
+  2. Toggle the **Career DNA Radar** legend (hide/show Candidate Level vs Target Benchmark) and click a perimeter category label to inspect confirmed competencies and evidence snippets.
+  3. Show the **Transition Progress Tracker** and click *"Explain Formula & Rules"* to prove transparent, documented arithmetic ($P = \frac{\sum P_i}{5}$) with zero fake percentages.
+  4. Use the top bar dropdown to quickly switch the target role to *"SAP ABAP Cloud Developer"* and show the whole dashboard re-calibrating dynamically! Switch back to *"SAP S/4HANA Finance Consultant"*.
 
 ---
 

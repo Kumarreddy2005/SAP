@@ -75,6 +75,14 @@ export const LandingPage: React.FC = () => {
             <Button
               variant="primary"
               size="lg"
+              onClick={() => navigate('/dashboard')}
+              icon={<AwardIcon size={18} />}
+            >
+              Open Executive Dashboard
+            </Button>
+            <Button
+              variant="outline"
+              size="lg"
               onClick={() => navigate('/profile')}
               icon={<ArrowRightIcon size={18} />}
               iconPosition="right"
