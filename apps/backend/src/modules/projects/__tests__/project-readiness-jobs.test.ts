@@ -182,6 +182,94 @@ describe('Interactive Project Workspaces Suite', () => {
     assert.equal(reviewed.status, 'NEEDS_REVISION', 'Must downgrade to NEEDS_REVISION if score < 70');
     assert.ok((reviewed.overallScore || 0) < 60);
   });
+
+  test('7b. Protect project assessment: rejects invalid criteria, caps self-assessment, and locks catalogue weights', async () => {
+    const sub = await service.startProject('proj-fi-01', 'test-user-rubric-guard');
+    assert.ok(sub);
+
+    // 1. Invalid rubric criterion must throw an error
+    await assert.rejects(
+      async () => {
+        await service.reviewProject({
+          submissionId: sub.id,
+          status: 'COMPLETED',
+          reviewerType: 'INDEPENDENT_REVIEWER',
+          reviewerFeedback: 'Review with fabricated criterion',
+          rubricAssessments: [
+            {
+              criterion: 'Non-Existent Fabricated Criterion XYZ',
+              weightPercentage: 100,
+              awardedScore: 95
+            }
+          ]
+        });
+      },
+      (err: Error) => {
+        return err.message.includes('is not defined in the rubric');
+      }
+    );
+
+    // 2. Self-assessment cannot claim COMPLETED status (must cap at REVIEWED)
+    const selfAssessed = await service.reviewProject({
+      submissionId: sub.id,
+      status: 'COMPLETED', // Attempted COMPLETED via self-assessment
+      reviewerType: 'SELF_ASSESSMENT',
+      reviewerFeedback: 'I completed everything thoroughly myself.',
+      rubricAssessments: [
+        {
+          criterion: 'Completeness of Organizational Structure Hierarchy',
+          weightPercentage: 35,
+          awardedScore: 95
+        },
+        {
+          criterion: 'Accurate General Ledger Account Group segmentation',
+          weightPercentage: 35,
+          awardedScore: 90
+        },
+        {
+          criterion: 'Professional enterprise documentation formatting',
+          weightPercentage: 30,
+          awardedScore: 90
+        }
+      ]
+    });
+
+    assert.ok(selfAssessed);
+    assert.equal(selfAssessed.status, 'REVIEWED', 'Self-assessment must not unilaterally claim COMPLETED status');
+    assert.equal(selfAssessed.reviewerType, 'SELF_ASSESSMENT');
+
+    // 3. Catalogue weights are strictly locked (client cannot tamper with weights)
+    // Real weights for proj-fi-01: 35, 35, 30. Client tries to set 10, 10, 80:
+    const tamperedWeights = await service.reviewProject({
+      submissionId: sub.id,
+      status: 'COMPLETED',
+      reviewerType: 'INDEPENDENT_REVIEWER',
+      reviewerFeedback: 'Testing weight lock from catalogue definition.',
+      rubricAssessments: [
+        {
+          criterion: 'Completeness of Organizational Structure Hierarchy',
+          weightPercentage: 10, // Tampered weight
+          awardedScore: 100
+        },
+        {
+          criterion: 'Accurate General Ledger Account Group segmentation',
+          weightPercentage: 10, // Tampered weight
+          awardedScore: 100
+        },
+        {
+          criterion: 'Professional enterprise documentation formatting',
+          weightPercentage: 80, // Tampered weight
+          awardedScore: 0
+        }
+      ]
+    });
+
+    // If client weights (10, 10, 80) were used: (100*10 + 100*10 + 0*80)/100 = 20%
+    // If catalogue weights (35, 35, 30) are locked: (100*35 + 100*35 + 0*30)/100 = 70%
+    assert.ok(tamperedWeights);
+    assert.equal(tamperedWeights.overallScore, 70, 'Must compute score using catalogue weights (35%, 35%, 30%), not client-tampered weights');
+    assert.ok(tamperedWeights.reviewerFeedback?.includes('[Simulated Demonstration Reviewer Mode]'));
+  });
 });
 
 describe('Career Readiness Scorecard Suite', () => {

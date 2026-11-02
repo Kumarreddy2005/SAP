@@ -126,12 +126,29 @@ export class ProjectService {
     const existing = await this.repo.getSubmissionById(input.submissionId);
     if (!existing) return null;
 
+    if (existing.status === 'NOT_STARTED') {
+      throw new Error('Cannot review project deliverables before the workspace has been started.');
+    }
+
     const project = getProjectById(existing.projectId);
     if (!project) return null;
+
+    // Reject assessment criteria not present in the actual project rubric
+    const validCriteriaNames = new Set(
+      project.rubricCriteria.map((c) => c.criterion.trim().toLowerCase())
+    );
+    for (const item of input.rubricAssessments) {
+      if (!validCriteriaNames.has(item.criterion.trim().toLowerCase())) {
+        throw new Error(
+          `Assessment criterion "${item.criterion}" is not defined in the rubric for project "${project.title}".`
+        );
+      }
+    }
 
     const now = new Date().toISOString();
 
     // Calculate weighted overall score strictly against defined project rubric criteria
+    // Weights come EXCLUSIVELY from the project catalogue
     let totalScore = 0;
     let totalWeight = 0;
 
@@ -158,11 +175,18 @@ export class ProjectService {
 
     // Apply strict lifecycle state resolution
     let resolvedStatus: ProjectLifecycleState = input.status;
+    let feedback = input.reviewerFeedback;
+
     if (overallScore < 70) {
       resolvedStatus = 'NEEDS_REVISION';
-    } else if (input.status === 'COMPLETED' && input.reviewerType === 'SELF_ASSESSMENT') {
-      // Self-assessment alone cannot unilaterally award COMPLETED status without independent review
+    } else if (input.reviewerType === 'SELF_ASSESSMENT') {
+      // Self-assessment cannot claim independent verification: status capped at REVIEWED
       resolvedStatus = 'REVIEWED';
+    } else if (input.reviewerType === 'INDEPENDENT_REVIEWER') {
+      // Explicitly note simulated demonstration when independent authentication is absent
+      if (!feedback.includes('[Simulated Demonstration]')) {
+        feedback = `[Simulated Demonstration Reviewer Mode] ${feedback}`;
+      }
     }
 
     const updated: ProjectSubmission = {
@@ -170,7 +194,7 @@ export class ProjectService {
       status: resolvedStatus,
       rubricAssessments,
       overallScore,
-      reviewerFeedback: input.reviewerFeedback,
+      reviewerFeedback: feedback,
       reviewerType: input.reviewerType,
       submittedAt: existing.submittedAt || now,
       reviewedAt: now,

@@ -208,6 +208,7 @@ export interface CareerMatchResult {
 
 export interface CareerComparisonResult {
   profileId?: string;
+  isDemoProfile?: boolean;
   roles: CareerMatchResult[];
   sharedTransferableSkills: string[];
   roleSpecificGaps: Record<string, string[]>;
@@ -218,6 +219,7 @@ export interface CareerComparisonResult {
 export interface SkillGapAnalysis {
   role: CareerRole;
   candidateProfileId?: string;
+  isDemoProfile?: boolean;
   candidateName?: string;
   candidateTitle?: string;
   overallFitPercentage: number;
@@ -291,7 +293,7 @@ export interface ProjectSubmission {
   rubricAssessments: RubricScoreItem[];
   overallScore?: number; // 0 to 100
   reviewerFeedback?: string;
-  reviewerType: 'SELF_ASSESSMENT' | 'INDEPENDENT_REVIEWER' | 'AWAITING_REVIEW';
+  reviewerType: 'SELF_ASSESSMENT' | 'INDEPENDENT_REVIEWER' | 'AWAITING_REVIEW' | 'SIMULATED_DEMO_REVIEWER';
   submittedAt?: string;
   reviewedAt?: string;
   updatedAt: string;
@@ -308,6 +310,7 @@ export interface ReadinessDimensionScore {
 
 export interface CareerReadinessScorecard {
   profileId: string;
+  isDemoProfile?: boolean;
   roleId: string;
   roleSlug: string;
   roleTitle: string;

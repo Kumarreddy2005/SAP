@@ -24,7 +24,8 @@ export const ReadinessPage: React.FC = () => {
     isLoadingReadiness,
     fetchReadinessScorecard,
     completedLearningIds,
-    activeProjectSubmissions
+    activeProjectSubmissions,
+    isRealProfileReviewed
   } = useCareerContext();
 
   // Fetch or refresh readiness scorecard whenever role, completed learning, or project submissions change
@@ -110,11 +111,16 @@ export const ReadinessPage: React.FC = () => {
               title="Overall Transition Readiness"
               subtitle={`Auditable metric for ${readinessScorecard.roleTitle}`}
               action={
-                readinessScorecard.isReadinessEligible ? (
-                  <Badge variant="success">Eligible for Transition</Badge>
-                ) : (
-                  <Badge variant="warning">Prerequisite Gaps Remaining</Badge>
-                )
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <Badge variant={isRealProfileReviewed ? 'success' : 'warning'}>
+                    {isRealProfileReviewed ? 'Verified Candidate Profile' : 'Sample Demo Profile'}
+                  </Badge>
+                  {readinessScorecard.isReadinessEligible ? (
+                    <Badge variant="success">Eligible for Transition</Badge>
+                  ) : (
+                    <Badge variant="warning">Prerequisite Gaps Remaining</Badge>
+                  )}
+                </div>
               }
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '2rem', padding: '1rem 0' }}>
@@ -389,7 +395,7 @@ export const ReadinessPage: React.FC = () => {
 
               {/* Card 3: Learning Milestones */}
               <Card
-                title="3. Curriculum Milestones"
+                title="3. Curriculum Milestones (Self-Reported)"
                 subtitle={`Weight: 15% • Score: ${readinessScorecard.dimensions.learningMilestones.score}%`}
                 action={getDimensionStatusBadge(readinessScorecard.dimensions.learningMilestones.status)}
               >
@@ -409,7 +415,7 @@ export const ReadinessPage: React.FC = () => {
                   </div>
                   <div style={{ marginTop: '0.5rem' }}>
                     <span style={{ color: '#8492A0', fontSize: '0.8rem' }}>
-                      {readinessScorecard.learningMilestoneProgress.remainingMilestoneTitles.length} modules remaining in structured pathway.
+                      {readinessScorecard.learningMilestoneProgress.remainingMilestoneTitles.length} modules remaining. Progress is self-reported by candidate; external LMS verification is not connected.
                     </span>
                   </div>
                   <div style={{ marginTop: '0.75rem' }}>

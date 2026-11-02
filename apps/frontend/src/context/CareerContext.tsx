@@ -533,9 +533,7 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           ? {
               ...s,
               isConfirmed: true,
-              reviewStatus: 'CONFIRMED',
-              proficiency: s.proficiency || 'INTERMEDIATE',
-              yearsExperience: s.yearsExperience !== undefined ? s.yearsExperience : 1.0
+              reviewStatus: 'CONFIRMED'
             }
           : s
       )

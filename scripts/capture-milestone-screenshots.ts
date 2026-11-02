@@ -105,8 +105,13 @@ async function main() {
     console.log('\nAll 15 screenshots captured and verified successfully!');
   } finally {
     console.log('Stopping preview and backend servers...');
-    backendProc.kill();
-    frontendProc.kill();
+    try {
+      if (backendProc.pid) spawn('taskkill', ['/pid', backendProc.pid.toString(), '/T', '/F']);
+      if (frontendProc.pid) spawn('taskkill', ['/pid', frontendProc.pid.toString(), '/T', '/F']);
+    } catch {
+      backendProc.kill();
+      frontendProc.kill();
+    }
   }
 }
 

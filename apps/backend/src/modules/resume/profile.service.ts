@@ -23,6 +23,9 @@ export class ProfileService {
 
     for (const item of submission.reviewedSkills) {
       if (item.isConfirmed) {
+        if (!item.proficiency) {
+          throw new Error(`Confirmed skill "${item.name}" requires an explicit proficiency level.`);
+        }
         confirmedSkills.push({
           id: item.skillId,
           code: item.skillId.startsWith('USER-') || item.skillId.startsWith('manual-')
@@ -31,10 +34,10 @@ export class ProfileService {
           name: item.name.trim(),
           category: item.category,
           proficiency: item.proficiency,
-          yearsExperience: item.yearsExperience,
+          yearsExperience: item.yearsExperience ?? undefined,
           isConfirmed: true,
           isTransferable: item.isTransferable,
-          confidenceScore: 1.0, // Confirmed by human candidate
+          confidenceScore: item.confidenceScore !== undefined ? item.confidenceScore : 1.0, // Preserve original extraction confidence separately from proficiency
           extractionMethod: item.extractionMethod || 'MANUAL_ENTRY',
           evidenceSnippet: item.evidenceSnippet,
           reviewStatus: 'CONFIRMED'

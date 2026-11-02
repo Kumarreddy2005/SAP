@@ -128,6 +128,20 @@ export const SkillsReviewPage: React.FC = () => {
   const handleConfirmAndExplore = async () => {
     setSaveError(null);
 
+    const confirmedOnly = skills.filter((s) => s.isConfirmed);
+    if (confirmedOnly.length === 0) {
+      setSaveError('Please review and confirm at least one competency before proceeding to career matching.');
+      return;
+    }
+
+    const uncalibrated = confirmedOnly.filter((s) => !s.proficiency);
+    if (uncalibrated.length > 0) {
+      setSaveError(
+        `Proficiency level is required for all confirmed competencies before saving your profile. Please select a level for: ${uncalibrated.map((s) => `"${s.name}"`).join(', ')}.`
+      );
+      return;
+    }
+
     // If there is an active backend profile, persist confirmed items via PUT /api/v1/profile/:id/review
     if (currentProfileId) {
       setIsSaving(true);
@@ -141,8 +155,9 @@ export const SkillsReviewPage: React.FC = () => {
             skillId: s.id,
             name: s.name,
             category: s.category,
-            proficiency: s.proficiency || 'INTERMEDIATE',
-            yearsExperience: s.yearsExperience !== undefined ? s.yearsExperience : 1.0,
+            proficiency: s.proficiency || undefined,
+            yearsExperience: s.yearsExperience !== undefined ? s.yearsExperience : undefined,
+            confidenceScore: s.confidenceScore,
             isConfirmed: s.isConfirmed,
             isTransferable: s.isTransferable,
             evidenceSnippet: s.evidenceSnippet || '',
@@ -180,7 +195,6 @@ export const SkillsReviewPage: React.FC = () => {
       }
     } else {
       // In demo mode or offline intake
-      const confirmedOnly = skills.filter((s) => s.isConfirmed);
       handleReviewSuccess({
         profileId: 'demo-profile',
         status: 'CONFIRMED',
@@ -541,7 +555,10 @@ export const SkillsReviewPage: React.FC = () => {
                         <select
                           value={skill.proficiency || ''}
                           disabled={isRejected}
-                          onChange={(e) => updateProficiency(skill.id, e.target.value as ProficiencyLevel)}
+                          onChange={(e) => {
+                            updateProficiency(skill.id, e.target.value as ProficiencyLevel);
+                            setSaveError(null);
+                          }}
                           style={{
                             fontSize: '0.85rem',
                             padding: '0.35rem 0.5rem',
@@ -602,7 +619,16 @@ export const SkillsReviewPage: React.FC = () => {
                               variant="primary"
                               size="sm"
                               icon={<CheckIcon size={14} />}
-                              onClick={() => confirmSkill(skill.id)}
+                              onClick={() => {
+                                if (!skill.proficiency) {
+                                  setSaveError(
+                                    `Please select a calibrated proficiency level (Novice, Intermediate, Advanced, or Expert) for "${skill.name}" before confirming.`
+                                  );
+                                  return;
+                                }
+                                confirmSkill(skill.id);
+                                setSaveError(null);
+                              }}
                               title="Confirm this competency"
                             >
                               Confirm

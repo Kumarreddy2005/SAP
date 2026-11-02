@@ -41,14 +41,21 @@ export const SkillReviewInputSchema = z.object({
   skillId: z.string().min(1, 'Skill ID is required'),
   name: z.string().min(1, 'Skill name is required'),
   category: SkillCategoryEnum,
-  proficiency: ProficiencyLevelEnum,
-  yearsExperience: z.number().nonnegative('Years of experience must be non-negative'),
+  proficiency: ProficiencyLevelEnum.optional().nullable(),
+  yearsExperience: z.number().nonnegative('Years of experience must be non-negative').optional().nullable(),
+  confidenceScore: z.number().min(0).max(1).optional(),
   isConfirmed: z.boolean(),
   isTransferable: z.boolean(),
   evidenceSnippet: z.string().optional(),
   extractionMethod: ExtractionMethodEnum.optional(),
   reviewStatus: SkillReviewStatusEnum.optional()
-});
+}).refine(
+  (data) => !data.isConfirmed || (data.proficiency !== undefined && data.proficiency !== null),
+  {
+    message: 'Proficiency level must be explicitly selected for confirmed competencies',
+    path: ['proficiency']
+  }
+);
 
 export type SkillReviewInput = z.infer<typeof SkillReviewInputSchema>;
 
@@ -155,7 +162,7 @@ export const ProjectReviewInputSchema = z.object({
   submissionId: z.string().min(1, 'Submission ID is required'),
   reviewerProfileId: z.string().optional(),
   status: z.enum(['IN_PROGRESS', 'SUBMITTED', 'NEEDS_REVISION', 'REVIEWED', 'COMPLETED']),
-  reviewerType: z.enum(['SELF_ASSESSMENT', 'INDEPENDENT_REVIEWER']),
+  reviewerType: z.enum(['SELF_ASSESSMENT', 'INDEPENDENT_REVIEWER', 'SIMULATED_DEMO_REVIEWER']),
   rubricAssessments: z.array(RubricScoreItemSchema).min(1, 'Assessment must grade against rubric criteria'),
   reviewerFeedback: z.string().min(5, 'Reviewer feedback must be at least 5 characters')
 });

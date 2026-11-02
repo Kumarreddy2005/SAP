@@ -790,7 +790,7 @@ export const PracticalProjectsPage: React.FC = () => {
 
                 <div style={{ marginBottom: '1.25rem' }}>
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#001A47', marginBottom: '0.35rem' }}>
-                    Evaluator Type
+                    Evaluator Mode
                   </label>
                   <select
                     value={reviewerType}
@@ -798,8 +798,13 @@ export const PracticalProjectsPage: React.FC = () => {
                     style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '6px', border: '1px solid #D9E1E8' }}
                   >
                     <option value="SELF_ASSESSMENT">Self-Assessment (Candidate Review)</option>
-                    <option value="INDEPENDENT_REVIEWER">Independent Reviewer / Mentor Evaluation</option>
+                    <option value="INDEPENDENT_REVIEWER">Simulated Independent Evaluator (Demonstration Mode)</option>
                   </select>
+                  <small style={{ color: '#5B6876', display: 'block', marginTop: '0.35rem', lineHeight: 1.4 }}>
+                    {reviewerType === 'SELF_ASSESSMENT'
+                      ? 'Self-Assessment: Allows candidate review against rubric criteria. Capped at "REVIEWED" status; cannot claim independent verification.'
+                      : 'Simulated Demonstration Mode: Independent evaluator review is demonstrated in local environment. Note: Third-party enterprise authentication is not configured in this build.'}
+                  </small>
                 </div>
 
                 <div style={{ marginBottom: '1.5rem' }}>

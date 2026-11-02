@@ -77,6 +77,54 @@ export const CareerComparisonPage: React.FC = () => {
         </Button>
       </div>
 
+      {/* Profile Status Banner */}
+      {isRealProfileReviewed ? (
+        <div
+          style={{
+            backgroundColor: '#F3FAF6',
+            border: '1px solid #107E3E',
+            borderRadius: '8px',
+            padding: '0.85rem 1.25rem',
+            marginBottom: '1.25rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '0.5rem'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <CheckIcon size={18} color="#107E3E" />
+            <span style={{ fontSize: '0.88rem', color: '#0B592C', fontWeight: 600 }}>
+              Comparing Against Your Verified Profile Competencies
+            </span>
+          </div>
+          <Badge variant="success" size="sm">Verified Candidate Profile</Badge>
+        </div>
+      ) : (
+        <div
+          style={{
+            backgroundColor: '#FFF9E6',
+            border: '1px solid #E9730C',
+            borderRadius: '8px',
+            padding: '0.85rem 1.25rem',
+            marginBottom: '1.25rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '0.5rem'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+            <span style={{ fontSize: '0.88rem', color: '#964200', fontWeight: 600 }}>
+              Sample Demo Comparison Mode (Alex Vance baseline)
+            </span>
+          </div>
+          <Badge variant="warning" size="sm">Sample Demo Profile</Badge>
+        </div>
+      )}
+
       {/* Shared Transferable Skills Banner */}
       {comparisonResult && comparisonResult.sharedTransferableSkills.length > 0 && (
         <div

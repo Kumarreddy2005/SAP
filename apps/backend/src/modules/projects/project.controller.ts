@@ -167,12 +167,21 @@ export class ProjectController {
 
       res.status(200).json(updated);
     } catch (err: unknown) {
-      if (err instanceof Error && err.message.includes('Cannot review project deliverables')) {
-        res.status(400).json({
-          error: 'InvalidLifecycleTransition',
-          message: err.message
-        });
-        return;
+      if (err instanceof Error) {
+        if (err.message.includes('Cannot review project deliverables')) {
+          res.status(400).json({
+            error: 'InvalidLifecycleTransition',
+            message: err.message
+          });
+          return;
+        }
+        if (err.message.includes('is not defined in the rubric')) {
+          res.status(400).json({
+            error: 'InvalidRubricCriterion',
+            message: err.message
+          });
+          return;
+        }
       }
       next(err);
     }

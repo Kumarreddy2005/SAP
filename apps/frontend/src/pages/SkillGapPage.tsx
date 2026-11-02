@@ -142,7 +142,10 @@ export const SkillGapPage: React.FC = () => {
       >
         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1.5rem' }}>
           <div>
-            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <Badge variant={isRealProfileReviewed ? 'success' : 'warning'}>
+                {isRealProfileReviewed ? 'Verified Candidate Profile' : 'Sample Demo Profile'}
+              </Badge>
               <Badge variant="info">Target Pathway</Badge>
               <Badge variant="purple">{targetRole.careerFamily ? targetRole.careerFamily.replace(/_/g, ' ') : targetRole.track.replace(/_/g, ' ')}</Badge>
               <Badge variant={targetRole.ecosystem === 'SAP' ? 'info' : targetRole.ecosystem === 'HYBRID' ? 'purple' : 'neutral'}>

@@ -264,4 +264,43 @@ describe('Resume Ingestion & Skill Extraction Workflow Suite', () => {
     assert.strictEqual(response.wordCount, 0);
     assert.ok(response.warnings.some((w) => w.includes('Optical Character Recognition') || w.includes('OCR')));
   });
+
+  // Test 16: Skill review defaults and confidence preservation
+  it('16. Validates that confirmed skills require explicit proficiency and preserves confidence separately', async () => {
+    const text = 'Senior Analyst skilled in SQL database querying.';
+    const buffer = await createTestPdfBuffer(text);
+    const uploaded = await resumeService.processResumeUpload(buffer, 'analyst.pdf');
+
+    const sqlSkill = uploaded.suggestedSkills.find((s) => s.code === 'LANG-SQL')!;
+    assert.ok(sqlSkill);
+    // Verified: initial extraction leaves proficiency undefined rather than silently inventing INTERMEDIATE
+    assert.strictEqual(sqlSkill.proficiency, undefined);
+    assert.ok(sqlSkill.confidenceScore > 0.8);
+
+    // Save with candidate calibrated proficiency
+    const reviewResponse = await profileService.reviewProfile(uploaded.profileId, {
+      profileId: uploaded.profileId,
+      reviewedSkills: [
+        {
+          skillId: sqlSkill.id,
+          name: sqlSkill.name,
+          category: sqlSkill.category,
+          proficiency: 'ADVANCED', // explicitly chosen by candidate
+          yearsExperience: 4.0,
+          confidenceScore: sqlSkill.confidenceScore, // preserved extraction confidence
+          isConfirmed: true,
+          isTransferable: true,
+          evidenceSnippet: sqlSkill.evidenceSnippet,
+          extractionMethod: sqlSkill.extractionMethod
+        }
+      ]
+    });
+
+    assert.ok(reviewResponse);
+    assert.strictEqual(reviewResponse.confirmedSkillsCount, 1);
+    const confirmed = reviewResponse.confirmedSkills[0];
+    assert.strictEqual(confirmed.proficiency, 'ADVANCED');
+    assert.strictEqual(confirmed.yearsExperience, 4.0);
+    assert.strictEqual(confirmed.confidenceScore, sqlSkill.confidenceScore);
+  });
 });

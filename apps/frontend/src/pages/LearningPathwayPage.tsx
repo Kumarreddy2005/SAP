@@ -102,7 +102,7 @@ export const LearningPathwayPage: React.FC = () => {
           <ProgressBar
             percentage={progressPercentage}
             label="Learning Journey Completion"
-            sublabel={`${completedCount} of ${milestones.length || 4} milestones verified in current session`}
+            sublabel={`${completedCount} of ${milestones.length || 4} milestones self-reported as completed in current session`}
             color="#107E3E"
             height={10}
           />
@@ -126,7 +126,7 @@ export const LearningPathwayPage: React.FC = () => {
         <div style={{ fontSize: '0.88rem', color: '#001A47', lineHeight: 1.5 }}>
           <strong>Sequencing Strategy:</strong> {currentPathway?.sequencingRationale || 'Milestones are ordered strictly by functional dependencies: foundational domain processes precede system customizing; core development precedes integration flows; essential gaps are addressed ahead of elective enhancements.'}
           <div style={{ marginTop: '0.35rem', color: '#5B6876', fontSize: '0.82rem' }}>
-            Note: All learning links direct to official, publicly verifiable SAP Learning Journeys and open documentation. Progress checkmarks are saved in your current session.
+            Note: All learning links direct to official, publicly verifiable SAP Learning Journeys and open documentation. Progress checkmarks are self-reported by the candidate for active session planning. Opening official course URLs provides curriculum access but does not automatically verify course completion without external SAP LMS credential integration.
           </div>
         </div>
       </div>

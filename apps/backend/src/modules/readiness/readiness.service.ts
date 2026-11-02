@@ -126,10 +126,10 @@ export class ReadinessService {
       : [];
 
     const dimLearning: ReadinessDimensionScore = {
-      name: 'Structured Learning Journey',
+      name: 'Structured Learning Journey (Self-Reported)',
       score: milestonePct,
       weightPercentage: 15,
-      demonstratedDetails: `${completedCount} of ${totalMilestones} curriculum milestones self-reported as completed (active session progress).`,
+      demonstratedDetails: `${completedCount} of ${totalMilestones} curriculum milestones self-reported as completed (active session progress; external LMS credential verification not connected).`,
       gapDetails: `${remainingTitles.length} milestones remaining on learning pathway.`,
       status:
         milestonePct >= 80
@@ -215,6 +215,7 @@ export class ReadinessService {
 
     return {
       profileId,
+      isDemoProfile: profileId === 'demo-profile',
       roleId: role.id,
       roleSlug: role.slug,
       roleTitle: role.title,

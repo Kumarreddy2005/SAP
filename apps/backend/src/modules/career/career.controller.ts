@@ -138,6 +138,7 @@ export class CareerController {
 
       res.status(200).json({
         profileId,
+        isDemoProfile: profileId === 'demo-profile',
         candidateName: profile.fullName || 'Candidate',
         currentTitle: profile.currentTitle || 'Professional',
         confirmedSkillsCount: confirmedSkills.length,
@@ -169,15 +170,32 @@ export class CareerController {
       const { roleSlugs, profileId } = parsed.data;
       let candidateSkills: ExtractedSkillItem[] = [];
 
-      if (profileId) {
+      if (profileId && profileId !== 'demo-profile') {
         const profile = await this.repo.getProfileById(profileId);
-        if (profile) {
-          candidateSkills = profile.confirmedSkills || [];
+        if (!profile) {
+          res.status(404).json({
+            error: 'NotFound',
+            message: `Profile '${profileId}' was not found.`
+          });
+          return;
         }
+
+        if (!profile.isReviewed) {
+          res.status(400).json({
+            error: 'UnreviewedProfile',
+            message: 'Profile has not been reviewed yet. Human verification is required before career comparison can be calculated.'
+          });
+          return;
+        }
+
+        candidateSkills = profile.confirmedSkills || [];
       }
 
       const result = careerMatcherService.compareSelectedRoles(roleSlugs, candidateSkills, profileId);
-      res.status(200).json(result);
+      res.status(200).json({
+        ...result,
+        isDemoProfile: profileId === 'demo-profile' || !profileId
+      });
     } catch (err: unknown) {
       next(err);
     }
@@ -209,6 +227,14 @@ export class CareerController {
         return;
       }
 
+      if (!profile.isReviewed) {
+        res.status(400).json({
+          error: 'UnreviewedProfile',
+          message: 'Profile has not been reviewed yet. Human verification is required before skill gaps can be calculated.'
+        });
+        return;
+      }
+
       const gapAnalysis = skillGapService.analyzeSkillGaps(idOrSlug, profile.confirmedSkills || [], {
         profileId,
         fullName: profile.fullName,
@@ -223,7 +249,10 @@ export class CareerController {
         return;
       }
 
-      res.status(200).json(gapAnalysis);
+      res.status(200).json({
+        ...gapAnalysis,
+        isDemoProfile: profileId === 'demo-profile'
+      });
     } catch (err: unknown) {
       next(err);
     }
@@ -252,6 +281,14 @@ export class CareerController {
         res.status(404).json({
           error: 'NotFound',
           message: `Profile '${profileId}' was not found. Please upload or review your resume.`
+        });
+        return;
+      }
+
+      if (!profile.isReviewed) {
+        res.status(400).json({
+          error: 'UnreviewedProfile',
+          message: 'Profile has not been reviewed yet. Human verification is required before a personalized pathway can be generated.'
         });
         return;
       }
