@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Breadcrumbs } from '../components/common/Breadcrumbs';
-import { StepIndicator } from '../components/common/StepIndicator';
 import { Card } from '../components/common/Card';
 import { Button } from '../components/common/Button';
 import { Badge } from '../components/common/Badge';
@@ -14,6 +13,7 @@ import {
   AlertTriangleIcon
 } from '../components/common/Icons';
 import { useCareerContext } from '../context/CareerContext';
+import { enterpriseTheme } from '../theme/tokens';
 
 export const ReadinessPage: React.FC = () => {
   const navigate = useNavigate();
@@ -25,7 +25,8 @@ export const ReadinessPage: React.FC = () => {
     fetchReadinessScorecard,
     completedLearningIds,
     activeProjectSubmissions,
-    isRealProfileReviewed
+    isRealProfileReviewed,
+    sessionMode
   } = useCareerContext();
 
   // Fetch or refresh readiness scorecard whenever role, completed learning, or project submissions change
@@ -48,23 +49,31 @@ export const ReadinessPage: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: '2rem 1.5rem', maxWidth: '1280px', margin: '0 auto' }}>
+    <div style={{ padding: '2rem 1.5rem', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
       <Breadcrumbs
         items={[
           { label: 'Projects', path: '/projects' },
           { label: 'Career Readiness Scorecard' }
         ]}
       />
-      <StepIndicator currentStepId="readiness" />
 
       {/* Header */}
-      <div style={{ marginBottom: '1.5rem' }}>
+      <div style={{ marginBottom: '1.75rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
-            <h1 style={{ fontSize: '2rem', fontWeight: 700, color: '#001A47', marginBottom: '0.5rem' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.65rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <Badge variant={sessionMode === 'DEMO' ? 'info' : 'success'}>
+                Stage 7 of 8
+              </Badge>
+              <Badge variant={isRealProfileReviewed ? 'success' : 'warning'}>
+                {isRealProfileReviewed ? 'Verified Candidate Profile' : 'Sample Demo Profile'}
+              </Badge>
+              <Badge variant="purple">Audited Readiness</Badge>
+            </div>
+            <h1 style={{ fontSize: '2rem', fontWeight: 800, color: enterpriseTheme.colors.textPrimary, marginBottom: '0.5rem' }}>
               Explainable Career Readiness Scorecard
             </h1>
-            <p style={{ color: '#5B6876', fontSize: '1.05rem', maxWidth: '800px' }}>
+            <p style={{ color: enterpriseTheme.colors.textSecondary, fontSize: '0.98rem', maxWidth: '800px', lineHeight: 1.55 }}>
               Multi-dimensional, audit-transparent evaluation for <strong>{targetRole.title}</strong> based on confirmed competencies, verified learning milestones, and applied portfolio evidence.
             </p>
           </div>
@@ -88,8 +97,8 @@ export const ReadinessPage: React.FC = () => {
 
       {isLoadingReadiness && !readinessScorecard ? (
         <Card>
-          <div style={{ padding: '3rem 1rem', textAlign: 'center', color: '#5B6876' }}>
-            <div style={{ fontSize: '1.2rem', fontWeight: 600, color: '#001A47', marginBottom: '0.5rem' }}>
+          <div style={{ padding: '3rem 1rem', textAlign: 'center', color: enterpriseTheme.colors.textSecondary }}>
+            <div style={{ fontSize: '1.2rem', fontWeight: 700, color: enterpriseTheme.colors.textPrimary, marginBottom: '0.5rem' }}>
               Calculating Explainable Readiness Scorecard...
             </div>
             <p>Aggregating skill overlap, mandatory prerequisites, curriculum progress, and verified portfolio submissions.</p>
@@ -131,29 +140,29 @@ export const ReadinessPage: React.FC = () => {
                     borderRadius: '50%',
                     border: `10px solid ${
                       readinessScorecard.overallReadinessScore >= 75
-                        ? '#107E3E'
+                        ? enterpriseTheme.colors.success
                         : readinessScorecard.overallReadinessScore >= 50
-                        ? '#0A6ED1'
-                        : '#E9730C'
+                        ? enterpriseTheme.colors.primary
+                        : enterpriseTheme.colors.warning
                     }`,
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
                     flexShrink: 0,
-                    backgroundColor: '#FAFBFD',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+                    backgroundColor: enterpriseTheme.colors.canvas,
+                    boxShadow: enterpriseTheme.shadows.card
                   }}
                 >
-                  <span style={{ fontSize: '2.4rem', fontWeight: 800, color: '#001A47', lineHeight: 1 }}>
+                  <span style={{ fontSize: '2.4rem', fontWeight: 800, color: enterpriseTheme.colors.textPrimary, lineHeight: 1 }}>
                     {readinessScorecard.overallReadinessScore}%
                   </span>
-                  <span style={{ fontSize: '0.72rem', color: '#8492A0', textTransform: 'uppercase', marginTop: '4px', fontWeight: 600 }}>
+                  <span style={{ fontSize: '0.72rem', color: enterpriseTheme.colors.textMuted, textTransform: 'uppercase', marginTop: '4px', fontWeight: 700 }}>
                     Readiness
                   </span>
                 </div>
 
-                <div style={{ fontSize: '0.92rem', color: '#5B6876', lineHeight: 1.6 }}>
+                <div style={{ fontSize: '0.92rem', color: enterpriseTheme.colors.textSecondary, lineHeight: 1.6 }}>
                   <p style={{ marginBottom: '0.75rem' }}>
                     {readinessScorecard.summaryText}
                   </p>
@@ -182,7 +191,7 @@ export const ReadinessPage: React.FC = () => {
                     percentage={readinessScorecard.dimensions.skillCoverage.score}
                     label={`1. Skill Coverage (${readinessScorecard.dimensions.skillCoverage.weightPercentage}%)`}
                     sublabel={`Score: ${readinessScorecard.dimensions.skillCoverage.score}% • ${readinessScorecard.dimensions.skillCoverage.demonstratedDetails}`}
-                    color="#0A6ED1"
+                    color={enterpriseTheme.colors.primary}
                   />
                 </div>
 
@@ -191,7 +200,7 @@ export const ReadinessPage: React.FC = () => {
                     percentage={readinessScorecard.dimensions.mandatoryRequirements.score}
                     label={`2. Mandatory Role Requirements (${readinessScorecard.dimensions.mandatoryRequirements.weightPercentage}%)`}
                     sublabel={`Score: ${readinessScorecard.dimensions.mandatoryRequirements.score}% • ${readinessScorecard.dimensions.mandatoryRequirements.demonstratedDetails}`}
-                    color={readinessScorecard.dimensions.mandatoryRequirements.score === 100 ? '#107E3E' : '#E9730C'}
+                    color={readinessScorecard.dimensions.mandatoryRequirements.score === 100 ? enterpriseTheme.colors.success : enterpriseTheme.colors.warning}
                   />
                 </div>
 
@@ -200,7 +209,7 @@ export const ReadinessPage: React.FC = () => {
                     percentage={readinessScorecard.dimensions.learningMilestones.score}
                     label={`3. Structured Learning Curriculum (${readinessScorecard.dimensions.learningMilestones.weightPercentage}%)`}
                     sublabel={`Score: ${readinessScorecard.dimensions.learningMilestones.score}% • ${readinessScorecard.learningMilestoneProgress.completedCount} of ${readinessScorecard.learningMilestoneProgress.totalCount} milestones completed`}
-                    color="#633CA3"
+                    color={enterpriseTheme.colors.accentPurple}
                   />
                 </div>
 
@@ -209,7 +218,7 @@ export const ReadinessPage: React.FC = () => {
                     percentage={readinessScorecard.dimensions.projectEvidence.score}
                     label={`4. Applied Practical Projects (${readinessScorecard.dimensions.projectEvidence.weightPercentage}%)`}
                     sublabel={`Score: ${readinessScorecard.dimensions.projectEvidence.score}% • ${readinessScorecard.projectEvidenceProgress.completedProjectsCount} completed, ${readinessScorecard.projectEvidenceProgress.submissionsAwaitingReviewCount} awaiting review`}
-                    color="#107E3E"
+                    color={enterpriseTheme.colors.success}
                   />
                 </div>
               </div>
@@ -220,26 +229,26 @@ export const ReadinessPage: React.FC = () => {
           {readinessScorecard.outstandingMandatoryGaps.length > 0 ? (
             <div
               style={{
-                backgroundColor: '#FFF8F2',
-                border: '1.5px solid #E9730C',
-                borderRadius: '8px',
+                backgroundColor: enterpriseTheme.colors.warningSubtle,
+                border: `1.5px solid ${enterpriseTheme.colors.warningBorder}`,
+                borderRadius: enterpriseTheme.radii.md,
                 padding: '1.25rem 1.5rem',
                 marginBottom: '2rem',
-                boxShadow: '0 2px 6px rgba(233,115,12,0.08)'
+                boxShadow: enterpriseTheme.shadows.card
               }}
             >
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem' }}>
-                <div style={{ color: '#E9730C', marginTop: '2px' }}>
+                <div style={{ color: enterpriseTheme.colors.warning, marginTop: '2px' }}>
                   <AlertTriangleIcon size={24} />
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
-                    <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#964200', margin: 0 }}>
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: enterpriseTheme.colors.warning, margin: 0 }}>
                       Mandatory Core Competencies Missing ({readinessScorecard.outstandingMandatoryGaps.length})
                     </h3>
                     <Badge variant="warning">Action Required</Badge>
                   </div>
-                  <p style={{ color: '#5B6876', fontSize: '0.9rem', marginBottom: '0.75rem', lineHeight: 1.5 }}>
+                  <p style={{ color: enterpriseTheme.colors.textSecondary, fontSize: '0.9rem', marginBottom: '0.75rem', lineHeight: 1.5 }}>
                     These competencies are foundational for <strong>{readinessScorecard.roleTitle}</strong> and must be evidenced before achieving transition readiness eligibility:
                   </p>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' }}>
@@ -248,8 +257,8 @@ export const ReadinessPage: React.FC = () => {
                         key={gap}
                         style={{
                           backgroundColor: '#FFFFFF',
-                          border: '1px solid #E9730C',
-                          color: '#964200',
+                          border: `1px solid ${enterpriseTheme.colors.warningBorder}`,
+                          color: enterpriseTheme.colors.warning,
                           padding: '0.25rem 0.65rem',
                           borderRadius: '4px',
                           fontSize: '0.85rem',
@@ -259,7 +268,7 @@ export const ReadinessPage: React.FC = () => {
                           gap: '0.35rem'
                         }}
                       >
-                        <AlertTriangleIcon size={13} color="#E9730C" />
+                        <AlertTriangleIcon size={13} color={enterpriseTheme.colors.warning} />
                         {gap}
                       </span>
                     ))}
@@ -278,9 +287,9 @@ export const ReadinessPage: React.FC = () => {
           ) : (
             <div
               style={{
-                backgroundColor: '#F3FAF5',
-                border: '1.5px solid #107E3E',
-                borderRadius: '8px',
+                backgroundColor: enterpriseTheme.colors.successSubtle,
+                border: `1.5px solid ${enterpriseTheme.colors.successBorder}`,
+                borderRadius: enterpriseTheme.radii.md,
                 padding: '1rem 1.5rem',
                 marginBottom: '2rem',
                 display: 'flex',
@@ -288,14 +297,14 @@ export const ReadinessPage: React.FC = () => {
                 gap: '1rem'
               }}
             >
-              <div style={{ color: '#107E3E' }}>
+              <div style={{ color: enterpriseTheme.colors.success }}>
                 <CheckIcon size={24} />
               </div>
               <div style={{ flex: 1 }}>
-                <strong style={{ color: '#0B592C', fontSize: '0.95rem' }}>
+                <strong style={{ color: enterpriseTheme.colors.success, fontSize: '0.95rem' }}>
                   All Mandatory Requirements Satisfied!
                 </strong>
-                <p style={{ color: '#2B5E3C', fontSize: '0.88rem', margin: '2px 0 0' }}>
+                <p style={{ color: enterpriseTheme.colors.successHover, fontSize: '0.88rem', margin: '2px 0 0' }}>
                   You have confirmed baseline evidence for every core prerequisite for this role.
                 </p>
               </div>
@@ -304,7 +313,7 @@ export const ReadinessPage: React.FC = () => {
 
           {/* 4 In-Depth Dimensional Review Cards */}
           <div style={{ marginBottom: '2.5rem' }}>
-            <h2 style={{ fontSize: '1.35rem', color: '#001A47', fontWeight: 700, marginBottom: '1.25rem' }}>
+            <h2 style={{ fontSize: '1.35rem', color: enterpriseTheme.colors.textPrimary, fontWeight: 700, marginBottom: '1.25rem' }}>
               Detailed Dimensional Audit
             </h2>
 
@@ -315,15 +324,15 @@ export const ReadinessPage: React.FC = () => {
                 subtitle={`Weight: 35% • Score: ${readinessScorecard.dimensions.skillCoverage.score}%`}
                 action={getDimensionStatusBadge(readinessScorecard.dimensions.skillCoverage.status)}
               >
-                <div style={{ fontSize: '0.88rem', color: '#5B6876', lineHeight: 1.6 }}>
+                <div style={{ fontSize: '0.88rem', color: enterpriseTheme.colors.textSecondary, lineHeight: 1.6 }}>
                   <div style={{ marginBottom: '0.75rem' }}>
-                    <strong style={{ color: '#001A47', display: 'block', marginBottom: '0.25rem' }}>
+                    <strong style={{ color: enterpriseTheme.colors.textPrimary, display: 'block', marginBottom: '0.25rem' }}>
                       Demonstrated:
                     </strong>
                     {readinessScorecard.dimensions.skillCoverage.demonstratedDetails}
                   </div>
                   <div>
-                    <strong style={{ color: '#001A47', display: 'block', marginBottom: '0.25rem' }}>
+                    <strong style={{ color: enterpriseTheme.colors.textPrimary, display: 'block', marginBottom: '0.25rem' }}>
                       Coverage Gap:
                     </strong>
                     {readinessScorecard.dimensions.skillCoverage.gapDetails}
@@ -337,9 +346,9 @@ export const ReadinessPage: React.FC = () => {
                 subtitle={`Weight: 35% • Score: ${readinessScorecard.dimensions.mandatoryRequirements.score}%`}
                 action={getDimensionStatusBadge(readinessScorecard.dimensions.mandatoryRequirements.status)}
               >
-                <div style={{ fontSize: '0.88rem', color: '#5B6876', lineHeight: 1.6 }}>
+                <div style={{ fontSize: '0.88rem', color: enterpriseTheme.colors.textSecondary, lineHeight: 1.6 }}>
                   <div style={{ marginBottom: '0.75rem' }}>
-                    <strong style={{ color: '#001A47', display: 'block', marginBottom: '0.25rem' }}>
+                    <strong style={{ color: enterpriseTheme.colors.textPrimary, display: 'block', marginBottom: '0.25rem' }}>
                       Confirmed Mandatory:
                     </strong>
                     {readinessScorecard.confirmedMandatorySkills.length > 0 ? (
@@ -348,9 +357,9 @@ export const ReadinessPage: React.FC = () => {
                           <span
                             key={s}
                             style={{
-                              backgroundColor: '#F3FAF5',
-                              border: '1px solid #107E3E',
-                              color: '#0B592C',
+                              backgroundColor: enterpriseTheme.colors.successSubtle,
+                              border: `1px solid ${enterpriseTheme.colors.successBorder}`,
+                              color: enterpriseTheme.colors.success,
                               fontSize: '0.78rem',
                               padding: '0.15rem 0.5rem',
                               borderRadius: '4px'
@@ -361,11 +370,11 @@ export const ReadinessPage: React.FC = () => {
                         ))}
                       </div>
                     ) : (
-                      <span style={{ color: '#8492A0' }}>None verified yet</span>
+                      <span style={{ color: enterpriseTheme.colors.textMuted }}>None verified yet</span>
                     )}
                   </div>
                   <div>
-                    <strong style={{ color: '#001A47', display: 'block', marginBottom: '0.25rem' }}>
+                    <strong style={{ color: enterpriseTheme.colors.textPrimary, display: 'block', marginBottom: '0.25rem' }}>
                       Remaining Mandatory:
                     </strong>
                     {readinessScorecard.outstandingMandatoryGaps.length > 0 ? (
@@ -374,9 +383,9 @@ export const ReadinessPage: React.FC = () => {
                           <span
                             key={s}
                             style={{
-                              backgroundColor: '#FFF8F2',
-                              border: '1px solid #E9730C',
-                              color: '#964200',
+                              backgroundColor: enterpriseTheme.colors.warningSubtle,
+                              border: `1px solid ${enterpriseTheme.colors.warningBorder}`,
+                              color: enterpriseTheme.colors.warning,
                               fontSize: '0.78rem',
                               padding: '0.15rem 0.5rem',
                               borderRadius: '4px'
@@ -387,7 +396,7 @@ export const ReadinessPage: React.FC = () => {
                         ))}
                       </div>
                     ) : (
-                      <span style={{ color: '#107E3E' }}>All mandatory confirmed</span>
+                      <span style={{ color: enterpriseTheme.colors.success }}>All mandatory confirmed</span>
                     )}
                   </div>
                 </div>
@@ -399,10 +408,10 @@ export const ReadinessPage: React.FC = () => {
                 subtitle={`Weight: 15% • Score: ${readinessScorecard.dimensions.learningMilestones.score}%`}
                 action={getDimensionStatusBadge(readinessScorecard.dimensions.learningMilestones.status)}
               >
-                <div style={{ fontSize: '0.88rem', color: '#5B6876', lineHeight: 1.6 }}>
+                <div style={{ fontSize: '0.88rem', color: enterpriseTheme.colors.textSecondary, lineHeight: 1.6 }}>
                   <div style={{ marginBottom: '0.75rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                      <strong style={{ color: '#001A47' }}>Milestone Progress</strong>
+                      <strong style={{ color: enterpriseTheme.colors.textPrimary }}>Milestone Progress</strong>
                       <span>
                         {readinessScorecard.learningMilestoneProgress.completedCount} /{' '}
                         {readinessScorecard.learningMilestoneProgress.totalCount} ({readinessScorecard.learningMilestoneProgress.completionPercentage}%)
@@ -410,11 +419,11 @@ export const ReadinessPage: React.FC = () => {
                     </div>
                     <ProgressBar
                       percentage={readinessScorecard.learningMilestoneProgress.completionPercentage}
-                      color="#633CA3"
+                      color={enterpriseTheme.colors.accentPurple}
                     />
                   </div>
                   <div style={{ marginTop: '0.5rem' }}>
-                    <span style={{ color: '#8492A0', fontSize: '0.8rem' }}>
+                    <span style={{ color: enterpriseTheme.colors.textMuted, fontSize: '0.8rem' }}>
                       {readinessScorecard.learningMilestoneProgress.remainingMilestoneTitles.length} modules remaining. Progress is self-reported by candidate; external LMS verification is not connected.
                     </span>
                   </div>
@@ -432,22 +441,22 @@ export const ReadinessPage: React.FC = () => {
                 subtitle={`Weight: 15% • Score: ${readinessScorecard.dimensions.projectEvidence.score}%`}
                 action={getDimensionStatusBadge(readinessScorecard.dimensions.projectEvidence.status)}
               >
-                <div style={{ fontSize: '0.88rem', color: '#5B6876', lineHeight: 1.6 }}>
+                <div style={{ fontSize: '0.88rem', color: enterpriseTheme.colors.textSecondary, lineHeight: 1.6 }}>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                    <div style={{ backgroundColor: '#FAFBFD', padding: '0.5rem', borderRadius: '4px', textAlign: 'center', border: '1px solid #EDF1F5' }}>
-                      <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#107E3E' }}>
+                    <div style={{ backgroundColor: enterpriseTheme.colors.canvas, padding: '0.5rem', borderRadius: '4px', textAlign: 'center', border: `1px solid ${enterpriseTheme.colors.surfaceBorder}` }}>
+                      <div style={{ fontSize: '1.2rem', fontWeight: 700, color: enterpriseTheme.colors.success }}>
                         {readinessScorecard.projectEvidenceProgress.completedProjectsCount}
                       </div>
-                      <div style={{ fontSize: '0.72rem', color: '#8492A0' }}>Completed / Approved</div>
+                      <div style={{ fontSize: '0.72rem', color: enterpriseTheme.colors.textMuted }}>Completed / Approved</div>
                     </div>
-                    <div style={{ backgroundColor: '#FAFBFD', padding: '0.5rem', borderRadius: '4px', textAlign: 'center', border: '1px solid #EDF1F5' }}>
-                      <div style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0A6ED1' }}>
+                    <div style={{ backgroundColor: enterpriseTheme.colors.canvas, padding: '0.5rem', borderRadius: '4px', textAlign: 'center', border: `1px solid ${enterpriseTheme.colors.surfaceBorder}` }}>
+                      <div style={{ fontSize: '1.2rem', fontWeight: 700, color: enterpriseTheme.colors.primary }}>
                         {readinessScorecard.projectEvidenceProgress.submittedCount}
                       </div>
-                      <div style={{ fontSize: '0.72rem', color: '#8492A0' }}>Total Submitted</div>
+                      <div style={{ fontSize: '0.72rem', color: enterpriseTheme.colors.textMuted }}>Total Submitted</div>
                     </div>
                   </div>
-                  <div style={{ color: '#8492A0', fontSize: '0.8rem', marginBottom: '0.75rem' }}>
+                  <div style={{ color: enterpriseTheme.colors.textMuted, fontSize: '0.8rem', marginBottom: '0.75rem' }}>
                     {readinessScorecard.projectEvidenceProgress.submissionsAwaitingReviewCount > 0
                       ? `${readinessScorecard.projectEvidenceProgress.submissionsAwaitingReviewCount} deliverables currently awaiting rubric evaluation.`
                       : 'All submissions have completed rubric review.'}
@@ -462,7 +471,7 @@ export const ReadinessPage: React.FC = () => {
 
           {/* Actionable Next Recommended Steps */}
           <div style={{ marginBottom: '2.5rem' }}>
-            <h2 style={{ fontSize: '1.35rem', color: '#001A47', fontWeight: 700, marginBottom: '1.25rem' }}>
+            <h2 style={{ fontSize: '1.35rem', color: enterpriseTheme.colors.textPrimary, fontWeight: 700, marginBottom: '1.25rem' }}>
               Actionable Next Steps
             </h2>
 
@@ -472,13 +481,13 @@ export const ReadinessPage: React.FC = () => {
                   key={idx}
                   style={{
                     backgroundColor: '#FFFFFF',
-                    border: '1px solid #D9E1E8',
-                    borderRadius: '8px',
+                    border: `1px solid ${enterpriseTheme.colors.surfaceBorder}`,
+                    borderRadius: enterpriseTheme.radii.md,
                     padding: '1.25rem',
                     display: 'flex',
                     alignItems: 'flex-start',
                     gap: '1rem',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
+                    boxShadow: enterpriseTheme.shadows.card
                   }}
                 >
                   <div
@@ -486,8 +495,8 @@ export const ReadinessPage: React.FC = () => {
                       width: '28px',
                       height: '28px',
                       borderRadius: '50%',
-                      backgroundColor: '#EBF4FC',
-                      color: '#0A6ED1',
+                      backgroundColor: enterpriseTheme.colors.primarySubtle,
+                      color: enterpriseTheme.colors.primary,
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -498,7 +507,7 @@ export const ReadinessPage: React.FC = () => {
                   >
                     {idx + 1}
                   </div>
-                  <div style={{ flex: 1, fontSize: '0.92rem', color: '#001A47', lineHeight: 1.5 }}>
+                  <div style={{ flex: 1, fontSize: '0.9rem', color: enterpriseTheme.colors.textPrimary, lineHeight: 1.5 }}>
                     {action}
                   </div>
                 </div>
@@ -512,16 +521,16 @@ export const ReadinessPage: React.FC = () => {
             subtitle="Transparent, open architecture — zero black-box scoring"
             style={{ marginBottom: '2.5rem' }}
           >
-            <div style={{ fontSize: '0.92rem', color: '#5B6876', lineHeight: 1.6 }}>
+            <div style={{ fontSize: '0.9rem', color: enterpriseTheme.colors.textSecondary, lineHeight: 1.6 }}>
               <div
                 style={{
-                  backgroundColor: '#FAFBFD',
-                  border: '1px solid #EDF1F5',
+                  backgroundColor: enterpriseTheme.colors.canvas,
+                  border: `1px solid ${enterpriseTheme.colors.surfaceBorder}`,
                   padding: '1rem 1.5rem',
                   borderRadius: '6px',
                   fontFamily: 'monospace',
-                  fontSize: '0.95rem',
-                  color: '#001A47',
+                  fontSize: '0.92rem',
+                  color: enterpriseTheme.colors.textPrimary,
                   marginBottom: '1rem'
                 }}
               >
@@ -539,22 +548,23 @@ export const ReadinessPage: React.FC = () => {
       <div
         style={{
           backgroundColor: '#FFFFFF',
-          border: '1px solid #D9E1E8',
-          borderRadius: '8px',
+          border: `1px solid ${enterpriseTheme.colors.surfaceBorder}`,
+          borderRadius: enterpriseTheme.radii.md,
           padding: '1.5rem',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           flexWrap: 'wrap',
-          gap: '1rem'
+          gap: '1rem',
+          boxShadow: enterpriseTheme.shadows.card
         }}
       >
         <Button variant="ghost" icon={<ArrowLeftIcon size={16} />} onClick={() => navigate('/projects')}>
           Back to Practical Projects
         </Button>
 
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.9rem', color: '#5B6876' }}>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '0.88rem', color: enterpriseTheme.colors.textSecondary }}>
             Ready to explore verified external market opportunities?
           </span>
           <Button

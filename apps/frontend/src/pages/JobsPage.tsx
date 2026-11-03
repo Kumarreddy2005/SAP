@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Breadcrumbs } from '../components/common/Breadcrumbs';
-import { StepIndicator } from '../components/common/StepIndicator';
 import { Card } from '../components/common/Card';
 import { Button } from '../components/common/Button';
 import { Badge } from '../components/common/Badge';
@@ -14,10 +13,11 @@ import {
   SearchIcon
 } from '../components/common/Icons';
 import { useCareerContext } from '../context/CareerContext';
+import { enterpriseTheme } from '../theme/tokens';
 
 export const JobsPage: React.FC = () => {
   const navigate = useNavigate();
-  const { targetRole, jobSearchData, isLoadingJobs, fetchJobSearchLinks } = useCareerContext();
+  const { targetRole, jobSearchData, isLoadingJobs, fetchJobSearchLinks, sessionMode } = useCareerContext();
 
   const [keywords, setKeywords] = useState(targetRole.title);
   const [location, setLocation] = useState('Remote');
@@ -53,21 +53,26 @@ export const JobsPage: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: '2rem 1.5rem', maxWidth: '1280px', margin: '0 auto' }}>
+    <div style={{ padding: '2rem 1.5rem', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
       <Breadcrumbs
         items={[
           { label: 'Readiness', path: '/readiness' },
           { label: 'Job Search Destinations' }
         ]}
       />
-      <StepIndicator currentStepId="jobs" />
 
       {/* Header */}
-      <div style={{ marginBottom: '1.5rem' }}>
-        <h1 style={{ fontSize: '2rem', fontWeight: 700, color: '#001A47', marginBottom: '0.5rem' }}>
+      <div style={{ marginBottom: '1.75rem' }}>
+        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.65rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <Badge variant={sessionMode === 'DEMO' ? 'info' : 'success'}>
+            Stage 8 of 8
+          </Badge>
+          <Badge variant="purple">Market Activation</Badge>
+        </div>
+        <h1 style={{ fontSize: '2rem', fontWeight: 800, color: enterpriseTheme.colors.textPrimary, marginBottom: '0.5rem' }}>
           Explore Verified Real-World Job Opportunities
         </h1>
-        <p style={{ color: '#5B6876', fontSize: '1.05rem', maxWidth: '850px' }}>
+        <p style={{ color: enterpriseTheme.colors.textSecondary, fontSize: '0.98rem', maxWidth: '850px', lineHeight: 1.55 }}>
           Connect directly with authoritative enterprise job search portals with customized, query-parameterized deep links for <strong>{targetRole.title}</strong>.
         </p>
       </div>
@@ -98,10 +103,10 @@ export const JobsPage: React.FC = () => {
               <label
                 style={{
                   display: 'block',
-                  fontWeight: 600,
+                  fontWeight: 700,
                   fontSize: '0.85rem',
                   marginBottom: '0.35rem',
-                  color: '#001A47'
+                  color: enterpriseTheme.colors.textPrimary
                 }}
               >
                 Target Role Keywords
@@ -115,8 +120,8 @@ export const JobsPage: React.FC = () => {
                   width: '100%',
                   padding: '0.6rem 0.8rem',
                   borderRadius: '6px',
-                  border: '1px solid #D9E1E8',
-                  fontSize: '0.95rem'
+                  border: `1px solid ${enterpriseTheme.colors.surfaceBorder}`,
+                  fontSize: '0.92rem'
                 }}
               />
             </div>
@@ -125,10 +130,10 @@ export const JobsPage: React.FC = () => {
               <label
                 style={{
                   display: 'block',
-                  fontWeight: 600,
+                  fontWeight: 700,
                   fontSize: '0.85rem',
                   marginBottom: '0.35rem',
-                  color: '#001A47'
+                  color: enterpriseTheme.colors.textPrimary
                 }}
               >
                 Geographic Preference / Mode
@@ -142,8 +147,8 @@ export const JobsPage: React.FC = () => {
                   width: '100%',
                   padding: '0.6rem 0.8rem',
                   borderRadius: '6px',
-                  border: '1px solid #D9E1E8',
-                  fontSize: '0.95rem'
+                  border: `1px solid ${enterpriseTheme.colors.surfaceBorder}`,
+                  fontSize: '0.92rem'
                 }}
               />
             </div>
@@ -171,8 +176,8 @@ export const JobsPage: React.FC = () => {
         </form>
 
         {jobSearchData?.recommendedPreparationSkills && jobSearchData.recommendedPreparationSkills.length > 0 && (
-          <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px solid #EDF1F5' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: '#001A47', marginRight: '0.5rem' }}>
+          <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: `1px solid ${enterpriseTheme.colors.surfaceBorder}` }}>
+            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: enterpriseTheme.colors.textPrimary, marginRight: '0.5rem' }}>
               Recommended Keywords for Application Tailoring:
             </span>
             <div style={{ display: 'inline-flex', flexWrap: 'wrap', gap: '0.35rem', marginTop: '0.25rem' }}>
@@ -180,12 +185,13 @@ export const JobsPage: React.FC = () => {
                 <span
                   key={skill}
                   style={{
-                    backgroundColor: '#EBF4FC',
-                    color: '#0A6ED1',
-                    fontSize: '0.8rem',
-                    padding: '0.2rem 0.5rem',
+                    backgroundColor: enterpriseTheme.colors.primarySubtle,
+                    color: enterpriseTheme.colors.primary,
+                    border: `1px solid ${enterpriseTheme.colors.primaryBorder}`,
+                    fontSize: '0.78rem',
+                    padding: '0.15rem 0.5rem',
                     borderRadius: '4px',
-                    fontWeight: 500
+                    fontWeight: 600
                   }}
                 >
                   {skill}
@@ -198,12 +204,12 @@ export const JobsPage: React.FC = () => {
 
       {/* Verified External Search Portal Cards */}
       <div style={{ marginBottom: '3rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.5rem' }}>
           <div>
-            <h2 style={{ fontSize: '1.35rem', color: '#001A47', fontWeight: 700, margin: 0 }}>
+            <h2 style={{ fontSize: '1.35rem', color: enterpriseTheme.colors.textPrimary, fontWeight: 700, margin: 0 }}>
               Verified External Search Engines ({jobSearchData?.destinationLinks.length || 0})
             </h2>
-            <p style={{ color: '#5B6876', fontSize: '0.9rem', margin: '4px 0 0' }}>
+            <p style={{ color: enterpriseTheme.colors.textSecondary, fontSize: '0.9rem', margin: '4px 0 0' }}>
               Direct authenticated queries formatted to bypass aggregators and find real enterprise postings
             </p>
           </div>
@@ -212,7 +218,7 @@ export const JobsPage: React.FC = () => {
 
         {isLoadingJobs && !jobSearchData ? (
           <Card>
-            <div style={{ padding: '3rem', textAlign: 'center', color: '#5B6876' }}>
+            <div style={{ padding: '3rem', textAlign: 'center', color: enterpriseTheme.colors.textSecondary }}>
               Generating authenticated search URLs...
             </div>
           </Card>
@@ -245,22 +251,22 @@ export const JobsPage: React.FC = () => {
                 }
               >
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '0.5rem' }}>
-                  <p style={{ color: '#5B6876', fontSize: '0.88rem', lineHeight: 1.5, margin: 0, minHeight: '40px' }}>
+                  <p style={{ color: enterpriseTheme.colors.textSecondary, fontSize: '0.88rem', lineHeight: 1.5, margin: 0, minHeight: '40px' }}>
                     {portal.notes}
                   </p>
 
-                  <div style={{ fontSize: '0.82rem', color: '#001A47', backgroundColor: '#FAFBFD', padding: '0.65rem 0.85rem', borderRadius: '6px', border: '1px solid #EDF1F5' }}>
+                  <div style={{ fontSize: '0.82rem', color: enterpriseTheme.colors.textPrimary, backgroundColor: enterpriseTheme.colors.canvas, padding: '0.65rem 0.85rem', borderRadius: '6px', border: `1px solid ${enterpriseTheme.colors.surfaceBorder}` }}>
                     <div style={{ marginBottom: '0.25rem' }}>
-                      <strong style={{ color: '#5B6876' }}>Search Strategy:</strong> {portal.instructions}
+                      <strong style={{ color: enterpriseTheme.colors.textSecondary }}>Search Strategy:</strong> {portal.instructions}
                     </div>
-                    <div style={{ wordBreak: 'break-all', fontSize: '0.78rem', color: '#8492A0', marginTop: '0.35rem' }}>
-                      <strong style={{ color: '#5B6876' }}>Generated Query:</strong> {portal.destinationUrl}
+                    <div style={{ wordBreak: 'break-all', fontSize: '0.78rem', color: enterpriseTheme.colors.textMuted, marginTop: '0.35rem' }}>
+                      <strong style={{ color: enterpriseTheme.colors.textSecondary }}>Generated Query:</strong> {portal.destinationUrl}
                     </div>
                   </div>
 
                   {portal.targetSkillsQuery && portal.targetSkillsQuery.length > 0 && (
                     <div>
-                      <span style={{ fontSize: '0.75rem', color: '#8492A0', textTransform: 'uppercase', fontWeight: 600 }}>
+                      <span style={{ fontSize: '0.75rem', color: enterpriseTheme.colors.textMuted, textTransform: 'uppercase', fontWeight: 700 }}>
                         Embedded Competency Tags:
                       </span>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginTop: '0.25rem' }}>
@@ -268,9 +274,9 @@ export const JobsPage: React.FC = () => {
                           <span
                             key={tag}
                             style={{
-                              backgroundColor: '#F5F7FA',
-                              border: '1px solid #E1E6EB',
-                              color: '#5B6876',
+                              backgroundColor: enterpriseTheme.colors.subdued,
+                              border: `1px solid ${enterpriseTheme.colors.surfaceBorder}`,
+                              color: enterpriseTheme.colors.textSecondary,
                               fontSize: '0.75rem',
                               padding: '0.1rem 0.4rem',
                               borderRadius: '3px'
@@ -291,12 +297,12 @@ export const JobsPage: React.FC = () => {
 
       {/* Verified Live Listings Section (Demonstrating Clean Empty State with Truthful Disclosure) */}
       <div style={{ marginBottom: '2.5rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
           <div>
-            <h2 style={{ fontSize: '1.35rem', color: '#001A47', fontWeight: 700, margin: 0 }}>
+            <h2 style={{ fontSize: '1.35rem', color: enterpriseTheme.colors.textPrimary, fontWeight: 700, margin: 0 }}>
               Direct Employer ATS Integration Feed
             </h2>
-            <p style={{ fontSize: '0.9rem', color: '#5B6876', margin: '4px 0 0' }}>
+            <p style={{ fontSize: '0.88rem', color: enterpriseTheme.colors.textSecondary, margin: '4px 0 0' }}>
               Direct employer postings verified through authenticated enterprise webhook feeds
             </p>
           </div>
@@ -321,14 +327,15 @@ export const JobsPage: React.FC = () => {
       <div
         style={{
           backgroundColor: '#FFFFFF',
-          border: '1px solid #D9E1E8',
-          borderRadius: '8px',
+          border: `1px solid ${enterpriseTheme.colors.surfaceBorder}`,
+          borderRadius: enterpriseTheme.radii.md,
           padding: '1.5rem',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           flexWrap: 'wrap',
-          gap: '1rem'
+          gap: '1rem',
+          boxShadow: enterpriseTheme.shadows.card
         }}
       >
         <Button variant="ghost" icon={<ArrowLeftIcon size={16} />} onClick={() => navigate('/readiness')}>

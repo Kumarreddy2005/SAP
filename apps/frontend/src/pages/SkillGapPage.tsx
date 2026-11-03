@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Breadcrumbs } from '../components/common/Breadcrumbs';
-import { StepIndicator } from '../components/common/StepIndicator';
 import { Card } from '../components/common/Card';
 import { Button } from '../components/common/Button';
 import { Badge } from '../components/common/Badge';
@@ -14,6 +13,7 @@ import {
   InfoIcon
 } from '../components/common/Icons';
 import { useCareerContext } from '../context/CareerContext';
+import { enterpriseTheme } from '../theme/tokens';
 
 export const SkillGapPage: React.FC = () => {
   const navigate = useNavigate();
@@ -23,7 +23,8 @@ export const SkillGapPage: React.FC = () => {
     isRealProfileReviewed,
     currentProfileId,
     currentGapAnalysis,
-    fetchSkillGaps
+    fetchSkillGaps,
+    sessionMode
   } = useCareerContext();
 
   useEffect(() => {
@@ -120,29 +121,31 @@ export const SkillGapPage: React.FC = () => {
     : targetRole.learningHoursEstimate;
 
   return (
-    <div style={{ padding: '2rem 1.5rem', maxWidth: '1280px', margin: '0 auto' }}>
+    <div style={{ padding: '2rem 1.5rem', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
       <Breadcrumbs
         items={[
           { label: 'Careers', path: '/careers' },
           { label: 'Skill Gap Breakdown' }
         ]}
       />
-      <StepIndicator currentStepId="gap" />
 
       {/* Target Role Hero Header */}
       <div
         style={{
           backgroundColor: '#FFFFFF',
-          border: '1px solid #D9E1E8',
-          borderRadius: '8px',
+          border: `1px solid ${enterpriseTheme.colors.surfaceBorder}`,
+          borderRadius: enterpriseTheme.radii.lg,
           padding: '2rem',
-          boxShadow: '0 2px 8px rgba(0, 26, 71, 0.05)',
+          boxShadow: enterpriseTheme.shadows.card,
           marginBottom: '2rem'
         }}
       >
         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1.5rem' }}>
           <div>
-            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.65rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <Badge variant={sessionMode === 'DEMO' ? 'info' : 'success'}>
+                Stage 4 of 8
+              </Badge>
               <Badge variant={isRealProfileReviewed ? 'success' : 'warning'}>
                 {isRealProfileReviewed ? 'Verified Candidate Profile' : 'Sample Demo Profile'}
               </Badge>
@@ -152,48 +155,49 @@ export const SkillGapPage: React.FC = () => {
                 {targetRole.ecosystem === 'SAP' ? 'SAP Ecosystem' : targetRole.ecosystem === 'HYBRID' ? 'Hybrid / Cross-ERP' : 'Non-SAP Cloud'}
               </Badge>
             </div>
-            <h1 style={{ fontSize: '2.2rem', fontWeight: 800, color: '#001A47', marginBottom: '0.5rem' }}>
+            <h1 style={{ fontSize: '2rem', fontWeight: 800, color: enterpriseTheme.colors.textPrimary, marginBottom: '0.5rem' }}>
               {targetRole.title}
             </h1>
-            <p style={{ color: '#5B6876', fontSize: '1rem', maxWidth: '750px', lineHeight: 1.5 }}>
+            <p style={{ color: enterpriseTheme.colors.textSecondary, fontSize: '0.96rem', maxWidth: '750px', lineHeight: 1.55 }}>
               {targetRole.summary}
             </p>
           </div>
 
           <div
             style={{
-              backgroundColor: '#FAFBFD',
-              border: '1px solid #EDF1F5',
-              padding: '1.25rem 1.5rem',
-              borderRadius: '8px',
+              backgroundColor: enterpriseTheme.colors.canvas,
+              border: `1px solid ${enterpriseTheme.colors.surfaceBorder}`,
+              padding: '1.25rem 1.75rem',
+              borderRadius: enterpriseTheme.radii.md,
               minWidth: '220px',
               textAlign: 'center'
             }}
           >
             <div
               style={{
-                fontSize: '2.4rem',
+                fontSize: '2.5rem',
                 fontWeight: 800,
-                color: fitPercentage >= 70 ? '#107E3E' : fitPercentage >= 50 ? '#0A6ED1' : '#E9730C'
+                color: fitPercentage >= 70 ? enterpriseTheme.colors.success : fitPercentage >= 50 ? enterpriseTheme.colors.primary : enterpriseTheme.colors.warning
               }}
             >
               {fitPercentage}%
             </div>
-            <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#001A47' }}>
+            <div style={{ fontSize: '0.86rem', fontWeight: 700, color: enterpriseTheme.colors.textPrimary }}>
               {isRealProfileReviewed ? 'Profile-Derived Overlap' : 'Demonstration Index'}
             </div>
-            <div style={{ fontSize: '0.78rem', color: '#5B6876', marginTop: '0.2rem' }}>
+            <div style={{ fontSize: '0.78rem', color: enterpriseTheme.colors.textSecondary, marginTop: '0.2rem' }}>
               ~{estimatedBridgeHours} hrs planning estimate
             </div>
           </div>
         </div>
 
-        <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid #EDF1F5' }}>
+        <div style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: `1px solid ${enterpriseTheme.colors.surfaceBorder}` }}>
           <ProgressBar
             percentage={fitPercentage}
             label="Verified Competency Coverage"
             sublabel={`${confirmedMatches.length} confirmed matches • ${mandatoryGaps.length} mandatory gaps • ${partiallyMatched.length} partial`}
             height={10}
+            color={fitPercentage >= 70 ? enterpriseTheme.colors.success : enterpriseTheme.colors.primary}
           />
         </div>
       </div>
@@ -207,24 +211,24 @@ export const SkillGapPage: React.FC = () => {
           marginBottom: '2rem'
         }}
       >
-        <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #D9E1E8', borderRadius: '8px', padding: '1rem 1.25rem' }}>
-          <span style={{ fontSize: '0.8rem', color: '#107E3E', textTransform: 'uppercase', fontWeight: 600 }}>Confirmed Strengths</span>
-          <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#107E3E', marginTop: '0.2rem' }}>{confirmedMatches.length}</div>
+        <div style={{ backgroundColor: '#FFFFFF', border: `1px solid ${enterpriseTheme.colors.surfaceBorder}`, borderRadius: enterpriseTheme.radii.md, padding: '1rem 1.25rem', boxShadow: enterpriseTheme.shadows.card }}>
+          <span style={{ fontSize: '0.75rem', color: enterpriseTheme.colors.success, textTransform: 'uppercase', fontWeight: 700 }}>Confirmed Strengths</span>
+          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: enterpriseTheme.colors.success, marginTop: '0.2rem' }}>{confirmedMatches.length}</div>
         </div>
 
-        <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #D9E1E8', borderRadius: '8px', padding: '1rem 1.25rem' }}>
-          <span style={{ fontSize: '0.8rem', color: '#BB0000', textTransform: 'uppercase', fontWeight: 600 }}>Mandatory Gaps</span>
-          <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#BB0000', marginTop: '0.2rem' }}>{mandatoryGaps.length}</div>
+        <div style={{ backgroundColor: '#FFFFFF', border: `1px solid ${enterpriseTheme.colors.surfaceBorder}`, borderRadius: enterpriseTheme.radii.md, padding: '1rem 1.25rem', boxShadow: enterpriseTheme.shadows.card }}>
+          <span style={{ fontSize: '0.75rem', color: enterpriseTheme.colors.critical, textTransform: 'uppercase', fontWeight: 700 }}>Mandatory Gaps</span>
+          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: enterpriseTheme.colors.critical, marginTop: '0.2rem' }}>{mandatoryGaps.length}</div>
         </div>
 
-        <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #D9E1E8', borderRadius: '8px', padding: '1rem 1.25rem' }}>
-          <span style={{ fontSize: '0.8rem', color: '#E9730C', textTransform: 'uppercase', fontWeight: 600 }}>Partially Matched</span>
-          <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#E9730C', marginTop: '0.2rem' }}>{partiallyMatched.length}</div>
+        <div style={{ backgroundColor: '#FFFFFF', border: `1px solid ${enterpriseTheme.colors.surfaceBorder}`, borderRadius: enterpriseTheme.radii.md, padding: '1rem 1.25rem', boxShadow: enterpriseTheme.shadows.card }}>
+          <span style={{ fontSize: '0.75rem', color: enterpriseTheme.colors.warning, textTransform: 'uppercase', fontWeight: 700 }}>Partially Matched</span>
+          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: enterpriseTheme.colors.warning, marginTop: '0.2rem' }}>{partiallyMatched.length}</div>
         </div>
 
-        <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #D9E1E8', borderRadius: '8px', padding: '1rem 1.25rem' }}>
-          <span style={{ fontSize: '0.8rem', color: '#0A6ED1', textTransform: 'uppercase', fontWeight: 600 }}>Planning Effort</span>
-          <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#0A6ED1', marginTop: '0.2rem' }}>~{estimatedBridgeHours} hrs</div>
+        <div style={{ backgroundColor: '#FFFFFF', border: `1px solid ${enterpriseTheme.colors.surfaceBorder}`, borderRadius: enterpriseTheme.radii.md, padding: '1rem 1.25rem', boxShadow: enterpriseTheme.shadows.card }}>
+          <span style={{ fontSize: '0.75rem', color: enterpriseTheme.colors.primary, textTransform: 'uppercase', fontWeight: 700 }}>Planning Effort</span>
+          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: enterpriseTheme.colors.primary, marginTop: '0.2rem' }}>~{estimatedBridgeHours} hrs</div>
         </div>
       </div>
 
@@ -241,9 +245,9 @@ export const SkillGapPage: React.FC = () => {
                 <div
                   key={item.skillId}
                   style={{
-                    backgroundColor: '#F3FAF6',
-                    border: '1px solid #B8E3C8',
-                    borderRadius: '6px',
+                    backgroundColor: enterpriseTheme.colors.successSubtle,
+                    border: `1px solid ${enterpriseTheme.colors.successBorder}`,
+                    borderRadius: enterpriseTheme.radii.sm,
                     padding: '1rem',
                     display: 'flex',
                     flexDirection: 'column',
@@ -251,19 +255,19 @@ export const SkillGapPage: React.FC = () => {
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 600, color: '#107E3E' }}>
-                      <CheckIcon size={16} color="#107E3E" />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 700, color: enterpriseTheme.colors.success }}>
+                      <CheckIcon size={16} color={enterpriseTheme.colors.success} />
                       <span>{item.skillName}</span>
                     </div>
                     <Badge variant="success" size="sm">
                       Level: {item.candidateProficiency || item.requiredProficiency}
                     </Badge>
                   </div>
-                  <div style={{ fontSize: '0.8rem', color: '#276738' }}>
+                  <div style={{ fontSize: '0.8rem', color: enterpriseTheme.colors.successHover }}>
                     Category: {item.category.replace(/_/g, ' ')} • Match Factor: 1.0 (Full Match)
                   </div>
                   {item.evidenceSnippet && (
-                    <div style={{ fontSize: '0.78rem', color: '#5B6876', fontStyle: 'italic', marginTop: '0.25rem' }}>
+                    <div style={{ fontSize: '0.78rem', color: enterpriseTheme.colors.textSecondary, fontStyle: 'italic', marginTop: '0.25rem' }}>
                       Evidence: "{item.evidenceSnippet}"
                     </div>
                   )}
@@ -271,7 +275,7 @@ export const SkillGapPage: React.FC = () => {
               ))}
             </div>
           ) : (
-            <div style={{ textAlign: 'center', padding: '1.5rem', color: '#8492A0', fontSize: '0.9rem' }}>
+            <div style={{ textAlign: 'center', padding: '1.5rem', color: enterpriseTheme.colors.textMuted, fontSize: '0.88rem' }}>
               No direct overlaps verified yet. The learning pathway below will cover all foundational requirements.
             </div>
           )}
@@ -288,9 +292,9 @@ export const SkillGapPage: React.FC = () => {
                 <div
                   key={item.skillId}
                   style={{
-                    backgroundColor: '#FFF8F0',
-                    border: '1px solid #FFE0B2',
-                    borderRadius: '6px',
+                    backgroundColor: enterpriseTheme.colors.warningSubtle,
+                    border: `1px solid ${enterpriseTheme.colors.warningBorder}`,
+                    borderRadius: enterpriseTheme.radii.sm,
                     padding: '1rem',
                     display: 'flex',
                     flexDirection: 'column',
@@ -298,15 +302,15 @@ export const SkillGapPage: React.FC = () => {
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <strong style={{ color: '#001A47' }}>{item.skillName}</strong>
+                    <strong style={{ color: enterpriseTheme.colors.textPrimary }}>{item.skillName}</strong>
                     <Badge variant="warning" size="sm">
                       Partial ({(item.matchFactor * 100).toFixed(0)}%)
                     </Badge>
                   </div>
-                  <div style={{ fontSize: '0.82rem', color: '#A05000' }}>
+                  <div style={{ fontSize: '0.82rem', color: enterpriseTheme.colors.warning }}>
                     Your Level: {item.candidateProficiency || 'Novice'} → Target Required: {item.requiredProficiency}
                   </div>
-                  <div style={{ fontSize: '0.8rem', color: '#5B6876' }}>{item.explanation}</div>
+                  <div style={{ fontSize: '0.8rem', color: enterpriseTheme.colors.textSecondary }}>{item.explanation}</div>
                 </div>
               ))}
             </div>
@@ -324,9 +328,9 @@ export const SkillGapPage: React.FC = () => {
                 <div
                   key={gap.skillId}
                   style={{
-                    backgroundColor: '#FCF2F2',
-                    border: '1px solid #F5B7B1',
-                    borderRadius: '6px',
+                    backgroundColor: enterpriseTheme.colors.criticalSubtle,
+                    border: `1px solid ${enterpriseTheme.colors.criticalBorder}`,
+                    borderRadius: enterpriseTheme.radii.sm,
                     padding: '1.25rem',
                     display: 'flex',
                     flexDirection: 'column',
@@ -335,20 +339,20 @@ export const SkillGapPage: React.FC = () => {
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <AlertTriangleIcon size={18} color="#BB0000" />
-                      <strong style={{ color: '#BB0000', fontSize: '1rem' }}>{gap.skillName}</strong>
+                      <AlertTriangleIcon size={18} color={enterpriseTheme.colors.critical} />
+                      <strong style={{ color: enterpriseTheme.colors.critical, fontSize: '1rem' }}>{gap.skillName}</strong>
                     </div>
                     <Badge variant="critical" size="sm">
                       Mandatory (Required: {gap.requiredProficiency})
                     </Badge>
                   </div>
 
-                  <p style={{ fontSize: '0.875rem', color: '#5B6876', margin: 0 }}>
+                  <p style={{ fontSize: '0.88rem', color: enterpriseTheme.colors.textSecondary, margin: 0 }}>
                     <strong>Why it matters:</strong> {gap.explanation}
                   </p>
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.25rem', paddingTop: '0.5rem', borderTop: '1px dashed #F5B7B1', fontSize: '0.82rem' }}>
-                    <span style={{ color: '#001A47' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem', marginTop: '0.25rem', paddingTop: '0.5rem', borderTop: `1px dashed ${enterpriseTheme.colors.criticalBorder}`, fontSize: '0.82rem' }}>
+                    <span style={{ color: enterpriseTheme.colors.textPrimary }}>
                       Bridged via: <strong>SAP Learning Hub / openSAP Curriculum</strong>
                     </span>
                     <button
@@ -356,7 +360,7 @@ export const SkillGapPage: React.FC = () => {
                       style={{
                         background: 'none',
                         border: 'none',
-                        color: '#0A6ED1',
+                        color: enterpriseTheme.colors.primary,
                         cursor: 'pointer',
                         fontWeight: 600,
                         display: 'flex',
@@ -372,7 +376,7 @@ export const SkillGapPage: React.FC = () => {
               ))}
             </div>
           ) : (
-            <div style={{ textAlign: 'center', padding: '1.5rem', color: '#107E3E', fontWeight: 600 }}>
+            <div style={{ textAlign: 'center', padding: '1.5rem', color: enterpriseTheme.colors.success, fontWeight: 700 }}>
               All mandatory competency requirements have been confirmed in your profile!
             </div>
           )}
@@ -389,19 +393,19 @@ export const SkillGapPage: React.FC = () => {
                 <div
                   key={rec.skillId}
                   style={{
-                    backgroundColor: '#FAFBFD',
-                    border: '1px solid #EDF1F5',
-                    borderRadius: '6px',
+                    backgroundColor: enterpriseTheme.colors.canvas,
+                    border: `1px solid ${enterpriseTheme.colors.surfaceBorder}`,
+                    borderRadius: enterpriseTheme.radii.sm,
                     padding: '1rem'
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.3rem' }}>
-                    <strong style={{ color: '#001A47' }}>{rec.skillName}</strong>
+                    <strong style={{ color: enterpriseTheme.colors.textPrimary }}>{rec.skillName}</strong>
                     <Badge variant="neutral" size="sm">
                       Elective ({rec.requiredProficiency})
                     </Badge>
                   </div>
-                  <div style={{ fontSize: '0.82rem', color: '#5B6876' }}>{rec.explanation}</div>
+                  <div style={{ fontSize: '0.82rem', color: enterpriseTheme.colors.textSecondary }}>{rec.explanation}</div>
                 </div>
               ))}
             </div>
@@ -420,9 +424,9 @@ export const SkillGapPage: React.FC = () => {
                   key={idx}
                   style={{
                     padding: '0.85rem 1rem',
-                    backgroundColor: p.isMet ? '#F3FAF6' : '#FAFBFD',
-                    border: `1px solid ${p.isMet ? '#B8E3C8' : '#EDF1F5'}`,
-                    borderRadius: '6px',
+                    backgroundColor: p.isMet ? enterpriseTheme.colors.successSubtle : enterpriseTheme.colors.canvas,
+                    border: `1px solid ${p.isMet ? enterpriseTheme.colors.successBorder : enterpriseTheme.colors.surfaceBorder}`,
+                    borderRadius: enterpriseTheme.radii.sm,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
@@ -431,11 +435,11 @@ export const SkillGapPage: React.FC = () => {
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                     {p.isMet ? (
-                      <CheckIcon size={18} color="#107E3E" />
+                      <CheckIcon size={18} color={enterpriseTheme.colors.success} />
                     ) : (
-                      <InfoIcon size={18} color="#0A6ED1" />
+                      <InfoIcon size={18} color={enterpriseTheme.colors.primary} />
                     )}
-                    <span style={{ fontSize: '0.9rem', color: '#001A47', fontWeight: 600 }}>
+                    <span style={{ fontSize: '0.88rem', color: enterpriseTheme.colors.textPrimary, fontWeight: 600 }}>
                       {p.requirement}
                     </span>
                   </div>

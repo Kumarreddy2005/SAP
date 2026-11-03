@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { CareerProvider } from './context/CareerContext';
 import { Navbar } from './components/navigation/Navbar';
 import { Footer } from './components/navigation/Footer';
+import { WorkflowJourneyBar } from './components/common/WorkflowJourneyBar';
 
 // Pages
 import { LandingPage } from './pages/LandingPage';
@@ -20,10 +21,13 @@ import { JobsPage } from './pages/JobsPage';
 const AppLayout: React.FC = () => {
   const location = useLocation();
   const isDashboard = location.pathname === '/dashboard';
+  const isLanding = location.pathname === '/';
+  const showWorkflowBar = !isDashboard && !isLanding;
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#F5F6F7' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#F8FAFC' }}>
       {!isDashboard && <Navbar />}
+      {showWorkflowBar && <WorkflowJourneyBar />}
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
         <Routes>
           <Route path="/" element={<LandingPage />} />

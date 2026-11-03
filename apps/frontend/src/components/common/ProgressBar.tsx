@@ -1,4 +1,5 @@
 import React from 'react';
+import { enterpriseTheme } from '../../theme/tokens';
 
 export interface ProgressBarProps {
   percentage: number;
@@ -13,7 +14,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
   percentage,
   label,
   sublabel,
-  color = '#0A6ED1',
+  color = enterpriseTheme.colors.primary,
   height = 8,
   showPercentage = true
 }) => {
@@ -27,17 +28,17 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'baseline',
-            marginBottom: '0.4rem',
+            marginBottom: '0.35rem',
             fontSize: '0.85rem'
           }}
         >
           {label && (
-            <span style={{ fontWeight: 600, color: '#001A47' }}>
-              {label} {sublabel && <span style={{ fontWeight: 400, color: '#5B6876' }}>({sublabel})</span>}
+            <span style={{ fontWeight: 600, color: enterpriseTheme.colors.textPrimary }}>
+              {label} {sublabel && <span style={{ fontWeight: 400, color: enterpriseTheme.colors.textMuted }}>({sublabel})</span>}
             </span>
           )}
           {showPercentage && (
-            <span style={{ fontWeight: 700, color: color, fontSize: '0.9rem' }}>
+            <span style={{ fontWeight: 700, color: color, fontSize: '0.88rem' }}>
               {Math.round(clamped)}%
             </span>
           )}
@@ -47,9 +48,10 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
         style={{
           width: '100%',
           height: `${height}px`,
-          backgroundColor: '#EDF1F5',
+          backgroundColor: enterpriseTheme.colors.subdued,
           borderRadius: `${height / 2}px`,
-          overflow: 'hidden'
+          overflow: 'hidden',
+          border: `1px solid ${enterpriseTheme.colors.surfaceBorder}`
         }}
       >
         <div
@@ -58,7 +60,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
             height: '100%',
             backgroundColor: color,
             borderRadius: `${height / 2}px`,
-            transition: 'width 0.4s ease'
+            transition: 'width 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
           }}
         />
       </div>

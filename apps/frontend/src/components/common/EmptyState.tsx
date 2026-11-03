@@ -1,5 +1,6 @@
 import React from 'react';
 import { Button } from './Button';
+import { enterpriseTheme } from '../../theme/tokens';
 
 export interface EmptyStateProps {
   icon?: React.ReactNode;
@@ -23,9 +24,9 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
       style={{
         padding: '3rem 2rem',
         textAlign: 'center',
-        backgroundColor: '#FFFFFF',
-        borderRadius: '8px',
-        border: '1px dashed #D9E1E8',
+        backgroundColor: enterpriseTheme.colors.card,
+        borderRadius: enterpriseTheme.radii.md,
+        border: `1px dashed ${enterpriseTheme.colors.surfaceBorderStrong}`,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
@@ -34,9 +35,27 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
         ...style
       }}
     >
-      {icon && <div style={{ color: '#8492A0', marginBottom: '0.5rem' }}>{icon}</div>}
-      <h4 style={{ fontSize: '1.15rem', color: '#001A47', fontWeight: 600 }}>{title}</h4>
-      <p style={{ fontSize: '0.9rem', color: '#5B6876', maxWidth: '450px', lineHeight: 1.5 }}>
+      {icon && (
+        <div
+          style={{
+            color: enterpriseTheme.colors.primary,
+            backgroundColor: enterpriseTheme.colors.primarySubtle,
+            width: '48px',
+            height: '48px',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: '0.25rem'
+          }}
+        >
+          {icon}
+        </div>
+      )}
+      <h4 style={{ fontSize: '1.1rem', color: enterpriseTheme.colors.textPrimary, fontWeight: 700 }}>
+        {title}
+      </h4>
+      <p style={{ fontSize: '0.88rem', color: enterpriseTheme.colors.textSecondary, maxWidth: '460px', lineHeight: 1.5 }}>
         {description}
       </p>
       {actionLabel && onAction && (

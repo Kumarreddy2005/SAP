@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Breadcrumbs } from '../components/common/Breadcrumbs';
-import { StepIndicator } from '../components/common/StepIndicator';
 import { Card } from '../components/common/Card';
 import { Button } from '../components/common/Button';
 import { Badge } from '../components/common/Badge';
@@ -15,7 +14,8 @@ import {
   AlertTriangleIcon,
   EditIcon,
   FileTextIcon,
-  InfoIcon
+  InfoIcon,
+  SearchIcon
 } from '../components/common/Icons';
 import { useCareerContext } from '../context/CareerContext';
 import {
@@ -25,6 +25,7 @@ import {
   ProfileReviewResponse
 } from '@career-orchestrator/shared';
 import { AVAILABLE_SKILL_CATALOGUE } from '../demo/demoSkills';
+import { enterpriseTheme } from '../theme/tokens';
 
 export const SkillsReviewPage: React.FC = () => {
   const navigate = useNavigate();
@@ -43,8 +44,13 @@ export const SkillsReviewPage: React.FC = () => {
     editSkillName,
     addManualSkill,
     handleReviewSuccess,
-    resetToDemoData
+    resetToDemoData,
+    sessionMode
   } = useCareerContext();
+
+  // Search and Filter State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
 
   // Add Competency Modal State
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -69,6 +75,21 @@ export const SkillsReviewPage: React.FC = () => {
   const confirmedCount = skills.filter((s) => s.isConfirmed).length;
   const suggestedCount = skills.filter((s) => !s.isConfirmed && s.reviewStatus !== 'REJECTED').length;
   const rejectedCount = skills.filter((s) => s.reviewStatus === 'REJECTED').length;
+
+  // Filtered skills list
+  const filteredSkills = useMemo(() => {
+    return skills.filter((skill) => {
+      const matchesSearch =
+        skill.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        skill.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (skill.evidenceSnippet && skill.evidenceSnippet.toLowerCase().includes(searchQuery.toLowerCase()));
+
+      const matchesCategory =
+        selectedCategory === 'ALL' || skill.category === selectedCategory;
+
+      return matchesSearch && matchesCategory;
+    });
+  }, [skills, searchQuery, selectedCategory]);
 
   const handleOpenEdit = (skill: ExtractedSkillItem) => {
     setEditingSkill(skill);
@@ -208,9 +229,8 @@ export const SkillsReviewPage: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: '2rem 1.5rem', maxWidth: '1280px', margin: '0 auto' }}>
+    <div style={{ padding: '2rem 1.5rem', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
       <Breadcrumbs items={[{ label: 'Background', path: '/profile' }, { label: 'Skills Review' }]} />
-      <StepIndicator currentStepId="skills" />
 
       {/* Page Header */}
       <div
@@ -220,15 +240,20 @@ export const SkillsReviewPage: React.FC = () => {
           justifyContent: 'space-between',
           alignItems: 'flex-start',
           gap: '1rem',
-          marginBottom: '1.5rem'
+          marginBottom: '1.75rem'
         }}
       >
         <div>
-          <h1 style={{ fontSize: '2rem', fontWeight: 700, color: '#001A47', marginBottom: '0.5rem' }}>
-            Interactive Competency Review
-          </h1>
-          <p style={{ color: '#5B6876', fontSize: '1.05rem', maxWidth: '800px' }}>
-            Human-in-the-Loop Verification: Review, calibrate, and confirm your capabilities. The career matching engine will only evaluate confirmed competencies.
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.4rem', flexWrap: 'wrap' }}>
+            <h1 style={{ fontSize: '1.85rem', fontWeight: 800, color: enterpriseTheme.colors.textPrimary, margin: 0 }}>
+              Human-in-the-Loop Skills Review
+            </h1>
+            <Badge variant={sessionMode === 'DEMO' ? 'info' : 'success'}>
+              Stage 2 of 8
+            </Badge>
+          </div>
+          <p style={{ color: enterpriseTheme.colors.textSecondary, fontSize: '0.98rem', maxWidth: '820px', lineHeight: 1.5 }}>
+            Inspect candidate competencies, calibrate proficiencies, and verify transferable strengths. Career matching runs exclusively against confirmed skills.
           </p>
         </div>
 
@@ -257,21 +282,35 @@ export const SkillsReviewPage: React.FC = () => {
       {isRealProfileLoaded ? (
         <div
           style={{
-            backgroundColor: '#F3FAF6',
-            border: '1px solid #B8E3C8',
-            borderRadius: '8px',
+            backgroundColor: '#FFFFFF',
+            border: `1px solid ${enterpriseTheme.colors.successBorder}`,
+            borderRadius: enterpriseTheme.radii.md,
             padding: '1rem 1.25rem',
-            marginBottom: '1.75rem'
+            marginBottom: '1.75rem',
+            boxShadow: enterpriseTheme.shadows.card
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <FileTextIcon color="#107E3E" size={22} />
+              <div
+                style={{
+                  backgroundColor: enterpriseTheme.colors.successSubtle,
+                  color: enterpriseTheme.colors.success,
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <FileTextIcon color={enterpriseTheme.colors.success} size={18} />
+              </div>
               <div>
-                <strong style={{ color: '#001A47', fontSize: '0.95rem' }}>
+                <strong style={{ color: enterpriseTheme.colors.textPrimary, fontSize: '0.92rem' }}>
                   Parsed from Document: {uploadedFile?.name || 'Uploaded Resume'}
                 </strong>
-                <div style={{ fontSize: '0.8rem', color: '#5B6876', marginTop: '0.2rem' }}>
+                <div style={{ fontSize: '0.78rem', color: enterpriseTheme.colors.textSecondary, marginTop: '0.2rem' }}>
                   Session ID: <code>{currentProfileId || 'Local'}</code> • Extracted {extractedTextPreview.length} characters • Non-durable in-memory session
                 </div>
               </div>
@@ -284,7 +323,7 @@ export const SkillsReviewPage: React.FC = () => {
                   size="sm"
                   onClick={() => setShowRawText(!showRawText)}
                 >
-                  {showRawText ? 'Hide Text Preview' : 'Inspect Extracted Text'}
+                  {showRawText ? 'Hide Text' : 'Inspect Text'}
                 </Button>
               )}
               <Button
@@ -292,7 +331,7 @@ export const SkillsReviewPage: React.FC = () => {
                 size="sm"
                 onClick={resetToDemoData}
               >
-                Reset to Sample Data
+                Reset to Sample
               </Button>
             </div>
           </div>
@@ -303,14 +342,14 @@ export const SkillsReviewPage: React.FC = () => {
               style={{
                 marginTop: '1rem',
                 padding: '0.75rem 1rem',
-                backgroundColor: '#FFFFFF',
-                border: '1px solid #D9E1E8',
+                backgroundColor: enterpriseTheme.colors.canvas,
+                border: `1px solid ${enterpriseTheme.colors.surfaceBorder}`,
                 borderRadius: '6px',
                 maxHeight: '160px',
                 overflowY: 'auto',
-                fontSize: '0.82rem',
+                fontSize: '0.8rem',
                 fontFamily: 'monospace',
-                color: '#222B35',
+                color: enterpriseTheme.colors.textPrimary,
                 whiteSpace: 'pre-wrap'
               }}
             >
@@ -320,7 +359,7 @@ export const SkillsReviewPage: React.FC = () => {
 
           {/* Extraction Warnings if any */}
           {extractionWarnings.length > 0 && (
-            <div style={{ marginTop: '0.75rem', fontSize: '0.85rem', color: '#E9730C' }}>
+            <div style={{ marginTop: '0.75rem', fontSize: '0.82rem', color: enterpriseTheme.colors.warning }}>
               <strong>Advisory:</strong> {extractionWarnings.join(' ')}
             </div>
           )}
@@ -328,22 +367,37 @@ export const SkillsReviewPage: React.FC = () => {
       ) : (
         <div
           style={{
-            backgroundColor: '#EBF3FB',
-            border: '1px solid #C4D5EA',
-            borderRadius: '8px',
-            padding: '1rem 1.25rem',
+            backgroundColor: '#FFFFFF',
+            border: `1px solid ${enterpriseTheme.colors.infoBorder}`,
+            borderRadius: enterpriseTheme.radii.md,
+            padding: '0.85rem 1.25rem',
             marginBottom: '1.75rem',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: '1rem',
-            flexWrap: 'wrap'
+            flexWrap: 'wrap',
+            boxShadow: enterpriseTheme.shadows.card
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <InfoIcon color="#0A6ED1" size={20} />
-            <div style={{ fontSize: '0.9rem', color: '#001A47' }}>
-              <strong>Demo Profile Active:</strong> Showing sample competencies for Senior Financial Analyst. To parse your real resume, return to <button onClick={() => navigate('/profile')} style={{ color: '#0A6ED1', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>Background Intake</button>.
+            <InfoIcon color={enterpriseTheme.colors.primary} size={18} />
+            <div style={{ fontSize: '0.86rem', color: enterpriseTheme.colors.textPrimary }}>
+              <strong>Demo Baseline Active:</strong> Showing Alex Vance sample competencies for Senior Financial Analyst. To parse your real resume, return to{' '}
+              <button
+                onClick={() => navigate('/profile')}
+                style={{
+                  color: enterpriseTheme.colors.primary,
+                  textDecoration: 'underline',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontWeight: 600
+                }}
+              >
+                Profile Intake
+              </button>
+              .
             </div>
           </div>
         </div>
@@ -355,17 +409,17 @@ export const SkillsReviewPage: React.FC = () => {
           style={{
             marginBottom: '1.5rem',
             padding: '1rem',
-            backgroundColor: '#FDEDED',
-            border: '1px solid #F5B7B1',
-            borderRadius: '6px',
+            backgroundColor: enterpriseTheme.colors.criticalSubtle,
+            border: `1px solid ${enterpriseTheme.colors.criticalBorder}`,
+            borderRadius: enterpriseTheme.radii.sm,
             display: 'flex',
             alignItems: 'center',
             gap: '0.75rem',
-            color: '#BB0000',
-            fontSize: '0.9rem'
+            color: enterpriseTheme.colors.critical,
+            fontSize: '0.88rem'
           }}
         >
-          <AlertTriangleIcon size={18} color="#BB0000" />
+          <AlertTriangleIcon size={18} color={enterpriseTheme.colors.critical} />
           <div style={{ flex: 1 }}>{saveError}</div>
           <Button variant="outline" size="sm" onClick={() => setSaveError(null)}>
             Dismiss
@@ -378,17 +432,17 @@ export const SkillsReviewPage: React.FC = () => {
           style={{
             marginBottom: '1.5rem',
             padding: '0.75rem 1rem',
-            backgroundColor: '#EBF8EE',
-            border: '1px solid #B8E3C8',
-            borderRadius: '6px',
+            backgroundColor: enterpriseTheme.colors.successSubtle,
+            border: `1px solid ${enterpriseTheme.colors.successBorder}`,
+            borderRadius: enterpriseTheme.radii.sm,
             display: 'flex',
             alignItems: 'center',
-            gap: '0.6rem',
-            color: '#107E3E',
-            fontSize: '0.9rem'
+            gap: '0.65rem',
+            color: enterpriseTheme.colors.success,
+            fontSize: '0.88rem'
           }}
         >
-          <CheckIcon size={18} color="#107E3E" />
+          <CheckIcon size={18} color={enterpriseTheme.colors.success} />
           <span>{saveSuccessMsg}</span>
         </div>
       )}
@@ -397,50 +451,120 @@ export const SkillsReviewPage: React.FC = () => {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
           gap: '1rem',
-          marginBottom: '2rem'
+          marginBottom: '1.75rem'
         }}
       >
-        <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #D9E1E8', borderRadius: '8px', padding: '1rem 1.25rem' }}>
-          <span style={{ fontSize: '0.8rem', color: '#5B6876', textTransform: 'uppercase', fontWeight: 600 }}>Total Identified</span>
-          <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#001A47', marginTop: '0.2rem' }}>{skills.length}</div>
+        <div style={{ backgroundColor: '#FFFFFF', border: `1px solid ${enterpriseTheme.colors.surfaceBorder}`, borderRadius: enterpriseTheme.radii.md, padding: '1rem 1.25rem', boxShadow: enterpriseTheme.shadows.card }}>
+          <span style={{ fontSize: '0.75rem', color: enterpriseTheme.colors.textMuted, textTransform: 'uppercase', fontWeight: 700 }}>Total Identified</span>
+          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: enterpriseTheme.colors.textPrimary, marginTop: '0.2rem' }}>{skills.length}</div>
         </div>
 
-        <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #D9E1E8', borderRadius: '8px', padding: '1rem 1.25rem' }}>
-          <span style={{ fontSize: '0.8rem', color: '#107E3E', textTransform: 'uppercase', fontWeight: 600 }}>Confirmed by You</span>
-          <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#107E3E', marginTop: '0.2rem' }}>{confirmedCount}</div>
+        <div style={{ backgroundColor: '#FFFFFF', border: `1px solid ${enterpriseTheme.colors.surfaceBorder}`, borderRadius: enterpriseTheme.radii.md, padding: '1rem 1.25rem', boxShadow: enterpriseTheme.shadows.card }}>
+          <span style={{ fontSize: '0.75rem', color: enterpriseTheme.colors.success, textTransform: 'uppercase', fontWeight: 700 }}>Confirmed Skills</span>
+          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: enterpriseTheme.colors.success, marginTop: '0.2rem' }}>{confirmedCount}</div>
         </div>
 
-        <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #D9E1E8', borderRadius: '8px', padding: '1rem 1.25rem' }}>
-          <span style={{ fontSize: '0.8rem', color: '#E9730C', textTransform: 'uppercase', fontWeight: 600 }}>Suggested / Pending</span>
-          <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#E9730C', marginTop: '0.2rem' }}>{suggestedCount}</div>
+        <div style={{ backgroundColor: '#FFFFFF', border: `1px solid ${enterpriseTheme.colors.surfaceBorder}`, borderRadius: enterpriseTheme.radii.md, padding: '1rem 1.25rem', boxShadow: enterpriseTheme.shadows.card }}>
+          <span style={{ fontSize: '0.75rem', color: enterpriseTheme.colors.warning, textTransform: 'uppercase', fontWeight: 700 }}>Pending Review</span>
+          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: enterpriseTheme.colors.warning, marginTop: '0.2rem' }}>{suggestedCount}</div>
         </div>
 
-        <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #D9E1E8', borderRadius: '8px', padding: '1rem 1.25rem' }}>
-          <span style={{ fontSize: '0.8rem', color: '#0A6ED1', textTransform: 'uppercase', fontWeight: 600 }}>Transferable Assets</span>
-          <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#0A6ED1', marginTop: '0.2rem' }}>
+        <div style={{ backgroundColor: '#FFFFFF', border: `1px solid ${enterpriseTheme.colors.surfaceBorder}`, borderRadius: enterpriseTheme.radii.md, padding: '1rem 1.25rem', boxShadow: enterpriseTheme.shadows.card }}>
+          <span style={{ fontSize: '0.75rem', color: enterpriseTheme.colors.primary, textTransform: 'uppercase', fontWeight: 700 }}>Transferable Assets</span>
+          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: enterpriseTheme.colors.primary, marginTop: '0.2rem' }}>
             {skills.filter((s) => s.isTransferable && s.isConfirmed).length}
           </div>
         </div>
 
         {rejectedCount > 0 && (
-          <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #D9E1E8', borderRadius: '8px', padding: '1rem 1.25rem' }}>
-            <span style={{ fontSize: '0.8rem', color: '#BB0000', textTransform: 'uppercase', fontWeight: 600 }}>Excluded</span>
-            <div style={{ fontSize: '1.8rem', fontWeight: 700, color: '#BB0000', marginTop: '0.2rem' }}>{rejectedCount}</div>
+          <div style={{ backgroundColor: '#FFFFFF', border: `1px solid ${enterpriseTheme.colors.surfaceBorder}`, borderRadius: enterpriseTheme.radii.md, padding: '1rem 1.25rem', boxShadow: enterpriseTheme.shadows.card }}>
+            <span style={{ fontSize: '0.75rem', color: enterpriseTheme.colors.critical, textTransform: 'uppercase', fontWeight: 700 }}>Excluded</span>
+            <div style={{ fontSize: '1.75rem', fontWeight: 800, color: enterpriseTheme.colors.critical, marginTop: '0.2rem' }}>{rejectedCount}</div>
           </div>
         )}
+      </div>
+
+      {/* Filter and Search Bar */}
+      <div
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '1rem',
+          backgroundColor: '#FFFFFF',
+          border: `1px solid ${enterpriseTheme.colors.surfaceBorder}`,
+          borderRadius: enterpriseTheme.radii.md,
+          padding: '0.85rem 1.25rem',
+          marginBottom: '1.5rem',
+          boxShadow: enterpriseTheme.shadows.card
+        }}
+      >
+        {/* Search Input */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: '240px', flex: 1 }}>
+          <SearchIcon size={16} color={enterpriseTheme.colors.textMuted} />
+          <input
+            type="text"
+            placeholder="Search competencies, tags, or evidence snippets..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{ width: '100%', border: 'none', padding: '0.25rem 0', outline: 'none', fontSize: '0.88rem' }}
+          />
+        </div>
+
+        {/* Category Filter Pills */}
+        <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+          {[
+            { label: 'All', value: 'ALL' },
+            { label: 'Business', value: 'DOMAIN_BUSINESS' },
+            { label: 'Functional', value: 'SAP_FUNCTIONAL' },
+            { label: 'Technical', value: 'SAP_TECHNICAL' },
+            { label: 'Software', value: 'SOFTWARE_DEV' },
+            { label: 'Analytics', value: 'DATA_ANALYTICS' },
+            { label: 'Soft Skills', value: 'TRANSFERABLE_SOFT' }
+          ].map((cat) => (
+            <button
+              key={cat.value}
+              onClick={() => setSelectedCategory(cat.value)}
+              style={{
+                padding: '0.25rem 0.65rem',
+                borderRadius: '4px',
+                fontSize: '0.78rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                border: `1px solid ${
+                  selectedCategory === cat.value
+                    ? enterpriseTheme.colors.primary
+                    : enterpriseTheme.colors.surfaceBorder
+                }`,
+                backgroundColor:
+                  selectedCategory === cat.value
+                    ? enterpriseTheme.colors.primarySubtle
+                    : '#FFFFFF',
+                color:
+                  selectedCategory === cat.value
+                    ? enterpriseTheme.colors.primary
+                    : enterpriseTheme.colors.textSecondary,
+                transition: 'all 0.15s ease'
+              }}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Skills Table Card or Empty State */}
       {skills.length === 0 ? (
         <Card title="No Competencies Found" subtitle="No skills have been extracted or added to this profile.">
           <div style={{ textAlign: 'center', padding: '3rem 1rem' }}>
-            <FileTextIcon size={48} color="#8492A0" />
-            <h3 style={{ fontSize: '1.25rem', color: '#001A47', marginTop: '1rem', marginBottom: '0.5rem' }}>
+            <FileTextIcon size={48} color={enterpriseTheme.colors.textMuted} />
+            <h3 style={{ fontSize: '1.25rem', color: enterpriseTheme.colors.textPrimary, marginTop: '1rem', marginBottom: '0.5rem', fontWeight: 700 }}>
               Your Competency Inventory is Empty
             </h3>
-            <p style={{ color: '#5B6876', maxWidth: '480px', margin: '0 auto 1.5rem', fontSize: '0.95rem' }}>
+            <p style={{ color: enterpriseTheme.colors.textSecondary, maxWidth: '480px', margin: '0 auto 1.5rem', fontSize: '0.92rem' }}>
               Upload an Adobe PDF or Word DOCX resume containing text to extract skills automatically, or add your competencies manually.
             </p>
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center' }}>
@@ -454,44 +578,52 @@ export const SkillsReviewPage: React.FC = () => {
           </div>
         </Card>
       ) : (
-        <Card
-          title="Competency Verification Table"
-          subtitle="Inspect each competency, check evidence from your resume, adjust proficiency, and confirm or reject."
-        >
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.9rem' }}>
-              <thead>
-                <tr style={{ borderBottom: '2px solid #EDF1F5', color: '#001A47' }}>
-                  <th style={{ padding: '0.75rem 1rem', minWidth: '220px' }}>Competency & Category</th>
-                  <th style={{ padding: '0.75rem 0.75rem' }}>Method</th>
-                  <th style={{ padding: '0.75rem 0.75rem' }}>Review Status</th>
-                  <th style={{ padding: '0.75rem 0.75rem', minWidth: '160px' }}>Calibrated Proficiency</th>
-                  <th style={{ padding: '0.75rem 0.75rem', minWidth: '90px' }}>Experience</th>
-                  <th style={{ padding: '0.75rem 1rem', minWidth: '280px' }}>Resume Evidence / Source</th>
-                  <th style={{ padding: '0.75rem 1rem', textAlign: 'right', minWidth: '150px' }}>Actions</th>
+        <div className="sap-table-container">
+          <table className="sap-table">
+            <thead>
+              <tr>
+                <th style={{ minWidth: '220px' }}>Competency & Category</th>
+                <th style={{ width: '110px' }}>Extraction</th>
+                <th style={{ width: '130px' }}>Review Status</th>
+                <th style={{ minWidth: '160px' }}>Calibrated Proficiency *</th>
+                <th style={{ width: '110px' }}>Experience</th>
+                <th style={{ minWidth: '260px' }}>Resume Source / Evidence</th>
+                <th style={{ textAlign: 'right', minWidth: '150px' }}>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredSkills.length === 0 ? (
+                <tr>
+                  <td colSpan={7} style={{ textAlign: 'center', padding: '2rem', color: enterpriseTheme.colors.textMuted }}>
+                    No competencies match your search or category filter.
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {skills.map((skill) => {
+              ) : (
+                filteredSkills.map((skill) => {
                   const isRejected = skill.reviewStatus === 'REJECTED';
 
                   return (
                     <tr
                       key={skill.id}
                       style={{
-                        borderBottom: '1px solid #EDF1F5',
                         backgroundColor: isRejected
-                          ? '#FCF2F2'
+                          ? enterpriseTheme.colors.criticalSubtle
                           : skill.isConfirmed
                           ? 'transparent'
-                          : '#FEFAF5',
-                        opacity: isRejected ? 0.65 : 1
+                          : '#FFFBF5',
+                        opacity: isRejected ? 0.6 : 1
                       }}
                     >
                       {/* Name & Category */}
-                      <td style={{ padding: '0.85rem 1rem' }}>
+                      <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                          <span style={{ fontWeight: 600, color: isRejected ? '#8492A0' : '#001A47', textDecoration: isRejected ? 'line-through' : 'none' }}>
+                          <span
+                            style={{
+                              fontWeight: 700,
+                              color: isRejected ? enterpriseTheme.colors.textMuted : enterpriseTheme.colors.textPrimary,
+                              textDecoration: isRejected ? 'line-through' : 'none'
+                            }}
+                          >
                             {skill.name}
                           </span>
                           <button
@@ -501,11 +633,11 @@ export const SkillsReviewPage: React.FC = () => {
                               border: 'none',
                               background: 'transparent',
                               cursor: 'pointer',
-                              color: '#8492A0',
+                              color: enterpriseTheme.colors.textMuted,
                               padding: '2px'
                             }}
                           >
-                            <EditIcon size={13} />
+                            <EditIcon size={12} />
                           </button>
                         </div>
                         <div style={{ display: 'flex', gap: '0.35rem', marginTop: '0.25rem', flexWrap: 'wrap' }}>
@@ -521,14 +653,14 @@ export const SkillsReviewPage: React.FC = () => {
                       </td>
 
                       {/* Extraction Method */}
-                      <td style={{ padding: '0.85rem 0.75rem', whiteSpace: 'nowrap' }}>
+                      <td style={{ whiteSpace: 'nowrap' }}>
                         {skill.extractionMethod === 'EXPLICIT_MENTION' ? (
                           <Badge variant="info" size="sm">
                             Direct Mention
                           </Badge>
                         ) : skill.extractionMethod === 'CONTEXTUAL_INFERENCE' ? (
                           <Badge variant="purple" size="sm">
-                            Contextual
+                            Inferred
                           </Badge>
                         ) : (
                           <Badge variant="neutral" size="sm">
@@ -538,20 +670,31 @@ export const SkillsReviewPage: React.FC = () => {
                       </td>
 
                       {/* Review Status Badge */}
-                      <td style={{ padding: '0.85rem 0.75rem', whiteSpace: 'nowrap' }}>
+                      <td style={{ whiteSpace: 'nowrap' }}>
                         {skill.isConfirmed ? (
                           <Badge variant="success">Confirmed</Badge>
                         ) : isRejected ? (
                           <Badge variant="critical">Rejected</Badge>
                         ) : (
-                          <Badge variant="warning">
-                            Suggested ({Math.round(skill.confidenceScore * 100)}%)
-                          </Badge>
+                          <div style={{ display: 'inline-flex', flexDirection: 'column', gap: '0.2rem' }}>
+                            <Badge variant="warning">
+                              Suggested ({Math.round(skill.confidenceScore * 100)}%)
+                            </Badge>
+                            <div style={{ width: '60px', height: '3px', backgroundColor: '#EDF1F5', borderRadius: '2px', overflow: 'hidden' }}>
+                              <div
+                                style={{
+                                  width: `${Math.round(skill.confidenceScore * 100)}%`,
+                                  height: '100%',
+                                  backgroundColor: enterpriseTheme.colors.warning
+                                }}
+                              />
+                            </div>
+                          </div>
                         )}
                       </td>
 
                       {/* Proficiency Level Select */}
-                      <td style={{ padding: '0.85rem 0.75rem' }}>
+                      <td>
                         <select
                           value={skill.proficiency || ''}
                           disabled={isRejected}
@@ -560,12 +703,12 @@ export const SkillsReviewPage: React.FC = () => {
                             setSaveError(null);
                           }}
                           style={{
-                            fontSize: '0.85rem',
+                            fontSize: '0.84rem',
                             padding: '0.35rem 0.5rem',
                             borderRadius: '4px',
-                            border: '1px solid #D9E1E8',
+                            border: `1px solid ${!skill.proficiency && skill.isConfirmed ? enterpriseTheme.colors.critical : enterpriseTheme.colors.surfaceBorder}`,
                             width: '100%',
-                            color: skill.proficiency ? '#001A47' : '#8492A0'
+                            color: skill.proficiency ? enterpriseTheme.colors.textPrimary : enterpriseTheme.colors.textMuted
                           }}
                         >
                           <option value="" disabled>Select Level...</option>
@@ -577,7 +720,7 @@ export const SkillsReviewPage: React.FC = () => {
                       </td>
 
                       {/* Years */}
-                      <td style={{ padding: '0.85rem 0.75rem' }}>
+                      <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                           <input
                             type="number"
@@ -591,34 +734,34 @@ export const SkillsReviewPage: React.FC = () => {
                             style={{
                               width: '55px',
                               padding: '0.3rem 0.4rem',
-                              fontSize: '0.85rem',
-                              border: '1px solid #D9E1E8',
+                              fontSize: '0.84rem',
+                              border: `1px solid ${enterpriseTheme.colors.surfaceBorder}`,
                               borderRadius: '4px'
                             }}
                           />
-                          <span style={{ fontSize: '0.8rem', color: '#5B6876' }}>yrs</span>
+                          <span style={{ fontSize: '0.78rem', color: enterpriseTheme.colors.textMuted }}>yrs</span>
                         </div>
                       </td>
 
                       {/* Evidence Snippet */}
-                      <td style={{ padding: '0.85rem 1rem', maxWidth: '340px', color: '#5B6876', fontSize: '0.82rem' }}>
+                      <td style={{ maxWidth: '340px', color: enterpriseTheme.colors.textSecondary, fontSize: '0.82rem' }}>
                         {skill.evidenceSnippet ? (
                           <span title={skill.evidenceSnippet} style={{ fontStyle: 'italic', display: 'block', maxHeight: '42px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             "{skill.evidenceSnippet}"
                           </span>
                         ) : (
-                          <span style={{ color: '#8492A0' }}>Manual addition by candidate</span>
+                          <span style={{ color: enterpriseTheme.colors.textMuted }}>Manual addition by candidate</span>
                         )}
                       </td>
 
                       {/* Actions */}
-                      <td style={{ padding: '0.85rem 1rem', textAlign: 'right', whiteSpace: 'nowrap' }}>
+                      <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                         <div style={{ display: 'inline-flex', gap: '0.4rem' }}>
                           {!skill.isConfirmed ? (
                             <Button
                               variant="primary"
                               size="sm"
-                              icon={<CheckIcon size={14} />}
+                              icon={<CheckIcon size={13} />}
                               onClick={() => {
                                 if (!skill.proficiency) {
                                   setSaveError(
@@ -647,7 +790,7 @@ export const SkillsReviewPage: React.FC = () => {
                           <Button
                             variant="ghost"
                             size="sm"
-                            icon={<TrashIcon size={14} color="#BB0000" />}
+                            icon={<TrashIcon size={14} color={enterpriseTheme.colors.critical} />}
                             onClick={() => rejectSkill(skill.id)}
                             title="Exclude competency"
                           />
@@ -655,17 +798,17 @@ export const SkillsReviewPage: React.FC = () => {
                       </td>
                     </tr>
                   );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {/* Navigation Footer */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <Button variant="ghost" icon={<ArrowLeftIcon size={16} />} onClick={() => navigate('/profile')}>
-          Back to Background Intake
+          Back to Profile Intake
         </Button>
         <Button
           variant="primary"
@@ -687,7 +830,7 @@ export const SkillsReviewPage: React.FC = () => {
       >
         <form onSubmit={handleCreateSkill}>
           <div style={{ marginBottom: '1.25rem' }}>
-            <label style={{ display: 'block', fontWeight: 600, fontSize: '0.875rem', marginBottom: '0.4rem', color: '#001A47' }}>
+            <label style={{ display: 'block', fontWeight: 600, fontSize: '0.86rem', marginBottom: '0.4rem', color: enterpriseTheme.colors.textPrimary }}>
               Competency Name *
             </label>
             <input
@@ -702,7 +845,7 @@ export const SkillsReviewPage: React.FC = () => {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
             <div>
-              <label style={{ display: 'block', fontWeight: 600, fontSize: '0.875rem', marginBottom: '0.4rem', color: '#001A47' }}>
+              <label style={{ display: 'block', fontWeight: 600, fontSize: '0.86rem', marginBottom: '0.4rem', color: enterpriseTheme.colors.textPrimary }}>
                 Category
               </label>
               <select
@@ -720,7 +863,7 @@ export const SkillsReviewPage: React.FC = () => {
             </div>
 
             <div>
-              <label style={{ display: 'block', fontWeight: 600, fontSize: '0.875rem', marginBottom: '0.4rem', color: '#001A47' }}>
+              <label style={{ display: 'block', fontWeight: 600, fontSize: '0.86rem', marginBottom: '0.4rem', color: enterpriseTheme.colors.textPrimary }}>
                 Calibrated Proficiency
               </label>
               <select
@@ -738,7 +881,7 @@ export const SkillsReviewPage: React.FC = () => {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem' }}>
             <div>
-              <label style={{ display: 'block', fontWeight: 600, fontSize: '0.875rem', marginBottom: '0.4rem', color: '#001A47' }}>
+              <label style={{ display: 'block', fontWeight: 600, fontSize: '0.86rem', marginBottom: '0.4rem', color: enterpriseTheme.colors.textPrimary }}>
                 Years of Experience
               </label>
               <input
@@ -752,7 +895,7 @@ export const SkillsReviewPage: React.FC = () => {
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', marginTop: '1.5rem' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.9rem' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '0.88rem' }}>
                 <input
                   type="checkbox"
                   checked={newSkillTransferable}
@@ -763,8 +906,8 @@ export const SkillsReviewPage: React.FC = () => {
             </div>
           </div>
 
-          <div style={{ borderTop: '1px solid #EDF1F5', paddingTop: '1rem', marginBottom: '1.5rem' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#5B6876', textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>
+          <div style={{ borderTop: `1px solid ${enterpriseTheme.colors.surfaceBorder}`, paddingTop: '1rem', marginBottom: '1.5rem' }}>
+            <span style={{ fontSize: '0.78rem', fontWeight: 700, color: enterpriseTheme.colors.textMuted, textTransform: 'uppercase', display: 'block', marginBottom: '0.5rem' }}>
               Or quick-pick from standard catalogue:
             </span>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', maxHeight: '120px', overflowY: 'auto' }}>
@@ -774,12 +917,12 @@ export const SkillsReviewPage: React.FC = () => {
                   type="button"
                   onClick={() => handleSelectFromCatalogue(item)}
                   style={{
-                    backgroundColor: '#F5F6F7',
-                    border: '1px solid #D9E1E8',
+                    backgroundColor: enterpriseTheme.colors.canvas,
+                    border: `1px solid ${enterpriseTheme.colors.surfaceBorder}`,
                     padding: '0.3rem 0.6rem',
                     borderRadius: '4px',
-                    fontSize: '0.8rem',
-                    color: '#222B35',
+                    fontSize: '0.78rem',
+                    color: enterpriseTheme.colors.textPrimary,
                     cursor: 'pointer'
                   }}
                 >
@@ -809,7 +952,7 @@ export const SkillsReviewPage: React.FC = () => {
         >
           <form onSubmit={handleSaveEdit}>
             <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', fontWeight: 600, fontSize: '0.875rem', marginBottom: '0.4rem', color: '#001A47' }}>
+              <label style={{ display: 'block', fontWeight: 600, fontSize: '0.86rem', marginBottom: '0.4rem', color: enterpriseTheme.colors.textPrimary }}>
                 Competency Name
               </label>
               <input
@@ -819,7 +962,7 @@ export const SkillsReviewPage: React.FC = () => {
                 style={{ width: '100%' }}
                 autoFocus
               />
-              <span style={{ fontSize: '0.8rem', color: '#5B6876', marginTop: '0.35rem', display: 'block' }}>
+              <span style={{ fontSize: '0.78rem', color: enterpriseTheme.colors.textMuted, marginTop: '0.35rem', display: 'block' }}>
                 Original Extracted Code: <code>{editingSkill.code}</code>
               </span>
             </div>

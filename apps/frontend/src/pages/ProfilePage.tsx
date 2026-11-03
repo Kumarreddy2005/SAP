@@ -1,13 +1,19 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Breadcrumbs } from '../components/common/Breadcrumbs';
-import { StepIndicator } from '../components/common/StepIndicator';
 import { Card } from '../components/common/Card';
 import { Button } from '../components/common/Button';
 import { Badge } from '../components/common/Badge';
-import { UploadCloudIcon, CheckIcon, ArrowRightIcon, AlertTriangleIcon, FileTextIcon } from '../components/common/Icons';
+import {
+  UploadCloudIcon,
+  CheckIcon,
+  ArrowRightIcon,
+  AlertTriangleIcon,
+  FileTextIcon
+} from '../components/common/Icons';
 import { useCareerContext } from '../context/CareerContext';
 import { ResumeUploadResponse } from '@career-orchestrator/shared';
+import { enterpriseTheme } from '../theme/tokens';
 
 export const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
@@ -18,6 +24,7 @@ export const ProfilePage: React.FC = () => {
     handleUploadSuccess,
     sessionResetToken,
     sessionGeneration,
+    sessionMode,
     loadDemoBaseline
   } = useCareerContext();
 
@@ -32,6 +39,7 @@ export const ProfilePage: React.FC = () => {
   const [dragActive, setDragActive] = useState(false);
   const [selectedFileObj, setSelectedFileObj] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadStage, setUploadStage] = useState<'idle' | 'reading' | 'extracting' | 'complete'>('idle');
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadWarning, setUploadWarning] = useState<string | null>(null);
   const [uploadSuccessData, setUploadSuccessData] = useState<ResumeUploadResponse | null>(null);
@@ -47,6 +55,7 @@ export const ProfilePage: React.FC = () => {
     setUploadSuccessData(null);
     setFormErrors({});
     setIsUploading(false);
+    setUploadStage('idle');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -81,6 +90,7 @@ export const ProfilePage: React.FC = () => {
     setUploadError(null);
     setUploadWarning(null);
     setUploadSuccessData(null);
+    setUploadStage('idle');
 
     const validExtensions = ['.pdf', '.docx'];
     const hasValidExt = validExtensions.some((ext) => file.name.toLowerCase().endsWith(ext));
@@ -111,12 +121,18 @@ export const ProfilePage: React.FC = () => {
 
     const curGen = sessionGenRef.current;
     setIsUploading(true);
+    setUploadStage('reading');
     setUploadError(null);
     setUploadWarning(null);
 
     try {
       const formData = new FormData();
       formData.append('file', selectedFileObj);
+
+      // Transition animation state
+      setTimeout(() => {
+        if (curGen === sessionGenRef.current) setUploadStage('extracting');
+      }, 350);
 
       const response = await fetch('/api/v1/resume/upload', {
         method: 'POST',
@@ -135,6 +151,7 @@ export const ProfilePage: React.FC = () => {
       }
 
       const uploadResult = data as ResumeUploadResponse;
+      setUploadStage('complete');
       setUploadSuccessData(uploadResult);
       handleUploadSuccess(uploadResult);
 
@@ -154,6 +171,7 @@ export const ProfilePage: React.FC = () => {
       }
     } catch (err: unknown) {
       if (curGen !== sessionGenRef.current) return;
+      setUploadStage('idle');
       const message = err instanceof Error ? err.message : 'Upload failed. Please try again.';
       setUploadError(message);
     } finally {
@@ -184,16 +202,20 @@ export const ProfilePage: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: '2rem 1.5rem', maxWidth: '1280px', margin: '0 auto' }}>
+    <div style={{ padding: '2rem 1.5rem', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
       <Breadcrumbs items={[{ label: 'Background Intake' }]} />
-      <StepIndicator currentStepId="profile" />
 
-      <div style={{ marginBottom: '1.5rem' }}>
-        <h1 style={{ fontSize: '2rem', fontWeight: 700, color: '#001A47', marginBottom: '0.5rem' }}>
-          Candidate Background Intake
-        </h1>
-        <p style={{ color: '#5B6876', fontSize: '1.05rem', maxWidth: '800px' }}>
-          Provide your professional background to discover transferable skills. Upload your resume for automated competency extraction or enter your experience history manually.
+      <div style={{ marginBottom: '1.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.4rem', flexWrap: 'wrap' }}>
+          <h1 style={{ fontSize: '1.85rem', fontWeight: 800, color: enterpriseTheme.colors.textPrimary, margin: 0 }}>
+            Candidate Profile Intake
+          </h1>
+          <Badge variant={sessionMode === 'DEMO' ? 'info' : sessionMode === 'REAL_PROFILE' ? 'success' : 'warning'}>
+            Stage 1 of 8
+          </Badge>
+        </div>
+        <p style={{ color: enterpriseTheme.colors.textSecondary, fontSize: '0.98rem', maxWidth: '820px', lineHeight: 1.5 }}>
+          Provide your professional background to discover transferable skills. Upload your resume for automated competency extraction or enter your work history manually.
         </p>
       </div>
 
@@ -203,11 +225,12 @@ export const ProfilePage: React.FC = () => {
           display: 'flex',
           alignItems: 'center',
           gap: '0.75rem',
-          padding: '0.75rem 1.25rem',
-          borderRadius: '8px',
-          backgroundColor: '#EBF3FB',
-          border: '1px solid #C4D5EA',
-          marginBottom: '1.75rem'
+          padding: '0.85rem 1.25rem',
+          borderRadius: enterpriseTheme.radii.md,
+          backgroundColor: '#FFFFFF',
+          border: `1px solid ${enterpriseTheme.colors.surfaceBorder}`,
+          boxShadow: enterpriseTheme.shadows.card,
+          marginBottom: '2rem'
         }}
       >
         <span
@@ -216,11 +239,12 @@ export const ProfilePage: React.FC = () => {
             width: '10px',
             height: '10px',
             borderRadius: '50%',
-            backgroundColor: '#107E3E'
+            backgroundColor: enterpriseTheme.colors.success,
+            flexShrink: 0
           }}
         />
-        <div style={{ fontSize: '0.875rem', color: '#001A47' }}>
-          <strong>Live Extraction Pipeline:</strong> Documents are securely parsed in-memory using Mozilla PDF.js & Mammoth DOCX engines. Matches candidate competencies across 9 functional categories.
+        <div style={{ fontSize: '0.86rem', color: enterpriseTheme.colors.textPrimary, lineHeight: 1.4 }}>
+          <strong>In-Memory Extraction Architecture:</strong> Documents are securely parsed in-memory using Mozilla PDF.js & Mammoth DOCX parsers. Extracted competencies map across 9 functional categories without third-party data transmission.
         </div>
       </div>
 
@@ -229,7 +253,7 @@ export const ProfilePage: React.FC = () => {
         style={{
           display: 'flex',
           gap: '0.5rem',
-          borderBottom: '2px solid #EDF1F5',
+          borderBottom: `2px solid ${enterpriseTheme.colors.surfaceBorder}`,
           marginBottom: '2rem'
         }}
       >
@@ -237,13 +261,14 @@ export const ProfilePage: React.FC = () => {
           onClick={() => setActiveTab('upload')}
           style={{
             padding: '0.75rem 1.5rem',
-            fontWeight: 600,
-            fontSize: '1rem',
-            color: activeTab === 'upload' ? '#0A6ED1' : '#5B6876',
-            borderBottom: activeTab === 'upload' ? '3px solid #0A6ED1' : '3px solid transparent',
+            fontWeight: 700,
+            fontSize: '0.95rem',
+            color: activeTab === 'upload' ? enterpriseTheme.colors.primary : enterpriseTheme.colors.textSecondary,
+            borderBottom: activeTab === 'upload' ? `3px solid ${enterpriseTheme.colors.primary}` : '3px solid transparent',
             marginBottom: '-2px',
             backgroundColor: 'transparent',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            transition: 'all 0.15s ease'
           }}
         >
           Option A: Upload Resume (.PDF / .DOCX)
@@ -252,25 +277,26 @@ export const ProfilePage: React.FC = () => {
           onClick={() => setActiveTab('manual')}
           style={{
             padding: '0.75rem 1.5rem',
-            fontWeight: 600,
-            fontSize: '1rem',
-            color: activeTab === 'manual' ? '#0A6ED1' : '#5B6876',
-            borderBottom: activeTab === 'manual' ? '3px solid #0A6ED1' : '3px solid transparent',
+            fontWeight: 700,
+            fontSize: '0.95rem',
+            color: activeTab === 'manual' ? enterpriseTheme.colors.primary : enterpriseTheme.colors.textSecondary,
+            borderBottom: activeTab === 'manual' ? `3px solid ${enterpriseTheme.colors.primary}` : '3px solid transparent',
             marginBottom: '-2px',
             backgroundColor: 'transparent',
-            cursor: 'pointer'
+            cursor: 'pointer',
+            transition: 'all 0.15s ease'
           }}
         >
-          Option B: Manual Work History Entry
+          Option B: Manual Experience Entry
         </button>
       </div>
 
       {activeTab === 'upload' ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '2rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))', gap: '2rem' }}>
           {/* Upload Dropzone Card */}
           <Card
             title="Resume Document Upload"
-            subtitle="Accepted formats: Adobe PDF (.pdf) and Microsoft Word (.docx)"
+            subtitle="Drag and drop or browse local files"
           >
             <div
               onDragEnter={handleDrag}
@@ -278,9 +304,19 @@ export const ProfilePage: React.FC = () => {
               onDragOver={handleDrag}
               onDrop={handleDrop}
               style={{
-                border: `2px dashed ${dragActive ? '#0A6ED1' : selectedFileObj ? '#107E3E' : '#C4D5EA'}`,
-                backgroundColor: dragActive ? '#EBF3FB' : selectedFileObj ? '#F3FAF6' : '#FAFBFD',
-                borderRadius: '8px',
+                border: `2px dashed ${
+                  dragActive
+                    ? enterpriseTheme.colors.primary
+                    : selectedFileObj
+                    ? enterpriseTheme.colors.success
+                    : enterpriseTheme.colors.surfaceBorderStrong
+                }`,
+                backgroundColor: dragActive
+                  ? enterpriseTheme.colors.primarySubtle
+                  : selectedFileObj
+                  ? enterpriseTheme.colors.successSubtle
+                  : '#FAFCFE',
+                borderRadius: enterpriseTheme.radii.md,
                 padding: '2.5rem 1.5rem',
                 textAlign: 'center',
                 transition: 'all 0.2s ease',
@@ -291,42 +327,60 @@ export const ProfilePage: React.FC = () => {
                 gap: '1rem'
               }}
             >
-              <div style={{ color: selectedFileObj ? '#107E3E' : '#0A6ED1' }}>
-                <UploadCloudIcon size={48} />
+              <div
+                style={{
+                  color: selectedFileObj ? enterpriseTheme.colors.success : enterpriseTheme.colors.primary,
+                  backgroundColor: selectedFileObj ? '#FFFFFF' : enterpriseTheme.colors.primarySubtle,
+                  width: '64px',
+                  height: '64px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 2px 6px rgba(0, 26, 71, 0.06)'
+                }}
+              >
+                <UploadCloudIcon size={32} />
               </div>
 
               <div>
-                <h4 style={{ fontSize: '1.15rem', color: '#001A47', marginBottom: '0.35rem' }}>
+                <h4 style={{ fontSize: '1.15rem', color: enterpriseTheme.colors.textPrimary, fontWeight: 700, marginBottom: '0.35rem' }}>
                   {selectedFileObj ? 'Document Selected & Ready' : 'Drag & drop your resume file here'}
                 </h4>
-                <p style={{ color: '#5B6876', fontSize: '0.9rem' }}>
-                  Supports PDF or DOCX up to 10MB in size
+                <p style={{ color: enterpriseTheme.colors.textSecondary, fontSize: '0.88rem' }}>
+                  Supported formats: Adobe PDF (.pdf) or Word document (.docx)
                 </p>
+                <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center', marginTop: '0.65rem' }}>
+                  <Badge variant="neutral" size="sm">PDF / DOCX</Badge>
+                  <Badge variant="neutral" size="sm">Max 10MB</Badge>
+                  <Badge variant="neutral" size="sm">In-Memory Only</Badge>
+                </div>
               </div>
 
               {selectedFileObj && (
                 <div
                   style={{
                     backgroundColor: '#FFFFFF',
-                    border: '1px solid #B8E3C8',
+                    border: `1px solid ${enterpriseTheme.colors.successBorder}`,
                     padding: '0.75rem 1.25rem',
-                    borderRadius: '6px',
+                    borderRadius: enterpriseTheme.radii.sm,
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.6rem'
+                    gap: '0.75rem',
+                    boxShadow: '0 1px 3px rgba(0, 26, 71, 0.05)'
                   }}
                 >
-                  <FileTextIcon color="#107E3E" size={20} />
+                  <FileTextIcon color={enterpriseTheme.colors.success} size={22} />
                   <div style={{ textAlign: 'left' }}>
-                    <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#001A47' }}>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 700, color: enterpriseTheme.colors.textPrimary }}>
                       {selectedFileObj.name}
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: '#5B6876' }}>
+                    <div style={{ fontSize: '0.75rem', color: enterpriseTheme.colors.textSecondary }}>
                       {(selectedFileObj.size / 1024).toFixed(1)} KB • {selectedFileObj.name.endsWith('.docx') ? 'DOCX Document' : 'PDF Document'}
                     </div>
                   </div>
                   <Badge variant="success" size="sm">
-                    Staged
+                    Ready to Extract
                   </Badge>
                 </div>
               )}
@@ -346,13 +400,14 @@ export const ProfilePage: React.FC = () => {
                     style={{
                       display: 'inline-block',
                       backgroundColor: '#FFFFFF',
-                      color: '#0A6ED1',
-                      border: '1px solid #0A6ED1',
+                      color: enterpriseTheme.colors.primary,
+                      border: `1px solid ${enterpriseTheme.colors.primaryBorder}`,
                       padding: '0.5rem 1.25rem',
-                      borderRadius: '6px',
+                      borderRadius: enterpriseTheme.radii.sm,
                       fontWeight: 600,
-                      fontSize: '0.9rem',
-                      cursor: isUploading ? 'not-allowed' : 'pointer'
+                      fontSize: '0.88rem',
+                      cursor: isUploading ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.15s ease'
                     }}
                   >
                     {selectedFileObj ? 'Select Different File' : 'Browse Local Files'}
@@ -361,23 +416,56 @@ export const ProfilePage: React.FC = () => {
               </div>
             </div>
 
+            {/* In-Flight Multi-Stage Extraction Feedback */}
+            {isUploading && (
+              <div
+                style={{
+                  marginTop: '1.25rem',
+                  padding: '1rem 1.25rem',
+                  backgroundColor: enterpriseTheme.colors.primarySubtle,
+                  border: `1px solid ${enterpriseTheme.colors.primaryBorder}`,
+                  borderRadius: enterpriseTheme.radii.sm
+                }}
+                className="animate-fade-in"
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: enterpriseTheme.colors.primary }}>
+                    {uploadStage === 'reading' && 'Stage 1/2: Parsing document text layer in-memory...'}
+                    {uploadStage === 'extracting' && 'Stage 2/2: Mapping candidate competencies to taxonomy...'}
+                    {uploadStage === 'complete' && 'Extraction complete! Calibrating review...'}
+                  </span>
+                  <span style={{ fontSize: '0.75rem', color: enterpriseTheme.colors.textMuted }}>Processing</span>
+                </div>
+                <div style={{ height: '6px', width: '100%', backgroundColor: '#D9E8F8', borderRadius: '3px', overflow: 'hidden' }}>
+                  <div
+                    style={{
+                      height: '100%',
+                      width: uploadStage === 'reading' ? '45%' : uploadStage === 'extracting' ? '85%' : '100%',
+                      backgroundColor: enterpriseTheme.colors.primary,
+                      transition: 'width 0.4s ease'
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
             {/* Error Message */}
             {uploadError && (
               <div
                 style={{
                   marginTop: '1.25rem',
                   padding: '1rem',
-                  backgroundColor: '#FDEDED',
-                  border: '1px solid #F5B7B1',
-                  borderRadius: '6px',
+                  backgroundColor: enterpriseTheme.colors.criticalSubtle,
+                  border: `1px solid ${enterpriseTheme.colors.criticalBorder}`,
+                  borderRadius: enterpriseTheme.radii.sm,
                   display: 'flex',
                   alignItems: 'flex-start',
                   gap: '0.75rem',
-                  color: '#BB0000',
-                  fontSize: '0.9rem'
+                  color: enterpriseTheme.colors.critical,
+                  fontSize: '0.88rem'
                 }}
               >
-                <AlertTriangleIcon size={20} color="#BB0000" />
+                <AlertTriangleIcon size={20} color={enterpriseTheme.colors.critical} />
                 <div style={{ flex: 1 }}>
                   <strong>Upload / Parsing Error:</strong> {uploadError}
                 </div>
@@ -386,10 +474,10 @@ export const ProfilePage: React.FC = () => {
                   style={{
                     backgroundColor: 'transparent',
                     border: 'none',
-                    color: '#BB0000',
+                    color: enterpriseTheme.colors.critical,
                     cursor: 'pointer',
                     fontWeight: 600,
-                    fontSize: '0.85rem'
+                    fontSize: '0.82rem'
                   }}
                 >
                   Dismiss
@@ -403,17 +491,17 @@ export const ProfilePage: React.FC = () => {
                 style={{
                   marginTop: '1.25rem',
                   padding: '1rem',
-                  backgroundColor: '#FFF4E5',
-                  border: '1px solid #FFD099',
-                  borderRadius: '6px',
+                  backgroundColor: enterpriseTheme.colors.warningSubtle,
+                  border: `1px solid ${enterpriseTheme.colors.warningBorder}`,
+                  borderRadius: enterpriseTheme.radii.sm,
                   display: 'flex',
                   alignItems: 'flex-start',
                   gap: '0.75rem',
-                  color: '#A05000',
-                  fontSize: '0.875rem'
+                  color: enterpriseTheme.colors.warning,
+                  fontSize: '0.88rem'
                 }}
               >
-                <AlertTriangleIcon size={20} color="#E9730C" />
+                <AlertTriangleIcon size={20} color={enterpriseTheme.colors.warning} />
                 <div style={{ flex: 1 }}>
                   <strong>Extraction Advisory:</strong> {uploadWarning}
                   <div style={{ marginTop: '0.5rem' }}>
@@ -435,17 +523,17 @@ export const ProfilePage: React.FC = () => {
                 style={{
                   marginTop: '1.25rem',
                   padding: '0.9rem 1rem',
-                  backgroundColor: '#EBF8EE',
-                  border: '1px solid #B8E3C8',
-                  borderRadius: '6px',
+                  backgroundColor: enterpriseTheme.colors.successSubtle,
+                  border: `1px solid ${enterpriseTheme.colors.successBorder}`,
+                  borderRadius: enterpriseTheme.radii.sm,
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.6rem',
-                  fontSize: '0.9rem',
-                  color: '#107E3E'
+                  gap: '0.65rem',
+                  fontSize: '0.88rem',
+                  color: enterpriseTheme.colors.success
                 }}
               >
-                <CheckIcon size={18} color="#107E3E" />
+                <CheckIcon size={18} color={enterpriseTheme.colors.success} />
                 <span>
                   Extracted {uploadSuccessData.extractedTextPreview.length} characters and identified <strong>{uploadSuccessData.suggestedSkills.length} candidate competencies</strong>. Redirecting to review...
                 </span>
@@ -462,15 +550,15 @@ export const ProfilePage: React.FC = () => {
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: '#0A6ED1',
-                  fontSize: '0.85rem',
-                  fontWeight: 500,
+                  color: enterpriseTheme.colors.primary,
+                  fontSize: '0.84rem',
+                  fontWeight: 600,
                   cursor: 'pointer',
                   textDecoration: 'underline',
                   padding: 0
                 }}
               >
-                Or load Alex Vance Demo Profile for Hackathon Presentation
+                Or load Alex Vance Demo Profile for Presentation
               </button>
 
               <Button
@@ -481,37 +569,37 @@ export const ProfilePage: React.FC = () => {
                 icon={isUploading ? undefined : <ArrowRightIcon size={16} />}
                 iconPosition="right"
               >
-                {isUploading ? 'Extracting Competencies...' : 'Extract & Review Competencies'}
+                {isUploading ? 'Extracting...' : 'Extract & Review Skills'}
               </Button>
             </div>
           </Card>
 
           {/* Quick Start / Guidance Card */}
-          <Card title="Extraction & Privacy Standards" subtitle="How your data is handled">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', fontSize: '0.9rem', color: '#5B6876', lineHeight: 1.5 }}>
+          <Card title="Extraction & Privacy Standards" subtitle="Transparent candidate data handling">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', fontSize: '0.88rem', color: enterpriseTheme.colors.textSecondary, lineHeight: 1.55 }}>
               <div>
-                <strong style={{ color: '#001A47', display: 'block', marginBottom: '0.25rem' }}>
+                <strong style={{ color: enterpriseTheme.colors.textPrimary, display: 'block', marginBottom: '0.25rem' }}>
                   1. Zero Data Sharing & Non-Durable In-Memory Processing
                 </strong>
                 Uploaded documents are processed strictly in server memory and discarded immediately. No resume text is saved to public URLs or persistent storage.
               </div>
               <div>
-                <strong style={{ color: '#001A47', display: 'block', marginBottom: '0.25rem' }}>
+                <strong style={{ color: enterpriseTheme.colors.textPrimary, display: 'block', marginBottom: '0.25rem' }}>
                   2. Human-in-the-Loop Verification
                 </strong>
                 No extracted skill is final until you review and confirm it. On the next screen, you inspect each candidate competency, verify evidence snippets, calibrate proficiencies, or reject items.
               </div>
               <div>
-                <strong style={{ color: '#001A47', display: 'block', marginBottom: '0.25rem' }}>
+                <strong style={{ color: enterpriseTheme.colors.textPrimary, display: 'block', marginBottom: '0.25rem' }}>
                   3. Scanned PDF & OCR Notice
                 </strong>
                 Documents must contain a readable text layer. Scanned photo PDFs without embedded text cannot be extracted automatically because OCR is not enabled on this host.
               </div>
               <div>
-                <strong style={{ color: '#001A47', display: 'block', marginBottom: '0.25rem' }}>
+                <strong style={{ color: enterpriseTheme.colors.textPrimary, display: 'block', marginBottom: '0.25rem' }}>
                   4. Don't Have a Resume Ready?
                 </strong>
-                Switch to the <em>Option B: Manual Work History Entry</em> tab to enter your role and experience points directly.
+                Switch to the <em>Option B: Manual Experience Entry</em> tab to enter your role and experience points directly.
               </div>
             </div>
           </Card>
@@ -522,7 +610,7 @@ export const ProfilePage: React.FC = () => {
           <form onSubmit={handleManualSubmit}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
               <div>
-                <label style={{ display: 'block', fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.4rem', color: '#001A47' }}>
+                <label style={{ display: 'block', fontWeight: 600, fontSize: '0.88rem', marginBottom: '0.4rem', color: enterpriseTheme.colors.textPrimary }}>
                   Full Name *
                 </label>
                 <input
@@ -533,14 +621,14 @@ export const ProfilePage: React.FC = () => {
                   style={{ width: '100%' }}
                 />
                 {formErrors.fullName && (
-                  <span style={{ color: '#BB0000', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
+                  <span style={{ color: enterpriseTheme.colors.critical, fontSize: '0.78rem', marginTop: '0.25rem', display: 'block' }}>
                     {formErrors.fullName}
                   </span>
                 )}
               </div>
 
               <div>
-                <label style={{ display: 'block', fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.4rem', color: '#001A47' }}>
+                <label style={{ display: 'block', fontWeight: 600, fontSize: '0.88rem', marginBottom: '0.4rem', color: enterpriseTheme.colors.textPrimary }}>
                   Current Role / Background Title *
                 </label>
                 <input
@@ -551,14 +639,14 @@ export const ProfilePage: React.FC = () => {
                   style={{ width: '100%' }}
                 />
                 {formErrors.currentTitle && (
-                  <span style={{ color: '#BB0000', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
+                  <span style={{ color: enterpriseTheme.colors.critical, fontSize: '0.78rem', marginTop: '0.25rem', display: 'block' }}>
                     {formErrors.currentTitle}
                   </span>
                 )}
               </div>
 
               <div>
-                <label style={{ display: 'block', fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.4rem', color: '#001A47' }}>
+                <label style={{ display: 'block', fontWeight: 600, fontSize: '0.88rem', marginBottom: '0.4rem', color: enterpriseTheme.colors.textPrimary }}>
                   Total Relevant Experience (Years) *
                 </label>
                 <input
@@ -570,14 +658,14 @@ export const ProfilePage: React.FC = () => {
                   style={{ width: '100%' }}
                 />
                 {formErrors.yearsExperience && (
-                  <span style={{ color: '#BB0000', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
+                  <span style={{ color: enterpriseTheme.colors.critical, fontSize: '0.78rem', marginTop: '0.25rem', display: 'block' }}>
                     {formErrors.yearsExperience}
                   </span>
                 )}
               </div>
 
               <div>
-                <label style={{ display: 'block', fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.4rem', color: '#001A47' }}>
+                <label style={{ display: 'block', fontWeight: 600, fontSize: '0.88rem', marginBottom: '0.4rem', color: enterpriseTheme.colors.textPrimary }}>
                   Highest Education / Degree
                 </label>
                 <input
@@ -591,7 +679,7 @@ export const ProfilePage: React.FC = () => {
             </div>
 
             <div style={{ marginBottom: '2rem' }}>
-              <label style={{ display: 'block', fontWeight: 600, fontSize: '0.9rem', marginBottom: '0.4rem', color: '#001A47' }}>
+              <label style={{ display: 'block', fontWeight: 600, fontSize: '0.88rem', marginBottom: '0.4rem', color: enterpriseTheme.colors.textPrimary }}>
                 Key Responsibilities, Technologies & Accomplishments *
               </label>
               <textarea
@@ -602,7 +690,7 @@ export const ProfilePage: React.FC = () => {
                 style={{ width: '100%', resize: 'vertical' }}
               />
               {formErrors.responsibilities && (
-                <span style={{ color: '#BB0000', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
+                <span style={{ color: enterpriseTheme.colors.critical, fontSize: '0.78rem', marginTop: '0.25rem', display: 'block' }}>
                   {formErrors.responsibilities}
                 </span>
               )}

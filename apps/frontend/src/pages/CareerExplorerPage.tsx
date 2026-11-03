@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Breadcrumbs } from '../components/common/Breadcrumbs';
-import { StepIndicator } from '../components/common/StepIndicator';
 import { Card } from '../components/common/Card';
 import { Button } from '../components/common/Button';
 import { Badge } from '../components/common/Badge';
@@ -17,6 +16,7 @@ import {
 import { DEMO_CAREER_ROLES, ExtendedCareerRole } from '../demo/demoCareers';
 import { useCareerContext } from '../context/CareerContext';
 import { CareerMatchResult } from '@career-orchestrator/shared';
+import { enterpriseTheme } from '../theme/tokens';
 
 export const CareerExplorerPage: React.FC = () => {
   const navigate = useNavigate();
@@ -31,7 +31,8 @@ export const CareerExplorerPage: React.FC = () => {
     skills,
     uploadedFile,
     careerMatches,
-    fetchCareerMatches
+    fetchCareerMatches,
+    sessionMode
   } = useCareerContext();
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -91,9 +92,8 @@ export const CareerExplorerPage: React.FC = () => {
   };
 
   return (
-    <div style={{ padding: '2rem 1.5rem', maxWidth: '1280px', margin: '0 auto' }}>
+    <div style={{ padding: '2rem 1.5rem', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
       <Breadcrumbs items={[{ label: 'Skills Review', path: '/skills-review' }, { label: 'Career Explorer' }]} />
-      <StepIndicator currentStepId="careers" />
 
       {/* Header */}
       <div
@@ -103,14 +103,19 @@ export const CareerExplorerPage: React.FC = () => {
           justifyContent: 'space-between',
           alignItems: 'flex-start',
           gap: '1rem',
-          marginBottom: '1.5rem'
+          marginBottom: '1.75rem'
         }}
       >
         <div>
-          <h1 style={{ fontSize: '2rem', fontWeight: 700, color: '#001A47', marginBottom: '0.5rem' }}>
-            Career Transition Explorer
-          </h1>
-          <p style={{ color: '#5B6876', fontSize: '1.05rem', maxWidth: '800px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.4rem', flexWrap: 'wrap' }}>
+            <h1 style={{ fontSize: '1.85rem', fontWeight: 800, color: enterpriseTheme.colors.textPrimary, margin: 0 }}>
+              Career Transition Explorer
+            </h1>
+            <Badge variant={sessionMode === 'DEMO' ? 'info' : 'success'}>
+              Stage 3 of 8
+            </Badge>
+          </div>
+          <p style={{ color: enterpriseTheme.colors.textSecondary, fontSize: '0.98rem', maxWidth: '820px', lineHeight: 1.5 }}>
             Discover and compare viable career transitions across {DEMO_CAREER_ROLES.length} structured roles in SAP Functional, Technical, Integration, Data Analytics, and Hybrid Enterprise Engineering.
           </p>
         </div>
@@ -137,21 +142,35 @@ export const CareerExplorerPage: React.FC = () => {
       {isRealProfileReviewed ? (
         <div
           style={{
-            backgroundColor: '#F3FAF6',
-            border: '1px solid #B8E3C8',
-            borderRadius: '8px',
+            backgroundColor: '#FFFFFF',
+            border: `1px solid ${enterpriseTheme.colors.successBorder}`,
+            borderRadius: enterpriseTheme.radii.md,
             padding: '1rem 1.25rem',
             marginBottom: '1.75rem',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: '1rem',
-            flexWrap: 'wrap'
+            flexWrap: 'wrap',
+            boxShadow: enterpriseTheme.shadows.card
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <CheckIcon color="#107E3E" size={22} />
-            <div style={{ fontSize: '0.9rem', color: '#001A47' }}>
+            <div
+              style={{
+                backgroundColor: enterpriseTheme.colors.successSubtle,
+                color: enterpriseTheme.colors.success,
+                width: '36px',
+                height: '36px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              <CheckIcon color={enterpriseTheme.colors.success} size={18} />
+            </div>
+            <div style={{ fontSize: '0.88rem', color: enterpriseTheme.colors.textPrimary }}>
               <strong>Explainable Matching Active:</strong> Scores are mathematically computed from your{' '}
               <strong>{confirmedCount} confirmed profile competencies</strong>
               {uploadedFile ? ` from ${uploadedFile.name}` : ''}. Unreviewed or rejected items are excluded from scoring.
@@ -164,21 +183,22 @@ export const CareerExplorerPage: React.FC = () => {
       ) : (
         <div
           style={{
-            backgroundColor: '#EBF3FB',
-            border: '1px solid #C4D5EA',
-            borderRadius: '8px',
+            backgroundColor: '#FFFFFF',
+            border: `1px solid ${enterpriseTheme.colors.infoBorder}`,
+            borderRadius: enterpriseTheme.radii.md,
             padding: '1rem 1.25rem',
             marginBottom: '1.75rem',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: '1rem',
-            flexWrap: 'wrap'
+            flexWrap: 'wrap',
+            boxShadow: enterpriseTheme.shadows.card
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <InfoIcon color="#0A6ED1" size={20} />
-            <div style={{ fontSize: '0.9rem', color: '#001A47' }}>
+            <InfoIcon color={enterpriseTheme.colors.primary} size={18} />
+            <div style={{ fontSize: '0.88rem', color: enterpriseTheme.colors.textPrimary }}>
               <strong>Demonstration Index Displayed:</strong> Scores below reflect baseline sample competencies. To calculate personalized matches against your genuine background, review your profile on the Skills Review page.
             </div>
           </div>
@@ -192,20 +212,21 @@ export const CareerExplorerPage: React.FC = () => {
       <div
         style={{
           backgroundColor: '#FFFFFF',
-          border: '1px solid #D9E1E8',
-          borderRadius: '8px',
-          padding: '1.25rem',
+          border: `1px solid ${enterpriseTheme.colors.surfaceBorder}`,
+          borderRadius: enterpriseTheme.radii.md,
+          padding: '1.15rem 1.25rem',
           marginBottom: '2rem',
           display: 'flex',
           flexWrap: 'wrap',
           gap: '1rem',
           alignItems: 'center',
-          justifyContent: 'space-between'
+          justifyContent: 'space-between',
+          boxShadow: enterpriseTheme.shadows.card
         }}
       >
         {/* Search Input */}
         <div style={{ position: 'relative', flex: '1 1 280px' }}>
-          <div style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#8492A0' }}>
+          <div style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: enterpriseTheme.colors.textMuted }}>
             <SearchIcon size={16} />
           </div>
           <input
@@ -218,12 +239,12 @@ export const CareerExplorerPage: React.FC = () => {
         </div>
 
         {/* Filters */}
-        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '0.65rem', flexWrap: 'wrap', alignItems: 'center' }}>
           {/* Ecosystem Filter */}
           <select
             value={ecosystemFilter}
             onChange={(e) => setEcosystemFilter(e.target.value as 'ALL' | 'SAP' | 'HYBRID' | 'NON_SAP')}
-            style={{ fontSize: '0.85rem' }}
+            style={{ fontSize: '0.84rem' }}
           >
             <option value="ALL">All Ecosystems ({DEMO_CAREER_ROLES.length})</option>
             <option value="SAP">SAP Ecosystem Only</option>
@@ -235,7 +256,7 @@ export const CareerExplorerPage: React.FC = () => {
           <select
             value={selectedFamily}
             onChange={(e) => setSelectedFamily(e.target.value)}
-            style={{ fontSize: '0.85rem' }}
+            style={{ fontSize: '0.84rem' }}
           >
             <option value="ALL">All Career Families</option>
             <option value="FUNCTIONAL_CONSULTING">Functional Consulting</option>
@@ -252,7 +273,7 @@ export const CareerExplorerPage: React.FC = () => {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value as 'match' | 'effort' | 'title' | 'demand')}
-            style={{ fontSize: '0.85rem' }}
+            style={{ fontSize: '0.84rem' }}
           >
             <option value="match">Sort: Highest Match Score</option>
             <option value="effort">Sort: Lowest Effort Estimate</option>
@@ -263,7 +284,7 @@ export const CareerExplorerPage: React.FC = () => {
       </div>
 
       {/* Results Count Strip */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', fontSize: '0.875rem', color: '#5B6876' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', fontSize: '0.85rem', color: enterpriseTheme.colors.textSecondary }}>
         <span>
           Showing <strong>{sortedRoles.length}</strong> of {DEMO_CAREER_ROLES.length} career transition roles
         </span>
@@ -275,7 +296,7 @@ export const CareerExplorerPage: React.FC = () => {
               setEcosystemFilter('ALL');
               setSortBy('match');
             }}
-            style={{ color: '#0A6ED1', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}
+            style={{ color: enterpriseTheme.colors.primary, background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}
           >
             Reset Filters
           </button>
@@ -287,7 +308,7 @@ export const CareerExplorerPage: React.FC = () => {
         style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
-          gap: '1.75rem',
+          gap: '1.5rem',
           marginBottom: '2.5rem'
         }}
       >
@@ -303,7 +324,7 @@ export const CareerExplorerPage: React.FC = () => {
               key={role.id}
               hoverable
               title={
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                   <span>{role.title}</span>
                   {isTarget && (
                     <Badge variant="success" size="sm">
@@ -319,7 +340,7 @@ export const CareerExplorerPage: React.FC = () => {
                     style={{
                       fontSize: '1.4rem',
                       fontWeight: 800,
-                      color: score >= 70 ? '#107E3E' : score >= 50 ? '#0A6ED1' : '#E9730C'
+                      color: score >= 70 ? enterpriseTheme.colors.success : score >= 50 ? enterpriseTheme.colors.primary : enterpriseTheme.colors.warning
                     }}
                   >
                     {score}%
@@ -327,9 +348,9 @@ export const CareerExplorerPage: React.FC = () => {
                   <span
                     style={{
                       fontSize: '0.72rem',
-                      color: isRealProfileReviewed ? '#107E3E' : '#8492A0',
+                      color: isRealProfileReviewed ? enterpriseTheme.colors.success : enterpriseTheme.colors.textMuted,
                       textTransform: 'uppercase',
-                      fontWeight: isRealProfileReviewed ? 600 : 400
+                      fontWeight: isRealProfileReviewed ? 700 : 500
                     }}
                   >
                     {isRealProfileReviewed ? 'Candidate Match' : 'Demo Index'}
@@ -342,16 +363,16 @@ export const CareerExplorerPage: React.FC = () => {
                     <button
                       onClick={() => toggleComparisonRole(role.slug)}
                       style={{
-                        fontSize: '0.82rem',
+                        fontSize: '0.8rem',
                         fontWeight: 600,
-                        color: isComparing ? '#633CA3' : '#5B6876',
+                        color: isComparing ? enterpriseTheme.colors.accentPurple : enterpriseTheme.colors.textSecondary,
                         display: 'flex',
                         alignItems: 'center',
                         gap: '0.35rem',
                         padding: '0.35rem 0.65rem',
                         borderRadius: '4px',
-                        backgroundColor: isComparing ? '#F2ECFA' : 'transparent',
-                        border: `1px solid ${isComparing ? '#DECFF2' : '#D9E1E8'}`,
+                        backgroundColor: isComparing ? enterpriseTheme.colors.accentPurpleSubtle : 'transparent',
+                        border: `1px solid ${isComparing ? '#DECFF2' : enterpriseTheme.colors.surfaceBorder}`,
                         cursor: 'pointer'
                       }}
                     >
@@ -362,11 +383,11 @@ export const CareerExplorerPage: React.FC = () => {
                     <button
                       onClick={() => setExplainingRole(role)}
                       style={{
-                        fontSize: '0.82rem',
+                        fontSize: '0.8rem',
                         fontWeight: 600,
-                        color: '#0A6ED1',
-                        backgroundColor: '#EBF3FB',
-                        border: '1px solid #C4D5EA',
+                        color: enterpriseTheme.colors.primary,
+                        backgroundColor: enterpriseTheme.colors.primarySubtle,
+                        border: `1px solid ${enterpriseTheme.colors.primaryBorder}`,
                         padding: '0.35rem 0.65rem',
                         borderRadius: '4px',
                         cursor: 'pointer'
@@ -400,28 +421,28 @@ export const CareerExplorerPage: React.FC = () => {
                 </Badge>
               </div>
 
-              <p style={{ color: '#5B6876', fontSize: '0.9rem', lineHeight: 1.5, marginBottom: '1.25rem', minHeight: '54px' }}>
+              <p style={{ color: enterpriseTheme.colors.textSecondary, fontSize: '0.88rem', lineHeight: 1.5, marginBottom: '1.25rem', minHeight: '52px' }}>
                 {role.summary}
               </p>
 
-              <div style={{ backgroundColor: '#FAFBFD', padding: '0.75rem', borderRadius: '6px', marginBottom: '1rem', border: '1px solid #EDF1F5' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#5B6876', marginBottom: '0.25rem' }}>
+              <div style={{ backgroundColor: enterpriseTheme.colors.canvas, padding: '0.75rem', borderRadius: '6px', marginBottom: '1rem', border: `1px solid ${enterpriseTheme.colors.surfaceBorder}` }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: enterpriseTheme.colors.textSecondary, marginBottom: '0.25rem' }}>
                   <span>Planning Bridge Effort:</span>
-                  <strong style={{ color: '#001A47' }}>~{role.learningHoursEstimate} hrs ({role.typicalPivotTimeline})</strong>
+                  <strong style={{ color: enterpriseTheme.colors.textPrimary }}>~{role.learningHoursEstimate} hrs ({role.typicalPivotTimeline})</strong>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#5B6876' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: enterpriseTheme.colors.textSecondary }}>
                   <span>Market Compensation:</span>
-                  <strong style={{ color: '#107E3E' }}>{role.averageSalaryUsd}</strong>
+                  <strong style={{ color: enterpriseTheme.colors.success }}>{role.averageSalaryUsd}</strong>
                 </div>
               </div>
 
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-                  <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#001A47', textTransform: 'uppercase' }}>
+                  <span style={{ fontSize: '0.76rem', fontWeight: 700, color: enterpriseTheme.colors.textPrimary, textTransform: 'uppercase' }}>
                     Required Competencies:
                   </span>
                   {isRealProfileReviewed && (
-                    <span style={{ fontSize: '0.75rem', color: '#107E3E', fontWeight: 600 }}>
+                    <span style={{ fontSize: '0.75rem', color: enterpriseTheme.colors.success, fontWeight: 700 }}>
                       {matchResult.matchedSkills.length} of {role.requiredSkills.length} Verified
                     </span>
                   )}
@@ -444,8 +465,8 @@ export const CareerExplorerPage: React.FC = () => {
 
               {/* Warning if mandatory skills are missing and score is high */}
               {backendMatch && backendMatch.missingMandatorySkills.length > 0 && backendMatch.overallScore > 50 && (
-                <div style={{ marginTop: '0.75rem', fontSize: '0.78rem', color: '#A05000', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                  <AlertTriangleIcon size={14} color="#E9730C" />
+                <div style={{ marginTop: '0.75rem', fontSize: '0.78rem', color: enterpriseTheme.colors.warning, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                  <AlertTriangleIcon size={14} color={enterpriseTheme.colors.warning} />
                   <span>Notice: {backendMatch.missingMandatorySkills.length} essential mandatory requirement(s) missing.</span>
                 </div>
               )}
@@ -455,9 +476,9 @@ export const CareerExplorerPage: React.FC = () => {
       </div>
 
       {sortedRoles.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '3rem', backgroundColor: '#FFFFFF', borderRadius: '8px', border: '1px dashed #D9E1E8' }}>
-          <h3 style={{ color: '#001A47', marginBottom: '0.5rem' }}>No Career Roles Match Your Filters</h3>
-          <p style={{ color: '#5B6876', marginBottom: '1rem' }}>Try clearing your search query or adjusting your ecosystem and career family filters.</p>
+        <div style={{ textAlign: 'center', padding: '3rem', backgroundColor: '#FFFFFF', borderRadius: '8px', border: `1px dashed ${enterpriseTheme.colors.surfaceBorderStrong}` }}>
+          <h3 style={{ color: enterpriseTheme.colors.textPrimary, marginBottom: '0.5rem', fontWeight: 700 }}>No Career Roles Match Your Filters</h3>
+          <p style={{ color: enterpriseTheme.colors.textSecondary, marginBottom: '1rem', fontSize: '0.9rem' }}>Try clearing your search query or adjusting your ecosystem and career family filters.</p>
           <Button variant="outline" size="sm" onClick={() => { setSearchTerm(''); setSelectedFamily('ALL'); setEcosystemFilter('ALL'); }}>
             Reset All Filters
           </Button>
@@ -471,20 +492,20 @@ export const CareerExplorerPage: React.FC = () => {
           onClose={() => setExplainingRole(null)}
           title={`Explainable Match: ${explainingRole.title}`}
         >
-          <div style={{ fontSize: '0.9rem', color: '#222B35', lineHeight: 1.6 }}>
-            <div style={{ backgroundColor: '#FAFBFD', padding: '1rem', borderRadius: '6px', border: '1px solid #EDF1F5', marginBottom: '1.25rem' }}>
-              <div style={{ fontWeight: 600, color: '#001A47', marginBottom: '0.25rem' }}>
+          <div style={{ fontSize: '0.88rem', color: enterpriseTheme.colors.textPrimary, lineHeight: 1.6 }}>
+            <div style={{ backgroundColor: enterpriseTheme.colors.canvas, padding: '1rem', borderRadius: '6px', border: `1px solid ${enterpriseTheme.colors.surfaceBorder}`, marginBottom: '1.25rem' }}>
+              <div style={{ fontWeight: 700, color: enterpriseTheme.colors.textPrimary, marginBottom: '0.25rem' }}>
                 Mathematical Match Formula:
               </div>
-              <code style={{ fontSize: '0.82rem', color: '#0A6ED1' }}>
+              <code style={{ fontSize: '0.82rem', color: enterpriseTheme.colors.primary }}>
                 Match Score = 100 × (sum(requirement_weight × match_factor) / sum(weights))
               </code>
-              <p style={{ fontSize: '0.8rem', color: '#5B6876', marginTop: '0.5rem', marginBottom: 0 }}>
+              <p style={{ fontSize: '0.8rem', color: enterpriseTheme.colors.textSecondary, marginTop: '0.5rem', marginBottom: 0 }}>
                 Derived deterministically by comparing your confirmed competencies and declared proficiencies against the published role requirements. Full match = 1.0; Partial proficiency = 0.4–0.75; Missing or rejected = 0.0.
               </p>
             </div>
 
-            <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#001A47', marginBottom: '0.5rem' }}>
+            <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: enterpriseTheme.colors.textPrimary, marginBottom: '0.5rem' }}>
               Requirement Breakdown for {explainingRole.title}:
             </h4>
 
@@ -497,21 +518,21 @@ export const CareerExplorerPage: React.FC = () => {
                     style={{
                       padding: '0.75rem',
                       borderRadius: '6px',
-                      border: `1px solid ${isMatched ? '#B8E3C8' : '#EDF1F5'}`,
-                      backgroundColor: isMatched ? '#F3FAF6' : '#FFFFFF'
+                      border: `1px solid ${isMatched ? enterpriseTheme.colors.successBorder : enterpriseTheme.colors.surfaceBorder}`,
+                      backgroundColor: isMatched ? enterpriseTheme.colors.successSubtle : '#FFFFFF'
                     }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <strong style={{ color: '#001A47' }}>{req.skillName}</strong>
+                      <strong style={{ color: enterpriseTheme.colors.textPrimary }}>{req.skillName}</strong>
                       <Badge variant={isMatched ? 'success' : 'neutral'} size="sm">
                         {isMatched ? '100% Match Factor' : '0.0 (Missing)'}
                       </Badge>
                     </div>
-                    <div style={{ fontSize: '0.8rem', color: '#5B6876', marginTop: '0.25rem' }}>
+                    <div style={{ fontSize: '0.78rem', color: enterpriseTheme.colors.textSecondary, marginTop: '0.25rem' }}>
                       Weight: {req.weight} • Minimum Level: {req.minimumLevel} • {req.isMandatory ? 'Mandatory Requirement' : 'Preferred Skill'}
                     </div>
                     {req.rationale && (
-                      <div style={{ fontSize: '0.78rem', color: '#8492A0', marginTop: '0.2rem', fontStyle: 'italic' }}>
+                      <div style={{ fontSize: '0.76rem', color: enterpriseTheme.colors.textMuted, marginTop: '0.2rem', fontStyle: 'italic' }}>
                         Rationale: {req.rationale}
                       </div>
                     )}
@@ -520,7 +541,7 @@ export const CareerExplorerPage: React.FC = () => {
               })}
             </div>
 
-            <div style={{ padding: '0.75rem', backgroundColor: '#FFF4E5', border: '1px solid #FFD099', borderRadius: '6px', fontSize: '0.8rem', color: '#A05000', marginBottom: '1.25rem' }}>
+            <div style={{ padding: '0.75rem', backgroundColor: enterpriseTheme.colors.warningSubtle, border: `1px solid ${enterpriseTheme.colors.warningBorder}`, borderRadius: '6px', fontSize: '0.8rem', color: enterpriseTheme.colors.warning, marginBottom: '1.25rem' }}>
               <strong>Important Advisory:</strong> Match scores represent syllabus and competency overlap to guide your professional development. They are not a probability of being hired or guaranteed employment.
             </div>
 

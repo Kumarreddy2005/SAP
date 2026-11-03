@@ -1,4 +1,5 @@
 import React from 'react';
+import { enterpriseTheme } from '../../theme/tokens';
 
 export interface CardProps {
   children: React.ReactNode;
@@ -25,70 +26,72 @@ export const Card: React.FC<CardProps> = ({
 }) => {
   return (
     <div
-      className={className}
+      className={`${className || ''} ${hoverable ? 'sap-card-interactive' : ''}`}
       onClick={onClick}
       style={{
-        backgroundColor: '#FFFFFF',
-        border: '1px solid #D9E1E8',
-        borderRadius: '8px',
-        boxShadow: '0 1px 3px rgba(0, 26, 71, 0.05)',
+        backgroundColor: enterpriseTheme.colors.card,
+        border: `1px solid ${enterpriseTheme.colors.surfaceBorder}`,
+        borderRadius: enterpriseTheme.radii.md,
+        boxShadow: enterpriseTheme.shadows.card,
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
-        transition: hoverable ? 'all 0.2s ease' : undefined,
         cursor: onClick ? 'pointer' : undefined,
         ...style
-      }}
-      onMouseEnter={(e) => {
-        if (hoverable) {
-          e.currentTarget.style.borderColor = '#0A6ED1';
-          e.currentTarget.style.boxShadow = '0 6px 16px rgba(0, 26, 71, 0.08)';
-          e.currentTarget.style.transform = 'translateY(-2px)';
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (hoverable) {
-          e.currentTarget.style.borderColor = '#D9E1E8';
-          e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 26, 71, 0.05)';
-          e.currentTarget.style.transform = 'none';
-        }
       }}
     >
       {(title || subtitle || action) && (
         <div
           style={{
-            padding: '1.25rem 1.5rem',
-            borderBottom: '1px solid #EDF1F5',
+            padding: '1.15rem 1.35rem',
+            borderBottom: `1px solid ${enterpriseTheme.colors.surfaceBorder}`,
             display: 'flex',
+            alignItems: 'center',
             justifyContent: 'space-between',
-            alignItems: 'flex-start',
-            gap: '1rem'
+            gap: '1rem',
+            backgroundColor: '#FAFCFE'
           }}
         >
           <div>
             {title && (
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 600, color: '#001A47' }}>
+              <h3
+                style={{
+                  fontSize: '1.05rem',
+                  fontWeight: 700,
+                  color: enterpriseTheme.colors.textPrimary,
+                  lineHeight: 1.3
+                }}
+              >
                 {title}
               </h3>
             )}
             {subtitle && (
-              <p style={{ fontSize: '0.875rem', color: '#5B6876', marginTop: '0.2rem' }}>
+              <div
+                style={{
+                  fontSize: '0.82rem',
+                  color: enterpriseTheme.colors.textSecondary,
+                  marginTop: '0.2rem'
+                }}
+              >
                 {subtitle}
-              </p>
+              </div>
             )}
           </div>
-          {action && <div>{action}</div>}
+          {action && <div style={{ flexShrink: 0 }}>{action}</div>}
         </div>
       )}
 
-      <div style={{ padding: '1.5rem', flex: 1 }}>{children}</div>
+      <div style={{ padding: '1.35rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
+        {children}
+      </div>
 
       {footer && (
         <div
           style={{
-            padding: '1rem 1.5rem',
-            backgroundColor: '#FAFBFD',
-            borderTop: '1px solid #EDF1F5'
+            padding: '0.85rem 1.35rem',
+            backgroundColor: enterpriseTheme.colors.canvas,
+            borderTop: `1px solid ${enterpriseTheme.colors.surfaceBorder}`,
+            fontSize: '0.85rem'
           }}
         >
           {footer}

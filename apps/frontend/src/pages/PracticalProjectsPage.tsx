@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Breadcrumbs } from '../components/common/Breadcrumbs';
-import { StepIndicator } from '../components/common/StepIndicator';
 import { Card } from '../components/common/Card';
 import { Button } from '../components/common/Button';
 import { Badge } from '../components/common/Badge';
@@ -19,6 +18,7 @@ import {
   PracticalProjectDefinition,
   ProjectLifecycleState
 } from '@career-orchestrator/shared';
+import { enterpriseTheme } from '../theme/tokens';
 
 export const PracticalProjectsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -31,7 +31,8 @@ export const PracticalProjectsPage: React.FC = () => {
     fetchProjects,
     startProjectWorkspace,
     submitProjectDeliverables,
-    reviewProjectDeliverables
+    reviewProjectDeliverables,
+    sessionMode
   } = useCareerContext();
 
   // Filters
@@ -253,14 +254,13 @@ export const PracticalProjectsPage: React.FC = () => {
   ).length;
 
   return (
-    <div style={{ padding: '2rem 1.5rem', maxWidth: '1280px', margin: '0 auto' }}>
+    <div style={{ padding: '2rem 1.5rem', maxWidth: '1280px', margin: '0 auto', width: '100%' }}>
       <Breadcrumbs
         items={[
           { label: 'Learning Pathway', path: '/learning' },
           { label: 'Practical Project Workspaces' }
         ]}
       />
-      <StepIndicator currentStepId="projects" />
 
       {/* Header */}
       <div
@@ -274,14 +274,17 @@ export const PracticalProjectsPage: React.FC = () => {
         }}
       >
         <div>
-          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.65rem', alignItems: 'center', flexWrap: 'wrap' }}>
+            <Badge variant={sessionMode === 'DEMO' ? 'info' : 'success'}>
+              Stage 6 of 8
+            </Badge>
             <Badge variant="info">Portfolio Evidence</Badge>
             <Badge variant="purple">Rubric Assessed</Badge>
           </div>
-          <h1 style={{ fontSize: '2.2rem', fontWeight: 800, color: '#001A47', marginBottom: '0.5rem' }}>
+          <h1 style={{ fontSize: '2rem', fontWeight: 800, color: enterpriseTheme.colors.textPrimary, marginBottom: '0.5rem' }}>
             Applied Scenario Workspaces & Evidence
           </h1>
-          <p style={{ color: '#5B6876', fontSize: '1.05rem', maxWidth: '800px', lineHeight: 1.5 }}>
+          <p style={{ color: enterpriseTheme.colors.textSecondary, fontSize: '0.98rem', maxWidth: '800px', lineHeight: 1.55 }}>
             Demonstrate verified capability for <strong>{targetRole.title}</strong> through enterprise scenarios. Submit repository deliverables, reflect on technical challenges, and assess your work against documented rubrics.
           </p>
         </div>
@@ -299,18 +302,19 @@ export const PracticalProjectsPage: React.FC = () => {
       {/* Honest Advisory Notice */}
       <div
         style={{
-          backgroundColor: '#EBF3FB',
-          border: '1px solid #C4D5EA',
-          borderRadius: '8px',
-          padding: '1.25rem',
+          backgroundColor: '#FFFFFF',
+          border: `1px solid ${enterpriseTheme.colors.infoBorder}`,
+          borderRadius: enterpriseTheme.radii.md,
+          padding: '1.15rem 1.25rem',
           marginBottom: '2rem',
           display: 'flex',
           gap: '1rem',
-          alignItems: 'flex-start'
+          alignItems: 'flex-start',
+          boxShadow: enterpriseTheme.shadows.card
         }}
       >
-        <InfoIcon size={24} color="#0A6ED1" />
-        <div style={{ fontSize: '0.88rem', color: '#001A47', lineHeight: 1.5 }}>
+        <InfoIcon size={22} color={enterpriseTheme.colors.primary} />
+        <div style={{ fontSize: '0.88rem', color: enterpriseTheme.colors.textPrimary, lineHeight: 1.5 }}>
           <strong>Evidence Assessment Standard:</strong> A submitted project represents candidate evidence awaiting evaluation; submission alone does not certify competence. Projects must be assessed against explicit rubric criteria before contributing toward verified readiness.
         </div>
       </div>
@@ -325,35 +329,35 @@ export const PracticalProjectsPage: React.FC = () => {
         }}
       >
         <Card>
-          <div style={{ fontSize: '0.85rem', color: '#5B6876', fontWeight: 600 }}>Total Projects</div>
-          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#001A47', marginTop: '0.25rem' }}>
+          <div style={{ fontSize: '0.82rem', color: enterpriseTheme.colors.textSecondary, fontWeight: 700 }}>Total Projects</div>
+          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: enterpriseTheme.colors.textPrimary, marginTop: '0.25rem' }}>
             {totalProjects}
           </div>
-          <div style={{ fontSize: '0.78rem', color: '#5B6876', marginTop: '0.25rem' }}>Enterprise Scenarios</div>
+          <div style={{ fontSize: '0.78rem', color: enterpriseTheme.colors.textMuted, marginTop: '0.25rem' }}>Enterprise Scenarios</div>
         </Card>
 
         <Card>
-          <div style={{ fontSize: '0.85rem', color: '#5B6876', fontWeight: 600 }}>In Progress</div>
-          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#0A6ED1', marginTop: '0.25rem' }}>
+          <div style={{ fontSize: '0.82rem', color: enterpriseTheme.colors.primary, fontWeight: 700 }}>In Progress</div>
+          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: enterpriseTheme.colors.primary, marginTop: '0.25rem' }}>
             {inProgressCount}
           </div>
-          <div style={{ fontSize: '0.78rem', color: '#5B6876', marginTop: '0.25rem' }}>Active Workspaces</div>
+          <div style={{ fontSize: '0.78rem', color: enterpriseTheme.colors.textMuted, marginTop: '0.25rem' }}>Active Workspaces</div>
         </Card>
 
         <Card>
-          <div style={{ fontSize: '0.85rem', color: '#5B6876', fontWeight: 600 }}>Awaiting Review</div>
-          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#E9730C', marginTop: '0.25rem' }}>
+          <div style={{ fontSize: '0.82rem', color: enterpriseTheme.colors.warning, fontWeight: 700 }}>Awaiting Review</div>
+          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: enterpriseTheme.colors.warning, marginTop: '0.25rem' }}>
             {submittedCount}
           </div>
-          <div style={{ fontSize: '0.78rem', color: '#5B6876', marginTop: '0.25rem' }}>Submissions Logged</div>
+          <div style={{ fontSize: '0.78rem', color: enterpriseTheme.colors.textMuted, marginTop: '0.25rem' }}>Submissions Logged</div>
         </Card>
 
         <Card>
-          <div style={{ fontSize: '0.85rem', color: '#5B6876', fontWeight: 600 }}>Verified Completed</div>
-          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#107E3E', marginTop: '0.25rem' }}>
+          <div style={{ fontSize: '0.82rem', color: enterpriseTheme.colors.success, fontWeight: 700 }}>Verified Completed</div>
+          <div style={{ fontSize: '1.8rem', fontWeight: 800, color: enterpriseTheme.colors.success, marginTop: '0.25rem' }}>
             {completedCount}
           </div>
-          <div style={{ fontSize: '0.78rem', color: '#5B6876', marginTop: '0.25rem' }}>Rubric Assessed</div>
+          <div style={{ fontSize: '0.78rem', color: enterpriseTheme.colors.textMuted, marginTop: '0.25rem' }}>Rubric Assessed</div>
         </Card>
       </div>
 
@@ -361,13 +365,13 @@ export const PracticalProjectsPage: React.FC = () => {
       <Card style={{ marginBottom: '2rem' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem', alignItems: 'flex-end' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#001A47', marginBottom: '0.35rem' }}>
+            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: enterpriseTheme.colors.textPrimary, marginBottom: '0.35rem' }}>
               Filter by Role Alignment
             </label>
             <select
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
-              style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '6px', border: '1px solid #D9E1E8' }}
+              style={{ width: '100%', padding: '0.55rem 0.75rem', borderRadius: '6px', border: `1px solid ${enterpriseTheme.colors.surfaceBorder}`, fontSize: '0.85rem' }}
             >
               <option value="TARGET">Selected Target Career ({targetRole.title})</option>
               <option value="ALL">All Available Scenarios (Full Catalogue)</option>
@@ -384,13 +388,13 @@ export const PracticalProjectsPage: React.FC = () => {
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#001A47', marginBottom: '0.35rem' }}>
+            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: enterpriseTheme.colors.textPrimary, marginBottom: '0.35rem' }}>
               Difficulty Level
             </label>
             <select
               value={difficultyFilter}
               onChange={(e) => setDifficultyFilter(e.target.value)}
-              style={{ width: '100%', padding: '0.6rem 0.75rem', borderRadius: '6px', border: '1px solid #D9E1E8' }}
+              style={{ width: '100%', padding: '0.55rem 0.75rem', borderRadius: '6px', border: `1px solid ${enterpriseTheme.colors.surfaceBorder}`, fontSize: '0.85rem' }}
             >
               <option value="ALL">All Difficulties</option>
               <option value="INTERMEDIATE">Intermediate</option>
@@ -399,7 +403,7 @@ export const PracticalProjectsPage: React.FC = () => {
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#001A47', marginBottom: '0.35rem' }}>
+            <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: enterpriseTheme.colors.textPrimary, marginBottom: '0.35rem' }}>
               Search Keywords
             </label>
             <div style={{ position: 'relative' }}>
@@ -408,9 +412,9 @@ export const PracticalProjectsPage: React.FC = () => {
                 placeholder="Search scenario or skills..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                style={{ width: '100%', padding: '0.6rem 0.75rem 0.6rem 2.25rem', borderRadius: '6px', border: '1px solid #D9E1E8' }}
+                style={{ width: '100%', padding: '0.55rem 0.75rem 0.55rem 2.25rem', borderRadius: '6px', border: `1px solid ${enterpriseTheme.colors.surfaceBorder}`, fontSize: '0.85rem' }}
               />
-              <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#5B6876' }}>
+              <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: enterpriseTheme.colors.textMuted }}>
                 <SearchIcon size={16} />
               </span>
             </div>
@@ -420,15 +424,15 @@ export const PracticalProjectsPage: React.FC = () => {
 
       {/* Projects Grid */}
       {isLoadingProjects ? (
-        <div style={{ textAlign: 'center', padding: '3rem', backgroundColor: '#FFFFFF', borderRadius: '8px' }}>
-          <div style={{ fontSize: '1.1rem', fontWeight: 600, color: '#001A47' }}>Loading Project Catalogue...</div>
+        <div style={{ textAlign: 'center', padding: '3rem', backgroundColor: '#FFFFFF', borderRadius: '8px', border: `1px solid ${enterpriseTheme.colors.surfaceBorder}` }}>
+          <div style={{ fontSize: '1.1rem', fontWeight: 700, color: enterpriseTheme.colors.textPrimary }}>Loading Project Catalogue...</div>
         </div>
       ) : projects.length === 0 ? (
         <Card>
           <div style={{ textAlign: 'center', padding: '3rem' }}>
-            <BookOpenIcon size={40} color="#5B6876" />
-            <h3 style={{ marginTop: '1rem', color: '#001A47' }}>No Practical Projects Found</h3>
-            <p style={{ color: '#5B6876', fontSize: '0.9rem', marginTop: '0.5rem' }}>
+            <BookOpenIcon size={40} color={enterpriseTheme.colors.textMuted} />
+            <h3 style={{ marginTop: '1rem', color: enterpriseTheme.colors.textPrimary, fontWeight: 700 }}>No Practical Projects Found</h3>
+            <p style={{ color: enterpriseTheme.colors.textSecondary, fontSize: '0.9rem', marginTop: '0.5rem' }}>
               Try selecting "All Available Scenarios" to explore projects across the entire career catalogue.
             </p>
             <Button variant="outline" style={{ marginTop: '1rem' }} onClick={() => { setRoleFilter('ALL'); setDifficultyFilter('ALL'); setSearchQuery(''); }}>
@@ -449,11 +453,11 @@ export const PracticalProjectsPage: React.FC = () => {
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'space-between',
-                  border: isRelevantToTarget ? '2px solid #0A6ED1' : '1px solid #D9E1E8'
+                  border: isRelevantToTarget ? `2px solid ${enterpriseTheme.colors.primary}` : `1px solid ${enterpriseTheme.colors.surfaceBorder}`
                 }}
               >
                 <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.75rem', gap: '0.5rem', flexWrap: 'wrap' }}>
                     <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
                       <Badge variant={project.difficulty === 'ADVANCED' ? 'purple' : 'info'}>
                         {project.difficulty}
@@ -464,16 +468,16 @@ export const PracticalProjectsPage: React.FC = () => {
                     {getStatusBadge(submission?.status)}
                   </div>
 
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#001A47', marginBottom: '0.5rem' }}>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: enterpriseTheme.colors.textPrimary, marginBottom: '0.5rem' }}>
                     {project.title}
                   </h3>
 
-                  <p style={{ fontSize: '0.88rem', color: '#5B6876', lineHeight: 1.5, marginBottom: '1rem' }}>
+                  <p style={{ fontSize: '0.88rem', color: enterpriseTheme.colors.textSecondary, lineHeight: 1.5, marginBottom: '1rem' }}>
                     {project.description}
                   </p>
 
                   <div style={{ marginBottom: '1rem' }}>
-                    <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#001A47', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.4rem' }}>
+                    <div style={{ fontSize: '0.76rem', fontWeight: 700, color: enterpriseTheme.colors.textPrimary, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '0.4rem' }}>
                       Competencies Addressed:
                     </div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
@@ -483,10 +487,10 @@ export const PracticalProjectsPage: React.FC = () => {
                           style={{
                             fontSize: '0.75rem',
                             padding: '0.2rem 0.5rem',
-                            backgroundColor: '#F5F6F7',
-                            border: '1px solid #D9E1E8',
+                            backgroundColor: enterpriseTheme.colors.canvas,
+                            border: `1px solid ${enterpriseTheme.colors.surfaceBorder}`,
                             borderRadius: '4px',
-                            color: '#001A47'
+                            color: enterpriseTheme.colors.textPrimary
                           }}
                         >
                           {skill}
@@ -495,11 +499,11 @@ export const PracticalProjectsPage: React.FC = () => {
                     </div>
                   </div>
 
-                  <div style={{ borderTop: '1px solid #EDF1F5', paddingTop: '0.75rem', marginBottom: '1.25rem' }}>
-                    <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#001A47', marginBottom: '0.35rem' }}>
+                  <div style={{ borderTop: `1px solid ${enterpriseTheme.colors.surfaceBorder}`, paddingTop: '0.75rem', marginBottom: '1.25rem' }}>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 700, color: enterpriseTheme.colors.textPrimary, marginBottom: '0.35rem' }}>
                       Deliverables:
                     </div>
-                    <ul style={{ paddingLeft: '1.2rem', margin: 0, fontSize: '0.82rem', color: '#5B6876' }}>
+                    <ul style={{ paddingLeft: '1.2rem', margin: 0, fontSize: '0.82rem', color: enterpriseTheme.colors.textSecondary }}>
                       {project.deliverables.slice(0, 2).map((del, dIdx) => (
                         <li key={dIdx} style={{ marginBottom: '0.25rem' }}>{del}</li>
                       ))}
@@ -533,18 +537,19 @@ export const PracticalProjectsPage: React.FC = () => {
         >
           <div>
             {/* Modal Navigation Tabs */}
-            <div style={{ display: 'flex', borderBottom: '1px solid #D9E1E8', marginBottom: '1.5rem', gap: '1rem' }}>
+            <div style={{ display: 'flex', borderBottom: `1px solid ${enterpriseTheme.colors.surfaceBorder}`, marginBottom: '1.5rem', gap: '1rem', overflowX: 'auto' }}>
               <button
                 onClick={() => setModalTab('details')}
                 style={{
                   padding: '0.75rem 1rem',
-                  fontWeight: 600,
-                  fontSize: '0.9rem',
+                  fontWeight: 700,
+                  fontSize: '0.88rem',
                   border: 'none',
                   background: 'none',
                   cursor: 'pointer',
-                  borderBottom: modalTab === 'details' ? '3px solid #0A6ED1' : '3px solid transparent',
-                  color: modalTab === 'details' ? '#0A6ED1' : '#5B6876'
+                  borderBottom: modalTab === 'details' ? `3px solid ${enterpriseTheme.colors.primary}` : '3px solid transparent',
+                  color: modalTab === 'details' ? enterpriseTheme.colors.primary : enterpriseTheme.colors.textSecondary,
+                  whiteSpace: 'nowrap'
                 }}
               >
                 1. Scenario & Instructions
@@ -553,13 +558,14 @@ export const PracticalProjectsPage: React.FC = () => {
                 onClick={() => setModalTab('submit')}
                 style={{
                   padding: '0.75rem 1rem',
-                  fontWeight: 600,
-                  fontSize: '0.9rem',
+                  fontWeight: 700,
+                  fontSize: '0.88rem',
                   border: 'none',
                   background: 'none',
                   cursor: 'pointer',
-                  borderBottom: modalTab === 'submit' ? '3px solid #0A6ED1' : '3px solid transparent',
-                  color: modalTab === 'submit' ? '#0A6ED1' : '#5B6876'
+                  borderBottom: modalTab === 'submit' ? `3px solid ${enterpriseTheme.colors.primary}` : '3px solid transparent',
+                  color: modalTab === 'submit' ? enterpriseTheme.colors.primary : enterpriseTheme.colors.textSecondary,
+                  whiteSpace: 'nowrap'
                 }}
               >
                 2. Submit Deliverables
@@ -568,13 +574,14 @@ export const PracticalProjectsPage: React.FC = () => {
                 onClick={() => setModalTab('review')}
                 style={{
                   padding: '0.75rem 1rem',
-                  fontWeight: 600,
-                  fontSize: '0.9rem',
+                  fontWeight: 700,
+                  fontSize: '0.88rem',
                   border: 'none',
                   background: 'none',
                   cursor: 'pointer',
-                  borderBottom: modalTab === 'review' ? '3px solid #0A6ED1' : '3px solid transparent',
-                  color: modalTab === 'review' ? '#0A6ED1' : '#5B6876'
+                  borderBottom: modalTab === 'review' ? `3px solid ${enterpriseTheme.colors.primary}` : '3px solid transparent',
+                  color: modalTab === 'review' ? enterpriseTheme.colors.primary : enterpriseTheme.colors.textSecondary,
+                  whiteSpace: 'nowrap'
                 }}
               >
                 3. Assessment & Rubric
@@ -583,13 +590,14 @@ export const PracticalProjectsPage: React.FC = () => {
                 onClick={() => setModalTab('history')}
                 style={{
                   padding: '0.75rem 1rem',
-                  fontWeight: 600,
-                  fontSize: '0.9rem',
+                  fontWeight: 700,
+                  fontSize: '0.88rem',
                   border: 'none',
                   background: 'none',
                   cursor: 'pointer',
-                  borderBottom: modalTab === 'history' ? '3px solid #0A6ED1' : '3px solid transparent',
-                  color: modalTab === 'history' ? '#0A6ED1' : '#5B6876'
+                  borderBottom: modalTab === 'history' ? `3px solid ${enterpriseTheme.colors.primary}` : '3px solid transparent',
+                  color: modalTab === 'history' ? enterpriseTheme.colors.primary : enterpriseTheme.colors.textSecondary,
+                  whiteSpace: 'nowrap'
                 }}
               >
                 4. Submission History
@@ -597,7 +605,7 @@ export const PracticalProjectsPage: React.FC = () => {
             </div>
 
             {formError && (
-              <div style={{ backgroundColor: '#FDF3F2', border: '1px solid #F5B5B2', padding: '0.75rem 1rem', borderRadius: '6px', color: '#BB0000', marginBottom: '1.25rem', fontSize: '0.88rem' }}>
+              <div style={{ backgroundColor: enterpriseTheme.colors.criticalSubtle, border: `1px solid ${enterpriseTheme.colors.criticalBorder}`, padding: '0.75rem 1rem', borderRadius: '6px', color: enterpriseTheme.colors.critical, marginBottom: '1.25rem', fontSize: '0.88rem' }}>
                 <AlertTriangleIcon size={16} style={{ display: 'inline', marginRight: '0.5rem', verticalAlign: 'text-bottom' }} />
                 {formError}
               </div>
@@ -607,19 +615,19 @@ export const PracticalProjectsPage: React.FC = () => {
             {modalTab === 'details' && (
               <div>
                 <div style={{ marginBottom: '1.5rem' }}>
-                  <h4 style={{ color: '#001A47', fontSize: '1rem', fontWeight: 700, marginBottom: '0.4rem' }}>
+                  <h4 style={{ color: enterpriseTheme.colors.textPrimary, fontSize: '0.98rem', fontWeight: 700, marginBottom: '0.4rem' }}>
                     Business Scenario & Problem Context
                   </h4>
-                  <p style={{ color: '#333333', fontSize: '0.9rem', lineHeight: 1.6, backgroundColor: '#FAFBFD', padding: '1rem', borderRadius: '6px', border: '1px solid #EDF1F5' }}>
+                  <p style={{ color: enterpriseTheme.colors.textPrimary, fontSize: '0.88rem', lineHeight: 1.6, backgroundColor: enterpriseTheme.colors.canvas, padding: '1rem', borderRadius: '6px', border: `1px solid ${enterpriseTheme.colors.surfaceBorder}` }}>
                     {selectedProject.businessProblem || selectedProject.description}
                   </p>
                 </div>
 
                 <div style={{ marginBottom: '1.5rem' }}>
-                  <h4 style={{ color: '#001A47', fontSize: '1rem', fontWeight: 700, marginBottom: '0.4rem' }}>
+                  <h4 style={{ color: enterpriseTheme.colors.textPrimary, fontSize: '0.98rem', fontWeight: 700, marginBottom: '0.4rem' }}>
                     Learning Objectives
                   </h4>
-                  <ul style={{ paddingLeft: '1.25rem', color: '#5B6876', fontSize: '0.88rem', lineHeight: 1.6 }}>
+                  <ul style={{ paddingLeft: '1.25rem', color: enterpriseTheme.colors.textSecondary, fontSize: '0.88rem', lineHeight: 1.6 }}>
                     {(selectedProject.objectives || ['Demonstrate enterprise configuration competence', 'Author audit-ready documentation']).map((obj, i) => (
                       <li key={i}>{obj}</li>
                     ))}
@@ -627,10 +635,10 @@ export const PracticalProjectsPage: React.FC = () => {
                 </div>
 
                 <div style={{ marginBottom: '1.5rem' }}>
-                  <h4 style={{ color: '#001A47', fontSize: '1rem', fontWeight: 700, marginBottom: '0.4rem' }}>
+                  <h4 style={{ color: enterpriseTheme.colors.textPrimary, fontSize: '0.98rem', fontWeight: 700, marginBottom: '0.4rem' }}>
                     Step-by-Step Instructions
                   </h4>
-                  <div style={{ color: '#333333', fontSize: '0.88rem', lineHeight: 1.6 }}>
+                  <div style={{ color: enterpriseTheme.colors.textPrimary, fontSize: '0.88rem', lineHeight: 1.6 }}>
                     {(selectedProject.stepByStepInstructions || [
                       '1. Review functional scenario requirements.',
                       '2. Execute solution in sandbox or document enterprise blueprint.',
@@ -642,10 +650,10 @@ export const PracticalProjectsPage: React.FC = () => {
                 </div>
 
                 <div style={{ marginBottom: '1.5rem' }}>
-                  <h4 style={{ color: '#001A47', fontSize: '1rem', fontWeight: 700, marginBottom: '0.4rem' }}>
+                  <h4 style={{ color: enterpriseTheme.colors.textPrimary, fontSize: '0.98rem', fontWeight: 700, marginBottom: '0.4rem' }}>
                     Required Deliverables
                   </h4>
-                  <ul style={{ paddingLeft: '1.25rem', color: '#5B6876', fontSize: '0.88rem' }}>
+                  <ul style={{ paddingLeft: '1.25rem', color: enterpriseTheme.colors.textSecondary, fontSize: '0.88rem' }}>
                     {selectedProject.deliverables.map((del, dIdx) => (
                       <li key={dIdx} style={{ marginBottom: '0.35rem' }}><strong>{del}</strong></li>
                     ))}
@@ -664,7 +672,7 @@ export const PracticalProjectsPage: React.FC = () => {
             {modalTab === 'submit' && (
               <form onSubmit={handleSubmitDeliverable}>
                 <div style={{ marginBottom: '1.25rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#001A47', marginBottom: '0.35rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: enterpriseTheme.colors.textPrimary, marginBottom: '0.35rem' }}>
                     Deliverable Repository URL (GitHub / GitLab / Bitbucket)
                   </label>
                   <input
@@ -672,15 +680,15 @@ export const PracticalProjectsPage: React.FC = () => {
                     placeholder="https://github.com/username/project-repo"
                     value={repoUrl}
                     onChange={(e) => setRepoUrl(e.target.value)}
-                    style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '6px', border: '1px solid #D9E1E8' }}
+                    style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '6px', border: `1px solid ${enterpriseTheme.colors.surfaceBorder}` }}
                   />
-                  <small style={{ color: '#5B6876', display: 'block', marginTop: '0.25rem' }}>
+                  <small style={{ color: enterpriseTheme.colors.textMuted, display: 'block', marginTop: '0.25rem' }}>
                     Public repository link. (If your repository is private or offline, document it in the alternative evidence field below).
                   </small>
                 </div>
 
                 <div style={{ marginBottom: '1.25rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#001A47', marginBottom: '0.35rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: enterpriseTheme.colors.textPrimary, marginBottom: '0.35rem' }}>
                     Live Demo / Cloud Storyboard URL (Optional)
                   </label>
                   <input
@@ -688,12 +696,12 @@ export const PracticalProjectsPage: React.FC = () => {
                     placeholder="https://drive.google.com/file/... or live deployment"
                     value={demoUrl}
                     onChange={(e) => setDemoUrl(e.target.value)}
-                    style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '6px', border: '1px solid #D9E1E8' }}
+                    style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '6px', border: `1px solid ${enterpriseTheme.colors.surfaceBorder}` }}
                   />
                 </div>
 
                 <div style={{ marginBottom: '1.25rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#001A47', marginBottom: '0.35rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: enterpriseTheme.colors.textPrimary, marginBottom: '0.35rem' }}>
                     Project Explanation & Architecture Summary *
                   </label>
                   <textarea
@@ -701,12 +709,12 @@ export const PracticalProjectsPage: React.FC = () => {
                     placeholder="Explain the solution architecture, configurations applied, and how you met the business scenario objectives..."
                     value={explanation}
                     onChange={(e) => setExplanation(e.target.value)}
-                    style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '6px', border: '1px solid #D9E1E8' }}
+                    style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '6px', border: `1px solid ${enterpriseTheme.colors.surfaceBorder}` }}
                   />
                 </div>
 
                 <div style={{ marginBottom: '1.25rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#001A47', marginBottom: '0.35rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: enterpriseTheme.colors.textPrimary, marginBottom: '0.35rem' }}>
                     Challenges Encountered & Resolutions
                   </label>
                   <textarea
@@ -714,17 +722,17 @@ export const PracticalProjectsPage: React.FC = () => {
                     placeholder="What technical, functional, or integration hurdles did you encounter, and how did you resolve them?"
                     value={challenges}
                     onChange={(e) => setChallenges(e.target.value)}
-                    style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '6px', border: '1px solid #D9E1E8' }}
+                    style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '6px', border: `1px solid ${enterpriseTheme.colors.surfaceBorder}` }}
                   />
                 </div>
 
                 <div style={{ marginBottom: '1.25rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#001A47', marginBottom: '0.35rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: enterpriseTheme.colors.textPrimary, marginBottom: '0.35rem' }}>
                     Demonstrated Competencies (Check all that apply) *
                   </label>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.5rem' }}>
                     {selectedProject.targetSkills.map((skill) => (
-                      <label key={skill} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: '#001A47' }}>
+                      <label key={skill} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: enterpriseTheme.colors.textPrimary }}>
                         <input
                           type="checkbox"
                           checked={selectedSkills.includes(skill)}
@@ -740,7 +748,7 @@ export const PracticalProjectsPage: React.FC = () => {
                 </div>
 
                 <div style={{ marginBottom: '1.25rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#001A47', marginBottom: '0.35rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: enterpriseTheme.colors.textPrimary, marginBottom: '0.35rem' }}>
                     Key Learning Reflection *
                   </label>
                   <textarea
@@ -748,12 +756,12 @@ export const PracticalProjectsPage: React.FC = () => {
                     placeholder="Reflect on how this project reinforced your theoretical understanding and prepared you for enterprise practice..."
                     value={reflection}
                     onChange={(e) => setReflection(e.target.value)}
-                    style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '6px', border: '1px solid #D9E1E8' }}
+                    style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '6px', border: `1px solid ${enterpriseTheme.colors.surfaceBorder}` }}
                   />
                 </div>
 
                 <div style={{ marginBottom: '1.5rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#001A47', marginBottom: '0.35rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: enterpriseTheme.colors.textPrimary, marginBottom: '0.35rem' }}>
                     Alternative Evidence Description (For Private Repositories or Offline Artifacts)
                   </label>
                   <textarea
@@ -761,9 +769,9 @@ export const PracticalProjectsPage: React.FC = () => {
                     placeholder="If you cannot share a public repository, provide verification instructions or local checksum..."
                     value={alternativeEvidence}
                     onChange={(e) => setAlternativeEvidence(e.target.value)}
-                    style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '6px', border: '1px solid #D9E1E8' }}
+                    style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '6px', border: `1px solid ${enterpriseTheme.colors.surfaceBorder}` }}
                   />
-                  <small style={{ color: '#5B6876', display: 'block', marginTop: '0.25rem' }}>
+                  <small style={{ color: enterpriseTheme.colors.textMuted, display: 'block', marginTop: '0.25rem' }}>
                     Never submit passwords, AWS/BTP access keys, or sensitive credentials.
                   </small>
                 </div>
@@ -782,25 +790,25 @@ export const PracticalProjectsPage: React.FC = () => {
             {/* TAB 3: REVIEW & RUBRIC */}
             {modalTab === 'review' && (
               <form onSubmit={handleReviewSubmission}>
-                <div style={{ backgroundColor: '#FAFBFD', padding: '1rem', borderRadius: '6px', border: '1px solid #EDF1F5', marginBottom: '1.5rem' }}>
-                  <div style={{ fontSize: '0.88rem', color: '#001A47', lineHeight: 1.5 }}>
+                <div style={{ backgroundColor: enterpriseTheme.colors.canvas, padding: '1rem', borderRadius: '6px', border: `1px solid ${enterpriseTheme.colors.surfaceBorder}`, marginBottom: '1.5rem' }}>
+                  <div style={{ fontSize: '0.88rem', color: enterpriseTheme.colors.textPrimary, lineHeight: 1.5 }}>
                     <strong>Rubric-Based Evidence Assessment:</strong> Grade the deliverable against each criterion defined for this scenario. Weighted total score $\ge 70\%$ qualifies for verified completion.
                   </div>
                 </div>
 
                 <div style={{ marginBottom: '1.25rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#001A47', marginBottom: '0.35rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: enterpriseTheme.colors.textPrimary, marginBottom: '0.35rem' }}>
                     Evaluator Mode
                   </label>
                   <select
                     value={reviewerType}
                     onChange={(e) => setReviewerType(e.target.value as 'SELF_ASSESSMENT' | 'INDEPENDENT_REVIEWER')}
-                    style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '6px', border: '1px solid #D9E1E8' }}
+                    style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '6px', border: `1px solid ${enterpriseTheme.colors.surfaceBorder}` }}
                   >
                     <option value="SELF_ASSESSMENT">Self-Assessment (Candidate Review)</option>
                     <option value="INDEPENDENT_REVIEWER">Simulated Independent Evaluator (Demonstration Mode)</option>
                   </select>
-                  <small style={{ color: '#5B6876', display: 'block', marginTop: '0.35rem', lineHeight: 1.4 }}>
+                  <small style={{ color: enterpriseTheme.colors.textSecondary, display: 'block', marginTop: '0.35rem', lineHeight: 1.4 }}>
                     {reviewerType === 'SELF_ASSESSMENT'
                       ? 'Self-Assessment: Allows candidate review against rubric criteria. Capped at "REVIEWED" status; cannot claim independent verification.'
                       : 'Simulated Demonstration Mode: Independent evaluator review is demonstrated in local environment. Note: Third-party enterprise authentication is not configured in this build.'}
@@ -808,20 +816,20 @@ export const PracticalProjectsPage: React.FC = () => {
                 </div>
 
                 <div style={{ marginBottom: '1.5rem' }}>
-                  <h4 style={{ color: '#001A47', fontSize: '0.95rem', fontWeight: 700, marginBottom: '0.75rem' }}>
+                  <h4 style={{ color: enterpriseTheme.colors.textPrimary, fontSize: '0.95rem', fontWeight: 700, marginBottom: '0.75rem' }}>
                     Assessment Rubric Breakdown
                   </h4>
                   {selectedProject.rubricCriteria.map((rc, idx) => (
-                    <div key={idx} style={{ padding: '1rem', border: '1px solid #D9E1E8', borderRadius: '6px', marginBottom: '0.75rem' }}>
+                    <div key={idx} style={{ padding: '1rem', border: `1px solid ${enterpriseTheme.colors.surfaceBorder}`, borderRadius: '6px', marginBottom: '0.75rem' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                        <span style={{ fontWeight: 600, color: '#001A47', fontSize: '0.9rem' }}>
+                        <span style={{ fontWeight: 700, color: enterpriseTheme.colors.textPrimary, fontSize: '0.9rem' }}>
                           {rc.criterion}
                         </span>
                         <Badge variant="neutral">{rc.weightPercentage}% weight</Badge>
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', gap: '1rem', alignItems: 'center' }}>
                         <div>
-                          <label style={{ fontSize: '0.75rem', color: '#5B6876', display: 'block' }}>Score (0–100)</label>
+                          <label style={{ fontSize: '0.75rem', color: enterpriseTheme.colors.textSecondary, display: 'block' }}>Score (0–100)</label>
                           <input
                             type="number"
                             min="0"
@@ -833,11 +841,11 @@ export const PracticalProjectsPage: React.FC = () => {
                                 [rc.criterion]: parseInt(e.target.value) || 0
                               })
                             }
-                            style={{ width: '100%', padding: '0.4rem 0.5rem', borderRadius: '4px', border: '1px solid #D9E1E8' }}
+                            style={{ width: '100%', padding: '0.4rem 0.5rem', borderRadius: '4px', border: `1px solid ${enterpriseTheme.colors.surfaceBorder}` }}
                           />
                         </div>
                         <div>
-                          <label style={{ fontSize: '0.75rem', color: '#5B6876', display: 'block' }}>Criterion Feedback</label>
+                          <label style={{ fontSize: '0.75rem', color: enterpriseTheme.colors.textSecondary, display: 'block' }}>Criterion Feedback</label>
                           <input
                             type="text"
                             placeholder="Feedback on this specific criterion..."
@@ -848,7 +856,7 @@ export const PracticalProjectsPage: React.FC = () => {
                                 [rc.criterion]: e.target.value
                               })
                             }
-                            style={{ width: '100%', padding: '0.4rem 0.5rem', borderRadius: '4px', border: '1px solid #D9E1E8' }}
+                            style={{ width: '100%', padding: '0.4rem 0.5rem', borderRadius: '4px', border: `1px solid ${enterpriseTheme.colors.surfaceBorder}` }}
                           />
                         </div>
                       </div>
@@ -857,7 +865,7 @@ export const PracticalProjectsPage: React.FC = () => {
                 </div>
 
                 <div style={{ marginBottom: '1.25rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#001A47', marginBottom: '0.35rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: enterpriseTheme.colors.textPrimary, marginBottom: '0.35rem' }}>
                     Overall Reviewer Feedback *
                   </label>
                   <textarea
@@ -865,12 +873,12 @@ export const PracticalProjectsPage: React.FC = () => {
                     placeholder="Provide constructive assessment feedback detailing strengths and areas for revision..."
                     value={generalFeedback}
                     onChange={(e) => setGeneralFeedback(e.target.value)}
-                    style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '6px', border: '1px solid #D9E1E8' }}
+                    style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '6px', border: `1px solid ${enterpriseTheme.colors.surfaceBorder}` }}
                   />
                 </div>
 
                 <div style={{ marginBottom: '1.5rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#001A47', marginBottom: '0.35rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: enterpriseTheme.colors.textPrimary, marginBottom: '0.35rem' }}>
                     Target Evaluation Decision
                   </label>
                   <select
@@ -885,7 +893,7 @@ export const PracticalProjectsPage: React.FC = () => {
                           | 'COMPLETED'
                       )
                     }
-                    style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '6px', border: '1px solid #D9E1E8' }}
+                    style={{ width: '100%', padding: '0.65rem 0.75rem', borderRadius: '6px', border: `1px solid ${enterpriseTheme.colors.surfaceBorder}` }}
                   >
                     <option value="COMPLETED">Verified Completed (Passes Rubric Criteria)</option>
                     <option value="REVIEWED">Reviewed (Evaluated without full completion)</option>
@@ -911,23 +919,23 @@ export const PracticalProjectsPage: React.FC = () => {
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
                       <div>
-                        <div style={{ fontSize: '0.82rem', color: '#5B6876' }}>Current Evidence Status:</div>
+                        <div style={{ fontSize: '0.82rem', color: enterpriseTheme.colors.textSecondary }}>Current Evidence Status:</div>
                         <div style={{ marginTop: '0.25rem' }}>
                           {getStatusBadge(activeProjectSubmissions[selectedProject.id].status)}
                         </div>
                       </div>
                       {activeProjectSubmissions[selectedProject.id].overallScore !== undefined && (
                         <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontSize: '0.82rem', color: '#5B6876' }}>Rubric Score:</div>
-                          <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#107E3E' }}>
+                          <div style={{ fontSize: '0.82rem', color: enterpriseTheme.colors.textSecondary }}>Rubric Score:</div>
+                          <div style={{ fontSize: '1.5rem', fontWeight: 800, color: enterpriseTheme.colors.success }}>
                             {activeProjectSubmissions[selectedProject.id].overallScore}%
                           </div>
                         </div>
                       )}
                     </div>
 
-                    <div style={{ backgroundColor: '#FAFBFD', padding: '1.25rem', borderRadius: '8px', border: '1px solid #EDF1F5', marginBottom: '1.5rem' }}>
-                      <h4 style={{ color: '#001A47', fontSize: '0.95rem', fontWeight: 700, marginBottom: '0.5rem' }}>
+                    <div style={{ backgroundColor: enterpriseTheme.colors.canvas, padding: '1.25rem', borderRadius: '8px', border: `1px solid ${enterpriseTheme.colors.surfaceBorder}`, marginBottom: '1.5rem' }}>
+                      <h4 style={{ color: enterpriseTheme.colors.textPrimary, fontSize: '0.95rem', fontWeight: 700, marginBottom: '0.5rem' }}>
                         Submitted Deliverable Details
                       </h4>
                       {activeProjectSubmissions[selectedProject.id].repositoryUrl && (
@@ -937,7 +945,7 @@ export const PracticalProjectsPage: React.FC = () => {
                             href={activeProjectSubmissions[selectedProject.id].repositoryUrl}
                             target="_blank"
                             rel="noreferrer"
-                            style={{ color: '#0A6ED1' }}
+                            style={{ color: enterpriseTheme.colors.primary }}
                           >
                             {activeProjectSubmissions[selectedProject.id].repositoryUrl} <ExternalLinkIcon size={12} style={{ display: 'inline' }} />
                           </a>
@@ -950,7 +958,7 @@ export const PracticalProjectsPage: React.FC = () => {
                             href={activeProjectSubmissions[selectedProject.id].liveDemoUrl}
                             target="_blank"
                             rel="noreferrer"
-                            style={{ color: '#0A6ED1' }}
+                            style={{ color: enterpriseTheme.colors.primary }}
                           >
                             {activeProjectSubmissions[selectedProject.id].liveDemoUrl} <ExternalLinkIcon size={12} style={{ display: 'inline' }} />
                           </a>
@@ -958,14 +966,14 @@ export const PracticalProjectsPage: React.FC = () => {
                       )}
                       <div style={{ marginTop: '0.75rem', fontSize: '0.88rem' }}>
                         <strong>Explanation:</strong>
-                        <p style={{ marginTop: '0.25rem', color: '#5B6876', lineHeight: 1.5 }}>
+                        <p style={{ marginTop: '0.25rem', color: enterpriseTheme.colors.textSecondary, lineHeight: 1.5 }}>
                           {activeProjectSubmissions[selectedProject.id].projectExplanation}
                         </p>
                       </div>
                       {activeProjectSubmissions[selectedProject.id].learningReflection && (
                         <div style={{ marginTop: '0.75rem', fontSize: '0.88rem' }}>
                           <strong>Reflection:</strong>
-                          <p style={{ marginTop: '0.25rem', color: '#5B6876', lineHeight: 1.5 }}>
+                          <p style={{ marginTop: '0.25rem', color: enterpriseTheme.colors.textSecondary, lineHeight: 1.5 }}>
                             {activeProjectSubmissions[selectedProject.id].learningReflection}
                           </p>
                         </div>
@@ -973,9 +981,9 @@ export const PracticalProjectsPage: React.FC = () => {
                     </div>
 
                     {activeProjectSubmissions[selectedProject.id].reviewerFeedback && (
-                      <div style={{ backgroundColor: '#F4FBF7', padding: '1.25rem', borderRadius: '8px', border: '1px solid #C3E6D0', marginBottom: '1.5rem' }}>
+                      <div style={{ backgroundColor: enterpriseTheme.colors.successSubtle, padding: '1.25rem', borderRadius: '8px', border: `1px solid ${enterpriseTheme.colors.successBorder}`, marginBottom: '1.5rem' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                          <h4 style={{ color: '#107E3E', fontSize: '0.95rem', fontWeight: 700, margin: 0 }}>
+                          <h4 style={{ color: enterpriseTheme.colors.success, fontSize: '0.95rem', fontWeight: 700, margin: 0 }}>
                             Evaluator Assessment & Feedback
                           </h4>
                           <Badge variant="success">
@@ -984,7 +992,7 @@ export const PracticalProjectsPage: React.FC = () => {
                               : 'Self-Assessment'}
                           </Badge>
                         </div>
-                        <p style={{ color: '#001A47', fontSize: '0.88rem', lineHeight: 1.5 }}>
+                        <p style={{ color: enterpriseTheme.colors.textPrimary, fontSize: '0.88rem', lineHeight: 1.5 }}>
                           {activeProjectSubmissions[selectedProject.id].reviewerFeedback}
                         </p>
                       </div>
@@ -1001,7 +1009,7 @@ export const PracticalProjectsPage: React.FC = () => {
                   </div>
                 ) : (
                   <div style={{ textAlign: 'center', padding: '2rem' }}>
-                    <p style={{ color: '#5B6876' }}>No submission logged yet for this project.</p>
+                    <p style={{ color: enterpriseTheme.colors.textSecondary }}>No submission logged yet for this project.</p>
                     <Button variant="primary" style={{ marginTop: '1rem' }} onClick={() => setModalTab('submit')}>
                       Submit Project Deliverables
                     </Button>

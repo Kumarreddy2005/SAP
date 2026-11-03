@@ -1,15 +1,16 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { enterpriseTheme } from '../../theme/tokens';
 
 export const Footer: React.FC = () => {
   return (
     <footer
       style={{
         backgroundColor: '#FFFFFF',
-        borderTop: '1px solid #D9E1E8',
+        borderTop: `1px solid ${enterpriseTheme.colors.surfaceBorder}`,
         padding: '2.5rem 1.5rem',
         marginTop: 'auto',
-        color: '#5B6876',
+        color: enterpriseTheme.colors.textSecondary,
         fontSize: '0.85rem'
       }}
     >
@@ -26,13 +27,14 @@ export const Footer: React.FC = () => {
       >
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.4rem' }}>
-            <span style={{ fontWeight: 700, color: '#001A47', fontSize: '1rem' }}>
+            <span style={{ fontWeight: 700, color: enterpriseTheme.colors.textPrimary, fontSize: '1rem' }}>
               Career Orchestrator
             </span>
             <span
               style={{
-                backgroundColor: '#EBF3FB',
-                color: '#0A6ED1',
+                backgroundColor: enterpriseTheme.colors.primarySubtle,
+                color: enterpriseTheme.colors.primary,
+                border: `1px solid ${enterpriseTheme.colors.primaryBorder}`,
                 padding: '0.15rem 0.45rem',
                 borderRadius: '3px',
                 fontSize: '0.72rem',
@@ -42,23 +44,23 @@ export const Footer: React.FC = () => {
               SAP Hackfest 2026
             </span>
           </div>
-          <p style={{ maxWidth: '600px', lineHeight: 1.4 }}>
+          <p style={{ maxWidth: '600px', lineHeight: 1.5, color: enterpriseTheme.colors.textSecondary }}>
             Empowering professionals and students to pivot into high-demand SAP ecosystems through explainable
             transferable skill intelligence and verified learning pathways.
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '1.5rem' }}>
-          <Link to="/" style={{ color: '#5B6876', textDecoration: 'none' }}>
+        <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
+          <Link to="/" style={{ color: enterpriseTheme.colors.textSecondary, textDecoration: 'none', fontWeight: 500 }}>
             Platform Overview
           </Link>
-          <Link to="/profile" style={{ color: '#5B6876', textDecoration: 'none' }}>
+          <Link to="/profile" style={{ color: enterpriseTheme.colors.textSecondary, textDecoration: 'none', fontWeight: 500 }}>
             Profile Intake
           </Link>
-          <Link to="/careers" style={{ color: '#5B6876', textDecoration: 'none' }}>
+          <Link to="/careers" style={{ color: enterpriseTheme.colors.textSecondary, textDecoration: 'none', fontWeight: 500 }}>
             Career Catalogue
           </Link>
-          <Link to="/learning" style={{ color: '#5B6876', textDecoration: 'none' }}>
+          <Link to="/learning" style={{ color: enterpriseTheme.colors.textSecondary, textDecoration: 'none', fontWeight: 500 }}>
             SAP Learning Hub
           </Link>
         </div>
@@ -69,9 +71,9 @@ export const Footer: React.FC = () => {
           maxWidth: '1280px',
           margin: '1.5rem auto 0',
           paddingTop: '1rem',
-          borderTop: '1px solid #EDF1F5',
+          borderTop: `1px solid ${enterpriseTheme.colors.surfaceBorder}`,
           fontSize: '0.78rem',
-          color: '#8492A0',
+          color: enterpriseTheme.colors.textMuted,
           display: 'flex',
           flexWrap: 'wrap',
           justifyContent: 'space-between',
