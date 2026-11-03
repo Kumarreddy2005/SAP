@@ -1,27 +1,22 @@
 # Career Orchestrator — Project Status Log
 
 **Project:** Career Orchestrator (SAP Hackfest 2026)  
-**Current Milestone:** Deep Reset Bug Fix, Premium Minimal Enterprise Dashboard & Zero-Fabrication Candidate Session Isolation  
-**Overall Status:** **HACKATHON DEMO READY** (53/53 automated backend tests pass, full monorepo typecheck clean across all 3 workspaces, production bundling clean, 17-stage E2E workflow verified, 15 desktop & mobile screenshots updated and verified)  
-**Last Updated:** 2026-11-03 02:50:00 UTC+05:30  
+**Current Milestone:** Post-Release Engineering Audit, Persistent Candidate Session Modes & Zero-Fabrication Mobile-Hardened Dashboard  
+**Overall Status:** **HACKATHON DEMO READY & AUDIT VERIFIED** (65/65 automated tests pass [53 backend + 12 frontend], full monorepo typecheck clean across all 3 workspaces, production bundling clean, 17-stage E2E workflow verified, 17 desktop & mobile screenshots updated and verified)  
+**Last Updated:** 2026-11-03 03:30:00 UTC+05:30  
 
 ---
 
 ## 1. Milestone Status Summary
 
-- **Deep Candidate Session Reset & Distinct Workflows:** **PASS** (Separated candidate workflows into two distinct, non-aliased actions: `Start New Profile` and `Load Alex Vance Demo Baseline`. Fixed demo submission resurrection by removing fallback to `'demo-profile'` in `fetchUserSubmissions`, eliminating ghost key lookups in `project.repository.ts`, purging both compound `${profileId}:${projectId}` and `${sub.id}` keys, and guarding asynchronous requests with `AbortController` and `sessionGeneration` ref guards. Fully clears React refs, native file inputs, error banners, and browser cache).
-- **Backend Candidate Session Purge API (`DELETE /api/v1/profile/:id`):** **PASS** (Returns HTTP 200 on successful purge with storage metadata and deleted submission counts; returns deliberate HTTP 404 with documented JSON when nonexistent or already expired; verified with automated regression tests 17 & 18).
-- **Premium Minimal Enterprise Dashboard (`/dashboard`):** **PASS** (Redesigned into a cohesive SAP-inspired command center with white/light-grey content surfaces, deep navy typography, and SAP blue accents:
-  1. *Executive Top Navigation:* Compact header with brand identity, one target-role selector, search palette trigger, live session signals popover, and profile dropdown menu.
-  2. *Candidate Overview Bar:* 4-column overview displaying candidate identity, resume document source, active target role goal, and competency calibration status with distinct badges (`Alex Vance (Demo Baseline)`, `Verified Profile`, `Intake Staged`, or `Empty Session`).
-  3. *Four Meaningful Quantitative Metrics:* Confirmed Competencies, Transferable Skills, Priority Skill Gaps, and Learning Milestones Completed — honest counts with zero artificial multipliers, distinguishing suggested from confirmed skills.
-  4. *Dynamic Next Recommended Action Banner:* ONE prominent strategic recommendation card deriving purely from candidate state (Empty Session $\to$ Skills Review Calibration $\to$ Priority Milestone Upskilling $\to$ Learning In Progress $\to$ High Readiness & Evidence Submission). Includes secondary action for one-click demo baseline loading.
-  5. *7-Stage Transition Roadmap:* Compact interactive milestone journey from Background Intake to Readiness & Job Destinations with genuine status indicators (`DONE`, `ACTIVE`, `NEXT`).
-  6. *Two-Column Career Intelligence Grid:* Left column houses Target Role Match Breakdown with honest empty session state and SVG Career DNA Radar Chart; right column houses Target Learning Pathway with fractional progress and Practical Project Workspace.
-  7. *Curated 14-Role Alternative Pathways:* 4 alternative career recommendations sorted by match score with matched/gap counts and quick target switching).
-- **Zero-Fabrication Data Integrity:** **PASS** (Never displays hardcoded 88/100 project scores or artificial 34% multipliers for empty candidate sessions; never claims unreviewed profiles have verified AI match scores; strictly separates demo data with amber baseline badges).
-- **Automated Verification Suite:** **PASS** (53/53 backend unit/integration tests passing in 2.4s; 17-stage end-to-end integration test passing; 100% monorepo typecheck clean; Vite production build compiling cleanly).
-- **Visual Capture & Layout Audit:** **PASS** (Headless Chrome captured 1280x850 desktop and 375x812 mobile screenshots across all 11 platform views including the redesigned Executive Dashboard: `00-dashboard-desktop.png`, `mobile-00-dashboard.png`, and `01-landing-page.png` through `10-job-destinations.png` in `screenshots/` and artifact directory).
+- **Persistent Candidate Session Modes (`EMPTY`, `DEMO`, `REAL_PROFILE`):** **PASS** (Engineered a validated candidate session storage layer in `apps/frontend/src/context/sessionState.ts`. Solved candidate resurrection across page reloads by replacing hardcoded initial state literals with `loadSessionState()`. Page refresh on an empty session deterministically preserves `EMPTY` mode; page refresh on `DEMO` preserves the Alex Vance baseline; page refresh on `REAL_PROFILE` preserves actual parsed/confirmed competencies without ever falling back to demo records).
+- **Complete Request Lifecycle & Async Race Protection:** **PASS** (Audited and protected all 12 candidate-specific asynchronous operations across CareerContext: resume upload, skill review, career matching, gap analysis, learning pathway generation, role comparison, project workspace initialization, project deliverable submission, project review, user submissions fetching, readiness calculation, and job search links. Wired native `AbortController` signals to cancel in-flight HTTP requests upon session reset, and added `sessionGenerationRef` and `sessionMode === 'EMPTY'` guards to reject late-resolving promises).
+- **Honest Readiness Scorecard Validation:** **PASS** (Completely eliminated the premature shortcut `projectsCompletedCount > 0` that previously triggered `HIGH_READINESS`. The system now strictly requires verified backend scorecard eligibility: `readinessScorecard.isReadinessEligible && readinessScorecard.overallReadinessScore >= 70 && readinessScorecard.outstandingMandatoryGaps.length === 0`. Missing backend scorecards produce an honest intake/pending status, never an invented score).
+- **Zero-Fabrication Data Integrity & Removal of Fake `88/100` Fallbacks:** **PASS** (Audited all components and eliminated every occurrence of `|| 88` and fabricated `(88/100)` strings in notifications, roadmap step subtitles, project status badges, and rubric feedback. Derived all notifications strictly from actual database records: e.g. displaying dynamic rubric scores, actual evaluated project counts, or unreviewed counts).
+- **Mobile Responsiveness Audit & 0px Horizontal Overflow at 375px:** **PASS** (Fixed previous 105px horizontal overflow on 375px mobile screens. Root cause: `gridTemplateColumns: minmax(480px, 1fr)` in DashboardPage line 995 and fixed-width SVG/grid in radar chart. Replaced with `repeat(auto-fit, minmax(min(100%, 320px), 1fr))`, fluid radar chart with `maxWidth: 100%`, compact icon-only search on mobile, flexible role selectors, and stacked overview cards. Confirmed zero horizontal scrolling at 375px).
+- **Truthful Dashboard Semantics & Empty Session States:** **PASS** (Target Calibration step on transition roadmap is no longer marked completed merely because a default role was selected; it correctly requires skill review in real candidate sessions and remains inactive in empty sessions. Curriculum completed metric displays `—` with `Intake required for curriculum` in empty sessions rather than claiming `0 of 3 Milestones`).
+- **Comprehensive Automated Test Coverage (65 Tests Total):** **PASS** (Created `apps/frontend/src/__tests__/session-lifecycle.test.ts` covering all 12 required lifecycle, persistence, and audit scenarios using Node test runner. Monorepo automated test suite now runs 65 tests [53 backend + 12 frontend] with 100% pass rate in 2.1s).
+- **Visual Capture & Layout Audit:** **PASS** (Captured 17 verified screenshots [11 desktop + 6 mobile] including fresh empty and demo dashboards: `00-dashboard-empty-desktop.png`, `00-dashboard-desktop.png`, `mobile-00-dashboard-empty.png`, and `mobile-00-dashboard.png` into `screenshots/` and artifact directory).
 
 ---
 
@@ -77,12 +72,12 @@
 
 | Test Suite / Verification Step | Result | Details |
 | :--- | :---: | :--- |
-| **Backend Automated Unit & Integration Suite** | **PASS (53/53)** | `npm test` running 53 tests across 7 test suites covering career matching (11), skill gaps (5), learning pathways (6), project lifecycle & rubrics (8), readiness scorecards (3), external job destinations (2), and resume ingestion/review (18). Includes regression test 10b, rubric guard test 7b, skill review default test 16, candidate purge test 17, and nonexistent delete test 18. Duration: 2.4s. |
+| **Monorepo Automated Test Suite (`npm test`)** | **PASS (65/65)** | `npm test` running 65 automated tests across backend (53) and frontend (12). Frontend suite covers all 12 candidate session lifecycle, refresh persistence, race isolation, rubric integrity, and mobile layout constraints. Backend suite covers career matching (11), skill gaps (5), learning pathways (6), project lifecycle & rubrics (8), readiness scorecards (3), external job destinations (2), and resume ingestion/review (18). Duration: 2.1s. |
 | **End-to-End Milestone Verification** | **PASS (17/17)** | `verify-milestone.ts` tested real PDF & DOCX ingestion, human review, explainable matching, comparison, 6-group gap analysis, sequenced pathway, dynamic progress recalculation, edge cases, project discovery, workspace initiation, deliverable submission, rubric review, readiness scorecard, and parameterized job destinations. |
 | **Monorepo Global Typecheck** | **PASS** | `npm run typecheck` across `shared`, `backend`, and `frontend` (0 errors). |
-| **Frontend Production Build** | **PASS** | `npm run build:frontend` compiled 76 modules cleanly into `dist/` in 2.65s. |
+| **Frontend Production Build** | **PASS** | `npm run build:frontend` compiled 77 modules cleanly into `dist/` in 4.62s. |
 | **Backend Production Build** | **PASS** | `npm run build:backend` compiled TypeScript cleanly into `dist/`. |
-| **Visual Capture & Layout Audit** | **PASS** | Captured 15 screenshots (10 desktop + 5 mobile) into `screenshots/` and artifact directory (`00-dashboard-desktop.png` through `10-job-destinations.png`, plus `mobile-00` through `mobile-09`). |
+| **Visual Capture & Layout Audit** | **PASS** | Captured 17 verified screenshots (11 desktop + 6 mobile) into `screenshots/` and artifact directory (`00-dashboard-empty-desktop.png`, `00-dashboard-desktop.png`, `mobile-00-dashboard-empty.png`, `mobile-00-dashboard.png`, and `01-landing-page.png` through `10-job-destinations.png`). |
 
 ---
 

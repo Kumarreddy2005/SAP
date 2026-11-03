@@ -235,15 +235,15 @@ export const CareerDnaRadarChart: React.FC<CareerDnaRadarChartProps> = ({ skills
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'minmax(280px, 340px) 1fr',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
           gap: '1.5rem',
           alignItems: 'center'
         }}
         className="radar-grid"
       >
         {/* SVG Radar */}
-        <div style={{ position: 'relative', display: 'flex', justifyContent: 'center' }}>
-          <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+        <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', width: '100%', maxWidth: `${size}px`, margin: '0 auto' }}>
+          <svg viewBox={`0 0 ${size} ${size}`} style={{ width: '100%', maxWidth: `${size}px`, height: 'auto', display: 'block' }}>
             {/* Concentric rings at 20%, 40%, 60%, 80%, 100% */}
             {[20, 40, 60, 80, 100].map((level) => {
               const polyPoints = metrics

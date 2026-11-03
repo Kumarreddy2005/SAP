@@ -93,7 +93,7 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
     notifications.push({
       id: 'notif-projects',
       title: 'Practical Evidence Evaluated',
-      message: `${projectsCompletedCount} project submission reviewed with rubric-based score (88/100).`,
+      message: `${projectsCompletedCount} practical project submission(s) evaluated against enterprise rubric criteria.`,
       time: 'Workspace updated',
       type: 'success'
     });
@@ -152,7 +152,7 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
       style={{
         backgroundColor: '#FFFFFF',
         borderBottom: '1px solid #E2E8F0',
-        padding: '0.85rem 2rem',
+        padding: '0.75rem 1rem',
         position: 'sticky',
         top: 0,
         zIndex: 50,
@@ -160,14 +160,17 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
-        gap: '1.25rem',
-        flexWrap: 'wrap'
+        gap: '0.75rem',
+        flexWrap: 'wrap',
+        width: '100%',
+        maxWidth: '100vw',
+        boxSizing: 'border-box'
       }}
     >
       {/* Left: Brand Identity & Target Role Selector */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', maxWidth: '100%' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
             <span
               style={{
                 backgroundColor: '#001A47',
@@ -181,10 +184,10 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
             >
               SAP HACKFEST
             </span>
-            <span style={{ fontSize: '1.15rem', fontWeight: 800, color: '#001A47', letterSpacing: '-0.01em' }}>
+            <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#001A47', letterSpacing: '-0.01em' }}>
               Career Orchestrator
             </span>
-            <span style={{ fontSize: '0.9rem', color: '#64748B', fontWeight: 500 }}>
+            <span className="hide-on-mobile" style={{ fontSize: '0.85rem', color: '#64748B', fontWeight: 500 }}>
               • Executive Dashboard
             </span>
           </div>
@@ -199,10 +202,12 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
             backgroundColor: '#F1F5F9',
             border: '1px solid #D9E1E8',
             borderRadius: '6px',
-            padding: '0.3rem 0.65rem'
+            padding: '0.3rem 0.65rem',
+            maxWidth: '100%',
+            boxSizing: 'border-box'
           }}
         >
-          <span style={{ fontSize: '0.75rem', color: '#475569', fontWeight: 600 }}>Target Role:</span>
+          <span style={{ fontSize: '0.75rem', color: '#475569', fontWeight: 600, whiteSpace: 'nowrap' }}>Target:</span>
           <select
             value={targetRoleSlug}
             onChange={(e) => onSelectTargetRole(e.target.value)}
@@ -214,7 +219,8 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
               border: 'none',
               cursor: 'pointer',
               outline: 'none',
-              maxWidth: '280px'
+              maxWidth: '190px',
+              textOverflow: 'ellipsis'
             }}
           >
             {allRoles.map((r) => (
@@ -227,22 +233,22 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
       </div>
 
       {/* Right Controls: Global Search Trigger, Notifications & Profile Menu */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-        {/* Global Search Bar Trigger */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+        {/* Global Search Bar Trigger (Responsive: icon-only on mobile) */}
         <div
           onClick={onOpenSearch}
+          title="Search roles, skills, courses (/)"
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '0.6rem',
+            gap: '0.45rem',
             backgroundColor: '#F8FAFC',
             border: '1px solid #D9E1E8',
             borderRadius: '6px',
-            padding: '0.45rem 0.85rem',
+            padding: '0.45rem 0.65rem',
             cursor: 'pointer',
             color: '#64748B',
             fontSize: '0.82rem',
-            minWidth: '220px',
             transition: 'all 0.15s ease'
           }}
           onMouseEnter={(e) => {
@@ -255,8 +261,9 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
           }}
         >
           <SearchIcon size={16} color="#0A6ED1" />
-          <span style={{ flex: 1 }}>Search roles, skills, courses...</span>
+          <span className="hide-on-mobile" style={{ whiteSpace: 'nowrap' }}>Search roles, skills...</span>
           <span
+            className="hide-on-mobile"
             style={{
               fontSize: '0.7rem',
               backgroundColor: '#EDF1F5',
@@ -323,7 +330,8 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
                 position: 'absolute',
                 top: 'calc(100% + 8px)',
                 right: 0,
-                width: '320px',
+                width: 'min(320px, calc(100vw - 2rem))',
+                maxWidth: 'calc(100vw - 2rem)',
                 backgroundColor: '#FFFFFF',
                 borderRadius: '8px',
                 boxShadow: '0 10px 25px rgba(0, 26, 71, 0.15)',
@@ -431,7 +439,8 @@ export const DashboardTopNav: React.FC<DashboardTopNavProps> = ({
                 position: 'absolute',
                 top: 'calc(100% + 8px)',
                 right: 0,
-                width: '280px',
+                width: 'min(280px, calc(100vw - 2rem))',
+                maxWidth: 'calc(100vw - 2rem)',
                 backgroundColor: '#FFFFFF',
                 borderRadius: '8px',
                 boxShadow: '0 10px 25px rgba(0, 26, 71, 0.15)',

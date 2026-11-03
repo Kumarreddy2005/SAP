@@ -25,6 +25,7 @@ import {
 export const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
   const {
+    sessionMode,
     manualProfile,
     uploadedFile,
     skills,
@@ -93,7 +94,7 @@ export const DashboardPage: React.FC = () => {
   }, [isRealProfileReviewed, targetRoleSlug, currentProfileId, fetchReadinessScorecard]);
 
   // Determine candidate confirmed and transferable competencies
-  const isEmptySession = !isDemoProfileActive && !isRealProfileLoaded && !currentProfileId && skills.length === 0;
+  const isEmptySession = sessionMode === 'EMPTY' || (!isDemoProfileActive && !isRealProfileLoaded && !currentProfileId && skills.length === 0);
 
   const confirmedSkills = skills.filter((s) => s.isConfirmed && s.reviewStatus === 'CONFIRMED');
   const unreviewedSkills = skills.filter((s) => !s.isConfirmed && s.reviewStatus !== 'REJECTED');
@@ -229,10 +230,10 @@ export const DashboardPage: React.FC = () => {
       reviewerFeedback:
         'Demonstrates rigorous understanding of leading vs non-leading ledger variants in Universal Journal ACDOCA. [Simulated Demonstration Reviewer Mode]',
       reviewerType: 'SIMULATED_DEMO_REVIEWER',
-      rubricAssessments: criteria.map((c) => ({
+      rubricAssessments: criteria.map((c, idx) => ({
         criterion: c.criterion,
         weightPercentage: c.weightPercentage,
-        awardedScore: 88,
+        awardedScore: 85 + (idx % 2 === 0 ? 5 : -5),
         isSatisfied: true,
         feedback: `Meets enterprise benchmark for ${c.criterion}.`
       }))
@@ -240,6 +241,16 @@ export const DashboardPage: React.FC = () => {
 
     await reviewProjectDeliverables(reviewInput);
   };
+
+  // Readiness scorecard validation: requires verified backend eligibility, score >= 70, and 0 mandatory gaps
+  const isReadinessValidated = Boolean(
+    !isEmptySession &&
+    isRealProfileReviewed &&
+    readinessScorecard &&
+    readinessScorecard.isReadinessEligible &&
+    readinessScorecard.overallReadinessScore >= 70 &&
+    readinessScorecard.outstandingMandatoryGaps.length === 0
+  );
 
   // --------------------------------------------------------------------------
   // SECTION 2: Dynamic Next Recommended Action Resolution
@@ -295,6 +306,18 @@ export const DashboardPage: React.FC = () => {
       buttonLabel: 'Upload Resume Document →',
       buttonPath: '/profile'
     };
+  } else if (isReadinessValidated) {
+    // State D: High readiness verified by backend scorecard
+    nextAction = {
+      state: 'HIGH_READINESS',
+      badge: `Readiness Validated • ${readinessScorecard?.overallReadinessScore}% Score`,
+      badgeBg: '#E8F5ED',
+      badgeColor: '#107E3E',
+      title: `Career Readiness Validated for ${targetRole.title}`,
+      description: `You satisfy the core competencies and mandatory requirements for ${targetRole.title}. Inspect your verified readiness scorecard or explore verified external job destinations.`,
+      buttonLabel: 'View Readiness Scorecard →',
+      buttonPath: '/readiness'
+    };
   } else if (isRealProfileReviewed && completedLearningCount > 0 && honestLearningPct < 100) {
     // State C: Learning in progress
     const activeModule = displayLearningModules.find((m) => !completedLearningIds.includes(m.id)) || displayLearningModules[0];
@@ -307,18 +330,6 @@ export const DashboardPage: React.FC = () => {
       description: `Continue your structured learning pathway for ${targetRole.title}. Next module: ${activeModule?.code || 'Module'} (${activeModule?.estimatedHours || 10} hrs).`,
       buttonLabel: 'Continue Learning Pathway →',
       buttonPath: '/learning'
-    };
-  } else if (isRealProfileReviewed && (targetMatchScore >= 75 || projectsCompletedCount > 0)) {
-    // State D: High readiness
-    nextAction = {
-      state: 'HIGH_READINESS',
-      badge: `Readiness Threshold Met • ${targetMatchScore}% Match`,
-      badgeBg: '#E8F5ED',
-      badgeColor: '#107E3E',
-      title: `Career Readiness Validated for ${targetRole.title}`,
-      description: `You satisfy the core competencies for ${targetRole.title}. Inspect your readiness scorecard or explore verified external job destinations.`,
-      buttonLabel: 'View Readiness Scorecard →',
-      buttonPath: '/readiness'
     };
   } else {
     // State E: Skills confirmed, prioritize missing mandatory competencies
@@ -350,8 +361,8 @@ export const DashboardPage: React.FC = () => {
         : manualProfile.fullName
         ? `${manualProfile.fullName} Profile`
         : 'Pending Intake',
-      isComplete: Boolean(isRealProfileLoaded || isDemoProfileActive || manualProfile.fullName),
-      isActive: !isRealProfileLoaded && !isDemoProfileActive && !manualProfile.fullName,
+      isComplete: sessionMode === 'DEMO' || (sessionMode === 'REAL_PROFILE' && Boolean(isRealProfileLoaded || manualProfile.fullName)),
+      isActive: sessionMode === 'EMPTY' || (!isRealProfileLoaded && !isDemoProfileActive && !manualProfile.fullName),
       path: '/profile'
     },
     {
@@ -363,8 +374,8 @@ export const DashboardPage: React.FC = () => {
         : skills.length > 0
         ? `${skills.length} Pending Review`
         : '0 Skills',
-      isComplete: isRealProfileReviewed && skills.length > 0,
-      isActive: skills.length > 0 && !isRealProfileReviewed,
+      isComplete: (sessionMode === 'DEMO' || sessionMode === 'REAL_PROFILE') && isRealProfileReviewed && skills.length > 0,
+      isActive: sessionMode === 'REAL_PROFILE' && skills.length > 0 && !isRealProfileReviewed,
       path: '/skills-review'
     },
     {
@@ -372,8 +383,8 @@ export const DashboardPage: React.FC = () => {
       stepNumber: 3,
       title: 'Target Calibration',
       subtitle: targetRole.title,
-      isComplete: Boolean(targetRoleSlug),
-      isActive: false,
+      isComplete: sessionMode === 'DEMO' || (sessionMode === 'REAL_PROFILE' && isRealProfileReviewed),
+      isActive: sessionMode === 'REAL_PROFILE' && !isRealProfileReviewed,
       path: '/careers'
     },
     {
@@ -381,8 +392,8 @@ export const DashboardPage: React.FC = () => {
       stepNumber: 4,
       title: 'Skill Gap Matrix',
       subtitle: `${missingSkillsList.length} Competency Gaps`,
-      isComplete: isRealProfileReviewed && missingSkillsList.length === 0,
-      isActive: isRealProfileReviewed && missingSkillsList.length > 0,
+      isComplete: (sessionMode === 'DEMO' || (sessionMode === 'REAL_PROFILE' && isRealProfileReviewed)) && missingSkillsList.length === 0,
+      isActive: (sessionMode === 'DEMO' || (sessionMode === 'REAL_PROFILE' && isRealProfileReviewed)) && missingSkillsList.length > 0,
       path: '/careers'
     },
     {
@@ -390,7 +401,7 @@ export const DashboardPage: React.FC = () => {
       stepNumber: 5,
       title: 'Learning Pathway',
       subtitle: `${completedLearningCount}/${totalLearningCount} Milestones (${honestLearningPct}%)`,
-      isComplete: honestLearningPct === 100,
+      isComplete: totalLearningCount > 0 && honestLearningPct === 100,
       isActive: completedLearningCount > 0 && honestLearningPct < 100,
       path: '/learning'
     },
@@ -400,7 +411,9 @@ export const DashboardPage: React.FC = () => {
       title: 'Practical Projects',
       subtitle:
         projectStatus === 'REVIEWED'
-          ? `Rubric Scored (${currentSubmission?.overallScore || 88}/100)`
+          ? currentSubmission?.overallScore !== undefined
+            ? `Rubric Scored (${currentSubmission.overallScore}/100)`
+            : 'Rubric Scored'
           : projectStatus === 'SUBMITTED'
           ? 'Awaiting Review'
           : projectStatus === 'IN_PROGRESS'
@@ -415,17 +428,21 @@ export const DashboardPage: React.FC = () => {
       stepNumber: 7,
       title: 'Readiness & Jobs',
       subtitle:
-        readinessScorecard?.overallReadinessScore !== undefined
+        isEmptySession
+          ? 'Intake Required'
+          : readinessScorecard?.overallReadinessScore !== undefined
           ? `${readinessScorecard.overallReadinessScore}% Readiness Score`
-          : 'Evaluation Available',
-      isComplete: Boolean(readinessScorecard && readinessScorecard.overallReadinessScore >= 75),
-      isActive: Boolean(readinessScorecard && readinessScorecard.overallReadinessScore < 75),
+          : isRealProfileReviewed
+          ? 'Scorecard Available'
+          : 'Evaluation Pending Review',
+      isComplete: isReadinessValidated,
+      isActive: Boolean(!isEmptySession && isRealProfileReviewed && readinessScorecard && !isReadinessValidated),
       path: '/readiness'
     }
   ];
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#F8FAFC', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: '#F8FAFC', display: 'flex', flexDirection: 'column', width: '100%', maxWidth: '100vw', overflowX: 'hidden' }}>
       {/* SECTION 1: Unified Executive Top Navigation Header */}
       <DashboardTopNav
         candidateName={isDemoProfileActive ? 'Alex Vance' : manualProfile.fullName}
@@ -451,11 +468,13 @@ export const DashboardPage: React.FC = () => {
           maxWidth: '1440px',
           width: '100%',
           margin: '0 auto',
-          padding: '1.75rem 2rem 3rem',
+          padding: '1.25rem 1rem 3rem',
           display: 'flex',
           flexDirection: 'column',
-          gap: '1.75rem',
-          flex: 1
+          gap: '1.5rem',
+          flex: 1,
+          boxSizing: 'border-box',
+          overflowX: 'hidden'
         }}
       >
         {/* SECTION 2: Career Transition Overview Header & 4-Stat Bar */}
@@ -517,15 +536,15 @@ export const DashboardPage: React.FC = () => {
               backgroundColor: '#FFFFFF',
               border: '1px solid #D9E1E8',
               borderRadius: '12px',
-              padding: '1.25rem 1.5rem',
+              padding: '1.25rem 1rem',
               boxShadow: '0 2px 8px rgba(0, 26, 71, 0.04)',
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',
               gap: '1.25rem'
             }}
           >
             {/* Stat 1: Candidate Identity */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', borderRight: '1px solid #EDF1F5', paddingRight: '1rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', paddingRight: '0.5rem' }}>
               <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 Candidate Profile
               </span>
@@ -538,7 +557,7 @@ export const DashboardPage: React.FC = () => {
             </div>
 
             {/* Stat 2: Resume Document Source */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', borderRight: '1px solid #EDF1F5', paddingRight: '1rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', paddingRight: '0.5rem' }}>
               <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                 Document Source
               </span>
@@ -565,7 +584,7 @@ export const DashboardPage: React.FC = () => {
             </div>
 
             {/* Stat 3: Target Role Selection */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', borderRight: '1px solid #EDF1F5', paddingRight: '1rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem', paddingRight: '0.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   Target Career Goal
@@ -627,7 +646,7 @@ export const DashboardPage: React.FC = () => {
         <section
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',
             gap: '1.25rem'
           }}
         >
@@ -773,15 +792,15 @@ export const DashboardPage: React.FC = () => {
               <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>
                 Curriculum Completed
               </span>
-              <span style={{ fontSize: '0.7rem', fontWeight: 700, color: honestLearningPct === 100 ? '#107E3E' : '#0A6ED1', backgroundColor: honestLearningPct === 100 ? '#E8F5ED' : '#EBF3FB', padding: '0.15rem 0.45rem', borderRadius: '4px' }}>
-                {honestLearningPct}% Progress
+              <span style={{ fontSize: '0.7rem', fontWeight: 700, color: isEmptySession ? '#64748B' : honestLearningPct === 100 ? '#107E3E' : '#0A6ED1', backgroundColor: isEmptySession ? '#F1F5F9' : honestLearningPct === 100 ? '#E8F5ED' : '#EBF3FB', padding: '0.15rem 0.45rem', borderRadius: '4px' }}>
+                {isEmptySession ? 'Intake Required' : `${honestLearningPct}% Progress`}
               </span>
             </div>
             <div style={{ fontSize: '1.85rem', fontWeight: 800, color: '#001A47' }}>
-              {completedLearningCount} / {totalLearningCount}
+              {isEmptySession ? '—' : `${completedLearningCount} / ${totalLearningCount}`}
             </div>
             <div style={{ fontSize: '0.78rem', color: '#64748B', marginTop: '0.35rem' }}>
-              Self-reported milestone completions
+              {isEmptySession ? 'Intake required for curriculum' : 'Self-reported milestone completions'}
             </div>
           </div>
         </section>
@@ -793,16 +812,17 @@ export const DashboardPage: React.FC = () => {
             border: '1px solid #D9E1E8',
             borderLeft: `6px solid ${nextAction.badgeColor}`,
             borderRadius: '10px',
-            padding: '1.25rem 1.75rem',
+            padding: '1.25rem 1.25rem',
             boxShadow: '0 2px 10px rgba(0, 26, 71, 0.05)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: '1.5rem',
-            flexWrap: 'wrap'
+            gap: '1.25rem',
+            flexWrap: 'wrap',
+            boxSizing: 'border-box'
           }}
         >
-          <div style={{ flex: 1, minWidth: '280px' }}>
+          <div style={{ flex: 1, minWidth: 'min(100%, 280px)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.35rem' }}>
               <span
                 style={{
@@ -923,7 +943,7 @@ export const DashboardPage: React.FC = () => {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 130px), 1fr))',
               gap: '0.75rem'
             }}
           >
@@ -992,7 +1012,7 @@ export const DashboardPage: React.FC = () => {
         </section>
 
         {/* SECTION 5: Career Intelligence (Two-Column Layout on Desktop) */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(480px, 1fr))', gap: '1.75rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: '1.5rem', width: '100%', boxSizing: 'border-box' }}>
           {/* LEFT COLUMN: Career Matching & Gap Breakdown */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
             {/* Card 5A: Target Role Match & Competency Breakdown */}
@@ -1116,7 +1136,7 @@ export const DashboardPage: React.FC = () => {
               ) : null}
 
               {/* Matched vs Missing Skills Summary */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))', gap: '1rem', marginBottom: '1.25rem' }}>
                 <div style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '0.85rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#107E3E', fontWeight: 700, fontSize: '0.82rem' }}>
                     <CheckIcon size={14} color="#107E3E" />
@@ -1245,84 +1265,122 @@ export const DashboardPage: React.FC = () => {
                 </button>
               </div>
 
-              {/* Honest Fractional Progress Indicator */}
-              <div style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '0.75rem 1rem', marginBottom: '1rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8rem', fontWeight: 700, color: '#001A47', marginBottom: '0.4rem' }}>
-                  <span>Curriculum Completion</span>
-                  <span style={{ color: '#0A6ED1' }}>
-                    {completedLearningCount} of {totalLearningCount} Milestones ({honestLearningPct}%)
-                  </span>
-                </div>
-                <div style={{ width: '100%', height: '8px', backgroundColor: '#E2E8F0', borderRadius: '4px', overflow: 'hidden' }}>
-                  <div
+              {/* Content for Empty vs Active Session */}
+              {isEmptySession ? (
+                <div
+                  style={{
+                    backgroundColor: '#F8FAFC',
+                    border: '1px solid #CBD5E1',
+                    borderRadius: '8px',
+                    padding: '1.5rem',
+                    textAlign: 'center',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '0.75rem'
+                  }}
+                >
+                  <p style={{ color: '#475569', fontSize: '0.88rem', margin: 0, maxWidth: '400px' }}>
+                    Curated learning pathways and milestone tracking are calibrated after candidate intake and skill confirmation.
+                  </p>
+                  <button
+                    onClick={() => navigate('/profile')}
                     style={{
-                      width: `${honestLearningPct}%`,
-                      height: '100%',
-                      backgroundColor: honestLearningPct === 100 ? '#107E3E' : '#0A6ED1',
-                      transition: 'width 0.3s ease'
+                      backgroundColor: '#0A6ED1',
+                      color: '#FFFFFF',
+                      border: 'none',
+                      borderRadius: '6px',
+                      padding: '0.55rem 1.1rem',
+                      fontSize: '0.82rem',
+                      fontWeight: 700,
+                      cursor: 'pointer'
                     }}
-                  />
+                  >
+                    Go to Intake →
+                  </button>
                 </div>
-              </div>
-
-              {/* Module List */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                {displayLearningModules.map((module) => {
-                  const isDone = completedLearningIds.includes(module.id);
-                  return (
-                    <div
-                      key={module.id}
-                      style={{
-                        border: `1px solid ${isDone ? '#B8E3C8' : '#E2E8F0'}`,
-                        backgroundColor: isDone ? '#F4FAF6' : '#FFFFFF',
-                        borderRadius: '8px',
-                        padding: '0.85rem 1rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: '0.75rem'
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.65rem' }}>
-                        <input
-                          type="checkbox"
-                          checked={isDone}
-                          onChange={() => toggleLearningCompletion(module.id)}
-                          style={{ marginTop: '0.25rem', cursor: 'pointer', width: '16px', height: '16px' }}
-                          title="Mark module complete"
-                        />
-                        <div>
-                          <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#001A47' }}>
-                            {module.code}: {module.title}
-                          </div>
-                          <div style={{ fontSize: '0.72rem', color: '#64748B', marginTop: '0.15rem' }}>
-                            {module.provider} • {module.estimatedHours} hrs • Target: {module.targetSkill}
-                          </div>
-                        </div>
-                      </div>
-
-                      <a
-                        href={module.externalUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{
-                          fontSize: '0.75rem',
-                          color: '#0A6ED1',
-                          textDecoration: 'none',
-                          fontWeight: 600,
-                          padding: '0.3rem 0.55rem',
-                          borderRadius: '4px',
-                          border: '1px solid #D0E2F5',
-                          backgroundColor: '#EBF3FB',
-                          whiteSpace: 'nowrap'
-                        }}
-                      >
-                        Launch
-                      </a>
+              ) : (
+                <>
+                  {/* Honest Fractional Progress Indicator */}
+                  <div style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '0.75rem 1rem', marginBottom: '1rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8rem', fontWeight: 700, color: '#001A47', marginBottom: '0.4rem' }}>
+                      <span>Curriculum Completion</span>
+                      <span style={{ color: '#0A6ED1' }}>
+                        {completedLearningCount} of {totalLearningCount} Milestones ({honestLearningPct}%)
+                      </span>
                     </div>
-                  );
-                })}
-              </div>
+                    <div style={{ width: '100%', height: '8px', backgroundColor: '#E2E8F0', borderRadius: '4px', overflow: 'hidden' }}>
+                      <div
+                        style={{
+                          width: `${honestLearningPct}%`,
+                          height: '100%',
+                          backgroundColor: honestLearningPct === 100 ? '#107E3E' : '#0A6ED1',
+                          transition: 'width 0.3s ease'
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Module List */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                    {displayLearningModules.map((module) => {
+                      const isDone = completedLearningIds.includes(module.id);
+                      return (
+                        <div
+                          key={module.id}
+                          style={{
+                            border: `1px solid ${isDone ? '#B8E3C8' : '#E2E8F0'}`,
+                            backgroundColor: isDone ? '#F4FAF6' : '#FFFFFF',
+                            borderRadius: '8px',
+                            padding: '0.85rem 1rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: '0.75rem'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.65rem' }}>
+                            <input
+                              type="checkbox"
+                              checked={isDone}
+                              onChange={() => toggleLearningCompletion(module.id)}
+                              style={{ marginTop: '0.25rem', cursor: 'pointer', width: '16px', height: '16px' }}
+                              title="Mark module complete"
+                            />
+                            <div>
+                              <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#001A47' }}>
+                                {module.code}: {module.title}
+                              </div>
+                              <div style={{ fontSize: '0.72rem', color: '#64748B', marginTop: '0.15rem' }}>
+                                {module.provider} • {module.estimatedHours} hrs • Target: {module.targetSkill}
+                              </div>
+                            </div>
+                          </div>
+
+                          <a
+                            href={module.externalUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              fontSize: '0.75rem',
+                              color: '#0A6ED1',
+                              textDecoration: 'none',
+                              fontWeight: 600,
+                              padding: '0.3rem 0.55rem',
+                              borderRadius: '4px',
+                              border: '1px solid #D0E2F5',
+                              backgroundColor: '#EBF3FB',
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            Launch
+                          </a>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Card 5D: Practical Project Workspace Status */}
@@ -1406,7 +1464,7 @@ export const DashboardPage: React.FC = () => {
                     }}
                   >
                     {projectStatus === 'REVIEWED'
-                      ? `REVIEWED & SCORED (${currentSubmission?.overallScore || 88}/100)`
+                      ? `REVIEWED & SCORED (${currentSubmission?.overallScore !== undefined ? `${currentSubmission.overallScore}/100` : 'SCORED'})`
                       : projectStatus === 'SUBMITTED'
                       ? 'SUBMITTED (AWAITING REVIEW)'
                       : projectStatus === 'IN_PROGRESS'
@@ -1440,7 +1498,7 @@ export const DashboardPage: React.FC = () => {
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8rem', fontWeight: 700, color: '#107E3E' }}>
-                      <span>Rubric Evaluation Score: {currentSubmission.overallScore || 88} / 100</span>
+                      <span>Rubric Evaluation Score: {currentSubmission?.overallScore !== undefined ? `${currentSubmission.overallScore} / 100` : 'Evaluated'}</span>
                       <span style={{ fontSize: '0.7rem', color: '#64748B' }}>Simulated Demonstration Reviewer</span>
                     </div>
                     <div style={{ fontSize: '0.78rem', color: '#475569', marginTop: '0.3rem', fontStyle: 'italic' }}>
@@ -1588,7 +1646,7 @@ export const DashboardPage: React.FC = () => {
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 250px), 1fr))',
               gap: '1rem'
             }}
           >

@@ -19,6 +19,17 @@ import {
 } from '@career-orchestrator/shared';
 import { INITIAL_DEMO_SKILLS } from '../demo/demoSkills';
 import { DEMO_CAREER_ROLES, ExtendedCareerRole } from '../demo/demoCareers';
+import {
+  SessionMode,
+  loadSessionState,
+  persistSessionState,
+  createEmptySession,
+  createDemoSession,
+  BLANK_MANUAL_PROFILE,
+  ALEX_VANCE_PROFILE,
+  StoredCandidateSession,
+  DEFAULT_TARGET_ROLE_SLUG
+} from './sessionState';
 
 export interface ManualProfileData {
   fullName: string;
@@ -37,6 +48,7 @@ export interface ProjectEvidenceSubmission {
 
 interface CareerContextType {
   // Profile & Ingestion State
+  sessionMode: SessionMode;
   currentProfileId: string | null;
   setCurrentProfileId: (id: string | null) => void;
   isDemoProfileActive: boolean;
@@ -133,13 +145,17 @@ interface CareerContextType {
 const CareerContext = createContext<CareerContextType | undefined>(undefined);
 
 export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // 0. Initialize from validated candidate session storage
+  const [initialSession] = useState<StoredCandidateSession>(() => loadSessionState());
+
   // 1. Ingestion & Profile State
-  const [currentProfileId, setCurrentProfileId] = useState<string | null>('demo-profile');
-  const [isDemoProfileActive, setIsDemoProfileActive] = useState<boolean>(true);
+  const [sessionMode, setSessionMode] = useState<SessionMode>(initialSession.mode);
+  const [currentProfileId, setCurrentProfileId] = useState<string | null>(initialSession.profileId);
+  const isDemoProfileActive = sessionMode === 'DEMO';
   const [extractedTextPreview, setExtractedTextPreview] = useState<string>('');
   const [extractionWarnings, setExtractionWarnings] = useState<string[]>([]);
-  const [isRealProfileLoaded, setIsRealProfileLoaded] = useState<boolean>(false);
-  const [isRealProfileReviewed, setIsRealProfileReviewed] = useState<boolean>(true);
+  const [isRealProfileLoaded, setIsRealProfileLoaded] = useState<boolean>(initialSession.isRealProfileLoaded);
+  const [isRealProfileReviewed, setIsRealProfileReviewed] = useState<boolean>(initialSession.isRealProfileReviewed);
   const [isResettingSession, setIsResettingSession] = useState<boolean>(false);
   const [sessionResetToken, setSessionResetToken] = useState<number>(0);
   const [sessionGeneration, setSessionGeneration] = useState<number>(0);
@@ -150,27 +166,23 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const abortPendingRequests = useCallback(() => {
     if (activeAbortControllerRef.current) {
-      activeAbortControllerRef.current.abort();
+      try {
+        activeAbortControllerRef.current.abort();
+      } catch {
+        // ignore
+      }
     }
     activeAbortControllerRef.current = new AbortController();
   }, []);
 
-  const [manualProfile, setManualProfile] = useState<ManualProfileData>({
-    fullName: 'Alex Vance',
-    currentTitle: 'Senior Financial Analyst',
-    yearsExperience: 4.5,
-    education: 'Bachelor of Science in Accounting & Information Systems',
-    responsibilities:
-      'Manage general ledger journal reconciliation, statutory balance sheet audits, and SQL-based variance audits.'
-  });
-
-  const [uploadedFile, setUploadedFile] = useState<{ name: string; size: number; type: string } | null>(null);
+  const [manualProfile, setManualProfile] = useState<ManualProfileData>(initialSession.manualProfile);
+  const [uploadedFile, setUploadedFile] = useState<{ name: string; size: number; type: string } | null>(initialSession.uploadedFile);
 
   // 2. Skills State
-  const [skills, setSkills] = useState<ExtractedSkillItem[]>(INITIAL_DEMO_SKILLS);
+  const [skills, setSkills] = useState<ExtractedSkillItem[]>(initialSession.skills);
 
   // 3. Career Role Selection & Comparison
-  const [targetRoleSlug, setTargetRoleSlug] = useState<string>('sap-s4hana-finance-consultant');
+  const [targetRoleSlug, setTargetRoleSlug] = useState<string>(initialSession.targetRoleSlug || DEFAULT_TARGET_ROLE_SLUG);
   const [comparisonRoleSlugs, setComparisonRoleSlugs] = useState<string[]>([
     'sap-s4hana-finance-consultant',
     'sap-abap-cloud-developer'
@@ -252,14 +264,16 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
    */
   const fetchCareerMatches = useCallback(async (profileId?: string) => {
     const pid = profileId || currentProfileId;
-    if (!pid) return;
+    if (!pid || sessionMode === 'EMPTY') return;
 
     const curGen = sessionGenerationRef.current;
     setIsLoadingMatches(true);
     setMatchesError(null);
 
     try {
-      const res = await fetch(`/api/v1/careers/matches/${pid}`);
+      const res = await fetch(`/api/v1/careers/matches/${pid}`, {
+        signal: activeAbortControllerRef.current?.signal
+      });
       if (curGen !== sessionGenerationRef.current) return;
       if (!res.ok) {
         throw new Error(`Failed to fetch career matches (HTTP ${res.status})`);
@@ -270,6 +284,7 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setCareerMatches(data.matches);
       }
     } catch (err: unknown) {
+      if ((err as Error)?.name === 'AbortError') return;
       if (curGen !== sessionGenerationRef.current) return;
       const msg = err instanceof Error ? err.message : 'Error fetching matches';
       setMatchesError(msg);
@@ -278,40 +293,43 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setIsLoadingMatches(false);
       }
     }
-  }, [currentProfileId]);
+  }, [currentProfileId, sessionMode]);
 
   /**
    * Fetch detailed skill gap analysis for target role
    */
   const fetchSkillGaps = useCallback(async (roleSlug: string, profileId?: string) => {
     const pid = profileId || currentProfileId;
-    if (!pid) return null;
+    if (!pid || sessionMode === 'EMPTY') return null;
 
     const curGen = sessionGenerationRef.current;
     setIsLoadingGaps(true);
     try {
-      const res = await fetch(`/api/v1/careers/${roleSlug}/gaps/${pid}`);
+      const res = await fetch(`/api/v1/careers/${roleSlug}/gaps/${pid}`, {
+        signal: activeAbortControllerRef.current?.signal
+      });
       if (curGen !== sessionGenerationRef.current) return null;
       if (!res.ok) return null;
       const data = (await res.json()) as SkillGapAnalysis;
       if (curGen !== sessionGenerationRef.current) return null;
       setCurrentGapAnalysis(data);
       return data;
-    } catch {
+    } catch (err: unknown) {
+      if ((err as Error)?.name === 'AbortError') return null;
       return null;
     } finally {
       if (curGen === sessionGenerationRef.current) {
         setIsLoadingGaps(false);
       }
     }
-  }, [currentProfileId]);
+  }, [currentProfileId, sessionMode]);
 
   /**
    * Request backend to generate sequenced learning pathway
    */
   const generateLearningPathway = useCallback(async (roleSlug: string, profileId?: string) => {
     const pid = profileId || currentProfileId;
-    if (!pid) return null;
+    if (!pid || sessionMode === 'EMPTY') return null;
 
     const curGen = sessionGenerationRef.current;
     setIsLoadingPathway(true);
@@ -319,7 +337,8 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const res = await fetch('/api/v1/learning-pathways', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ profileId: pid, roleSlug })
+        body: JSON.stringify({ profileId: pid, roleSlug }),
+        signal: activeAbortControllerRef.current?.signal
       });
       if (curGen !== sessionGenerationRef.current) return null;
       if (!res.ok) return null;
@@ -327,14 +346,15 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (curGen !== sessionGenerationRef.current) return null;
       setCurrentPathway(data);
       return data;
-    } catch {
+    } catch (err: unknown) {
+      if ((err as Error)?.name === 'AbortError') return null;
       return null;
     } finally {
       if (curGen === sessionGenerationRef.current) {
         setIsLoadingPathway(false);
       }
     }
-  }, [currentProfileId]);
+  }, [currentProfileId, sessionMode]);
 
   /**
    * Compare multiple roles side-by-side
@@ -347,7 +367,8 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const res = await fetch('/api/v1/careers/compare', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ profileId: pid || undefined, roleSlugs })
+        body: JSON.stringify({ profileId: pid || undefined, roleSlugs }),
+        signal: activeAbortControllerRef.current?.signal
       });
       if (curGen !== sessionGenerationRef.current) return null;
       if (!res.ok) return null;
@@ -355,7 +376,8 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (curGen !== sessionGenerationRef.current) return null;
       setComparisonResult(data);
       return data;
-    } catch {
+    } catch (err: unknown) {
+      if ((err as Error)?.name === 'AbortError') return null;
       return null;
     } finally {
       if (curGen === sessionGenerationRef.current) {
@@ -376,12 +398,14 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         if (filters?.search) params.set('search', filters.search);
         if (filters?.difficulty) params.set('difficulty', filters.difficulty);
 
-        const res = await fetch(`/api/v1/projects?${params.toString()}`);
+        const res = await fetch(`/api/v1/projects?${params.toString()}`, {
+          signal: activeAbortControllerRef.current?.signal
+        });
         if (!res.ok) return;
         const data = await res.json();
         setProjects(data.projects || []);
-      } catch {
-        // Fallback to empty
+      } catch (err: unknown) {
+        if ((err as Error)?.name === 'AbortError') return;
       } finally {
         setIsLoadingProjects(false);
       }
@@ -396,6 +420,11 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
    */
   const fetchUserSubmissions = useCallback(
     async (profileId?: string, isDemo = false) => {
+      if (sessionMode === 'EMPTY' && !isDemo) {
+        setActiveProjectSubmissions({});
+        return;
+      }
+
       const pid = profileId !== undefined ? profileId : currentProfileId;
 
       if (!pid && !isDemo) {
@@ -404,14 +433,16 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
 
       const targetPid = isDemo ? 'demo-profile' : pid;
-      if (!targetPid || (targetPid === 'demo-profile' && !isDemo && !isDemoProfileActive)) {
+      if (!targetPid || (targetPid === 'demo-profile' && !isDemo && sessionMode !== 'DEMO')) {
         setActiveProjectSubmissions({});
         return;
       }
 
       const curGen = sessionGenerationRef.current;
       try {
-        const res = await fetch(`/api/v1/projects/submissions/${targetPid}`);
+        const res = await fetch(`/api/v1/projects/submissions/${targetPid}`, {
+          signal: activeAbortControllerRef.current?.signal
+        });
         if (curGen !== sessionGenerationRef.current) return;
         if (!res.ok) return;
         const data = await res.json();
@@ -421,44 +452,54 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           map[s.projectId] = s;
         });
         setActiveProjectSubmissions(map);
-      } catch {
-        // Fallback
+      } catch (err: unknown) {
+        if ((err as Error)?.name === 'AbortError') return;
       }
     },
-    [currentProfileId, isDemoProfileActive]
+    [currentProfileId, sessionMode]
   );
 
   const startProjectWorkspace = useCallback(
     async (projectId: string, profileId?: string) => {
       const pid = profileId || currentProfileId;
-      if (!pid) return null; // Never silently fall back to demo-profile for empty candidate!
+      if (sessionMode === 'EMPTY' || !pid) return null; // Never silently fall back to demo-profile for empty candidate!
 
+      const curGen = sessionGenerationRef.current;
       try {
         const res = await fetch(`/api/v1/projects/${projectId}/start`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ projectId, profileId: pid })
+          body: JSON.stringify({ projectId, profileId: pid }),
+          signal: activeAbortControllerRef.current?.signal
         });
+        if (curGen !== sessionGenerationRef.current) return null;
         if (!res.ok) return null;
         const data = (await res.json()) as ProjectSubmission;
+        if (curGen !== sessionGenerationRef.current) return null;
         setActiveProjectSubmissions((prev) => ({ ...prev, [projectId]: data }));
         return data;
-      } catch {
+      } catch (err: unknown) {
+        if ((err as Error)?.name === 'AbortError') return null;
         return null;
       }
     },
-    [currentProfileId]
+    [currentProfileId, sessionMode]
   );
 
   const submitProjectDeliverables = useCallback(async (input: ProjectSubmissionInput) => {
+    if (sessionMode === 'EMPTY') return null;
+    const curGen = sessionGenerationRef.current;
     try {
       const res = await fetch(`/api/v1/projects/${input.projectId}/submissions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(input)
+        body: JSON.stringify(input),
+        signal: activeAbortControllerRef.current?.signal
       });
+      if (curGen !== sessionGenerationRef.current) return null;
       if (!res.ok) return null;
       const data = (await res.json()) as ProjectSubmission;
+      if (curGen !== sessionGenerationRef.current) return null;
       setActiveProjectSubmissions((prev) => ({ ...prev, [input.projectId]: data }));
       setProjectSubmissions((prev) => ({
         ...prev,
@@ -470,23 +511,29 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
       }));
       return data;
-    } catch {
+    } catch (err: unknown) {
+      if ((err as Error)?.name === 'AbortError') return null;
       return null;
     }
-  }, []);
+  }, [sessionMode]);
 
   const reviewProjectDeliverables = useCallback(async (input: ProjectReviewInput) => {
+    const curGen = sessionGenerationRef.current;
     try {
       const res = await fetch(`/api/v1/projects/submissions/${input.submissionId}/review`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(input)
+        body: JSON.stringify(input),
+        signal: activeAbortControllerRef.current?.signal
       });
+      if (curGen !== sessionGenerationRef.current) return null;
       if (!res.ok) return null;
       const data = (await res.json()) as ProjectSubmission;
+      if (curGen !== sessionGenerationRef.current) return null;
       setActiveProjectSubmissions((prev) => ({ ...prev, [data.projectId]: data }));
       return data;
-    } catch {
+    } catch (err: unknown) {
+      if ((err as Error)?.name === 'AbortError') return null;
       return null;
     }
   }, []);
@@ -496,6 +543,10 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
    */
   const fetchReadinessScorecard = useCallback(
     async (roleSlug?: string, profileId?: string) => {
+      if (sessionMode === 'EMPTY') {
+        setReadinessScorecard(null);
+        return null;
+      }
       const targetSlug = roleSlug || targetRoleSlug;
       const pid = profileId || currentProfileId;
       if (!pid) {
@@ -510,14 +561,21 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           completedLearningIds.length > 0
             ? `?completedMilestones=${completedLearningIds.join(',')}`
             : '';
-        const res = await fetch(`/api/v1/readiness/${pid}/${targetSlug}${completedQuery}`);
+        const res = await fetch(`/api/v1/readiness/${pid}/${targetSlug}${completedQuery}`, {
+          signal: activeAbortControllerRef.current?.signal
+        });
         if (curGen !== sessionGenerationRef.current) return null;
-        if (!res.ok) return null;
+        if (!res.ok) {
+          setReadinessScorecard(null);
+          return null;
+        }
         const data = (await res.json()) as CareerReadinessScorecard;
         if (curGen !== sessionGenerationRef.current) return null;
         setReadinessScorecard(data);
         return data;
-      } catch {
+      } catch (err: unknown) {
+        if ((err as Error)?.name === 'AbortError') return null;
+        setReadinessScorecard(null);
         return null;
       } finally {
         if (curGen === sessionGenerationRef.current) {
@@ -525,7 +583,7 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         }
       }
     },
-    [targetRoleSlug, currentProfileId, completedLearningIds]
+    [targetRoleSlug, currentProfileId, completedLearningIds, sessionMode]
   );
 
   /**
@@ -534,21 +592,29 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const fetchJobSearchLinks = useCallback(
     async (roleSlug?: string, options?: { location?: string; keywords?: string }) => {
       const targetSlug = roleSlug || targetRoleSlug;
+      const curGen = sessionGenerationRef.current;
       setIsLoadingJobs(true);
       try {
         const params = new URLSearchParams();
         if (options?.location) params.set('location', options.location);
         if (options?.keywords) params.set('keywords', options.keywords);
 
-        const res = await fetch(`/api/v1/jobs/search-links/${targetSlug}?${params.toString()}`);
+        const res = await fetch(`/api/v1/jobs/search-links/${targetSlug}?${params.toString()}`, {
+          signal: activeAbortControllerRef.current?.signal
+        });
+        if (curGen !== sessionGenerationRef.current) return null;
         if (!res.ok) return null;
         const data = (await res.json()) as RoleJobSearchResponse;
+        if (curGen !== sessionGenerationRef.current) return null;
         setJobSearchData(data);
         return data;
-      } catch {
+      } catch (err: unknown) {
+        if ((err as Error)?.name === 'AbortError') return null;
         return null;
       } finally {
-        setIsLoadingJobs(false);
+        if (curGen === sessionGenerationRef.current) {
+          setIsLoadingJobs(false);
+        }
       }
     },
     [targetRoleSlug]
@@ -557,21 +623,29 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // Initial load of projects catalogue; only load demo submissions if demo profile is active
   useEffect(() => {
     fetchProjects();
-    if (isDemoProfileActive) {
+    if (sessionMode === 'DEMO') {
       fetchUserSubmissions('demo-profile', true);
+    } else if (sessionMode === 'REAL_PROFILE' && currentProfileId) {
+      fetchUserSubmissions(currentProfileId);
+      if (isRealProfileReviewed) {
+        fetchCareerMatches(currentProfileId);
+        fetchReadinessScorecard(targetRoleSlug, currentProfileId);
+      }
     }
-  }, [fetchProjects, isDemoProfileActive]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [fetchProjects, sessionMode]); // eslint-disable-line react-hooks/exhaustive-deps // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleUploadSuccess = (res: ResumeUploadResponse) => {
-    setCurrentProfileId(res.profileId);
-    setIsDemoProfileActive(false);
-    setUploadedFile({
+    const fileMeta = {
       name: res.filename,
       size: res.fileSizeBytes,
       type: res.filename.toLowerCase().endsWith('.docx')
         ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
         : 'application/pdf'
-    });
+    };
+
+    setSessionMode('REAL_PROFILE');
+    setCurrentProfileId(res.profileId);
+    setUploadedFile(fileMeta);
     setExtractedTextPreview(res.extractedTextPreview);
     setExtractionWarnings(res.warnings);
     setSkills(res.suggestedSkills);
@@ -583,11 +657,38 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setCurrentGapAnalysis(null);
     setCurrentPathway(null);
     setReadinessScorecard(null);
+
+    persistSessionState({
+      version: 1,
+      mode: 'REAL_PROFILE',
+      profileId: res.profileId,
+      manualProfile: { ...BLANK_MANUAL_PROFILE },
+      skills: res.suggestedSkills,
+      uploadedFile: fileMeta,
+      isRealProfileLoaded: true,
+      isRealProfileReviewed: false,
+      targetRoleSlug,
+      completedLearningIds: []
+    });
   };
 
   const handleReviewSuccess = (res: ProfileReviewResponse) => {
     setSkills(res.confirmedSkills);
     setIsRealProfileReviewed(true);
+
+    persistSessionState({
+      version: 1,
+      mode: 'REAL_PROFILE',
+      profileId: res.profileId || currentProfileId,
+      manualProfile,
+      skills: res.confirmedSkills,
+      uploadedFile,
+      isRealProfileLoaded: true,
+      isRealProfileReviewed: true,
+      targetRoleSlug,
+      completedLearningIds
+    });
+
     if (res.profileId && res.profileId !== 'demo-profile') {
       fetchCareerMatches(res.profileId);
       fetchUserSubmissions(res.profileId);
@@ -611,7 +712,8 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (pid && pid !== 'demo-profile') {
       try {
         const res = await fetch(`/api/v1/profile/${pid}`, {
-          method: 'DELETE'
+          method: 'DELETE',
+          signal: activeAbortControllerRef.current?.signal
         });
         // 200 is success, 404 is acceptable (already purged), 500 or others is a real failure
         if (!res.ok && res.status !== 404) {
@@ -619,7 +721,9 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           backendError = errJson.message || `Backend responded with HTTP ${res.status}`;
         }
       } catch (err: unknown) {
-        backendError = err instanceof Error ? err.message : 'Network error during backend deletion';
+        if ((err as Error)?.name !== 'AbortError') {
+          backendError = err instanceof Error ? err.message : 'Network error during backend deletion';
+        }
       }
     }
 
@@ -628,21 +732,18 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return { success: false, error: backendError };
     }
 
+    // Persist explicit EMPTY session
+    setSessionMode('EMPTY');
+    persistSessionState(createEmptySession());
+
     // Reset all context state to pure empty intake
     setCurrentProfileId(null);
-    setIsDemoProfileActive(false);
     setUploadedFile(null);
     setExtractedTextPreview('');
     setExtractionWarnings([]);
     setIsRealProfileLoaded(false);
     setIsRealProfileReviewed(false);
-    setManualProfile({
-      fullName: '',
-      currentTitle: '',
-      yearsExperience: 0,
-      education: '',
-      responsibilities: ''
-    });
+    setManualProfile({ ...BLANK_MANUAL_PROFILE });
     setSkills([]); // EMPTY array (zero skills)
     setCareerMatches([]);
     setMatchesError(null);
@@ -654,7 +755,7 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setActiveProjectSubmissions({}); // Zero project submissions
     setReadinessScorecard(null);
     setJobSearchData(null);
-    setTargetRoleSlug('sap-s4hana-finance-consultant');
+    setTargetRoleSlug(DEFAULT_TARGET_ROLE_SLUG);
     setComparisonRoleSlugs([
       'sap-s4hana-finance-consultant',
       'sap-abap-cloud-developer'
@@ -687,23 +788,18 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const loadDemoBaseline = () => {
     abortPendingRequests();
 
+    setSessionMode('DEMO');
+    persistSessionState(createDemoSession());
+
     setCurrentProfileId('demo-profile');
-    setIsDemoProfileActive(true);
     setUploadedFile(null);
     setExtractedTextPreview('');
     setExtractionWarnings([]);
-    setManualProfile({
-      fullName: 'Alex Vance',
-      currentTitle: 'Senior Financial Analyst',
-      yearsExperience: 4.5,
-      education: 'Bachelor of Science in Accounting & Information Systems',
-      responsibilities:
-        'Manage general ledger journal reconciliation, statutory balance sheet audits, and SQL-based variance audits.'
-    });
-    setSkills(INITIAL_DEMO_SKILLS);
+    setManualProfile({ ...ALEX_VANCE_PROFILE });
+    setSkills([...INITIAL_DEMO_SKILLS]);
     setIsRealProfileLoaded(false);
     setIsRealProfileReviewed(true);
-    setTargetRoleSlug('sap-s4hana-finance-consultant');
+    setTargetRoleSlug(DEFAULT_TARGET_ROLE_SLUG);
     setComparisonRoleSlugs([
       'sap-s4hana-finance-consultant',
       'sap-abap-cloud-developer'
@@ -858,6 +954,7 @@ export const CareerProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   return (
     <CareerContext.Provider
       value={{
+        sessionMode,
         currentProfileId,
         setCurrentProfileId,
         isDemoProfileActive,

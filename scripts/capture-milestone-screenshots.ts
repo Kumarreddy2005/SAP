@@ -51,7 +51,7 @@ async function main() {
   await sleep(2000);
 
   console.log('Starting frontend preview server on port 4173...');
-  const frontendProc = spawn('npx', ['vite', 'preview', 'apps/frontend', '--port', '4173'], {
+  const frontendProc = spawn('npx', ['vite', 'preview', 'apps/frontend', '--port', '4173', '--strictPort'], {
     stdio: 'inherit',
     shell: true
   });
@@ -61,8 +61,9 @@ async function main() {
   try {
     // === DESKTOP SCREENSHOTS (1280x850) ===
     console.log('\n--- Capturing Desktop Screenshots (1280x850) ---');
-    // 00. Executive Dashboard
-    await takeScreenshot('http://localhost:4173/dashboard', '00-dashboard-desktop.png', 1280, 850);
+    // 00. Executive Dashboard (Demo & Empty Modes)
+    await takeScreenshot('http://localhost:4173/dashboard?mode=empty', '00-dashboard-empty-desktop.png', 1280, 850);
+    await takeScreenshot('http://localhost:4173/dashboard?mode=demo', '00-dashboard-desktop.png', 1280, 850);
 
     // 01. Landing Page
     await takeScreenshot('http://localhost:4173/', '01-landing-page.png', 1280, 850);
@@ -99,7 +100,8 @@ async function main() {
 
     // === MOBILE RESPONSIVENESS AUDIT (375x812) ===
     console.log('\n--- Capturing Mobile Screenshots (375x812) ---');
-    await takeScreenshot('http://localhost:4173/dashboard', 'mobile-00-dashboard.png', 375, 812);
+    await takeScreenshot('http://localhost:4173/dashboard?mode=empty', 'mobile-00-dashboard-empty.png', 375, 812);
+    await takeScreenshot('http://localhost:4173/dashboard?mode=demo', 'mobile-00-dashboard.png', 375, 812);
     await takeScreenshot('http://localhost:4173/', 'mobile-01-landing.png', 375, 812);
     await takeScreenshot('http://localhost:4173/profile', 'mobile-02-profile.png', 375, 812);
     await takeScreenshot('http://localhost:4173/skills-review', 'mobile-03-skills-review.png', 375, 812);
